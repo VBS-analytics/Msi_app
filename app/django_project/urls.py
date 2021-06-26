@@ -20,7 +20,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 
 urlpatterns = [
-    path('msi/',include('django_app.urls')),
+    path('',include('django_app.urls')),
 ]
 
 if settings.DEBUG:

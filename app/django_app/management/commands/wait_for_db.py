@@ -1,5 +1,7 @@
 import time
 
+# import psycopg2OperationalError as psyerror
+# import django.db.utils.OperationalError as OperationalError
 from psycopg2 import OperationalError as Psycopg2OpError
 
 from django.db.utils import OperationalError
@@ -13,7 +15,10 @@ class Command(BaseCommand):
             try:
                 self.check(self,['default'])
                 db_up=True
-            except (Psycopg2OpError, OperationalError, AttributeError):
+            except Psycopg2OpError:
+                self.stdout.write('Database unavailable, waiting 1 second..')
+                time.sleep(1)
+            except OperationalError:
                 self.stdout.write('Database unavailable, waiting 1 second..')
                 time.sleep(1)
 

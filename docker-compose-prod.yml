@@ -1,0 +1,49 @@
+version: '3.9'
+
+services: 
+  app:
+    build:
+      context: .
+    restart: always
+    volumes:
+      - static-data:/vol/web
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - CDB_HOST=${CDB_HOST}
+      - CDB_NAME=${CDB_NAME}
+      - CDB_USER=${CDB_USER}
+      - CDB_PASS=${CDB_PASS}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOST=${ALLOWED_HOSTS}
+    depends_on:
+      - db
+  
+
+  db:
+    image: postgres:13-alpine
+    restart: always
+    volumes: 
+      - postgres-data:/var/lib/postgres/data
+    environment: 
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+  
+  
+  proxy:
+    build:
+      context: ./proxy
+    restart: always
+    depends_on: 
+      - app
+    ports:
+      - 8001:8000
+    volumes: 
+      - static-data:/vol/assets
+
+volumes: 
+  postgres-data:
+  static-data:

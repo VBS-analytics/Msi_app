@@ -18,6 +18,9 @@ from pandas import DataFrame, Series
 
 from itertools import chain
 
+import sys
+
+
 
 # add condition row
 def get_condition_rows(columns,indx):
@@ -90,6 +93,7 @@ def get_filter_rows(table_names,columns):
 )
 def update_filter_div(data,childs):
     if data is not None:
+        
         return data['filter_rows']
     else:
         return childs
@@ -108,7 +112,7 @@ def update_filter_div(data,childs):
 def update_filters_condition_div(n_clicks,childs,trans_columns):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-
+    
     if triggred_compo == 'filters-add-condition' and n_clicks is not None:
         indx = n_clicks + 1
         condition_row = get_condition_rows(trans_columns,indx)
@@ -208,13 +212,111 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
         State({'type':'filters-column-names','index':MATCH}, 'value'),
         
         State('relationship-data','data'),
+        State('retrived-data','data'),
     ]
 )
-def update_multi_drop_or_text(value,id,childs,column_name,relation_data):
+def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data):
     indx = id['index']
 
-    if value is not None and relation_data['table'] == []:
-        return childs
+    # sys.stderr.write(str(indx))
+    # print(f"\n{str(indx)}",flush=True)
+    # print(f"\n{str(ret_data)}",flush=True)
+
+    # textfile = open("example.txt", "w")
+    # a = textfile.write(str(ret_data))
+    # textfile.close()
+
+    if value is not None and ret_data is not None:
+        dat_rows = ret_data['filter_rows'][2]['props']['children']
+        lnth = len(dat_rows)
+        
+        for i in range(lnth):
+            try:
+                idx = dat_rows[i]['props']['children'][2]['props']['id']['index']
+                # sys.stderr.write(str(dat_rows[i]['props']['children'][2]))
+                # print(str(dat_rows[i]['props']['children'][2]),flush=True)
+
+                if idx == indx:
+                    return dat_rows[i]['props']['children'][2]
+            except:
+                pass
+        
+        if value in ['<','<=','==','>=','>','!=']:
+            return Textarea(id={"type":'trans-text','index':indx},\
+                persistence=True,value=None)
+
+        elif value in ['starts with','contains','ends with']:
+            return Textarea(id={"type":'trans-text','index':indx},\
+                persistence=True,value=None)
+
+        elif value in ['has value(s)'] and relation_data['table']!=[]:
+            
+            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            # print(f"columns .. {df1.columns}")
+
+            if type(df1) is Series:
+                col=df1.unique()
+            else:
+                col=df1[column_name].unique
+            return Dropdown(id={"type":'trans-multi-text','index':indx},
+                        options=[{'label':i,'value':i} for i in col],
+                        multi=True,
+                        persistence=True,
+                    )
+        
+        elif value in ['days'] and relation_data['table']!=[]:
+            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+
+            max_dt = df1.max()
+            min_dt = df1.min()
+
+            return Row([
+                Col(TextInput(id={'type':'trans-input','index':indx},persistence=True,
+                value=None)),
+
+                Col([
+                    DatePickerSingle(
+                        id={'type':'trans-days-single','index':indx},
+                        placeholder='mm/dd/YYYY',
+                        min_date_allowed=min_dt,
+                        max_date_allowed=max_dt,
+                    ),
+
+                    Checklist(
+                        id={'type':'trans-use-current-date','index':indx},
+                        options=[
+                            {'label': 'Use current sys date', 'value': 'Use'},
+                        ],
+                        value=[]
+                    ),
+                ])
+            ]) 
+        
+        elif value in ['before','after','equals','not'] and relation_data['table']!=[]:
+            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+
+            max_dt = df1.max()
+            min_dt = df1.min()
+
+            return DatePickerSingle(
+                id={'type':'trans-date-single','index':indx},
+                placeholder='mm/dd/YYYY',
+                min_date_allowed=min_dt,
+                max_date_allowed=max_dt,
+            )
+        
+        elif value in ['range'] and relation_data['table']!=[]:
+            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            max_dt = df1.max()
+            min_dt = df1.min()
+
+            return DatePickerRange(
+                id={'type':'trans-date-range','index':indx},
+                min_date_allowed=min_dt,
+                max_date_allowed=max_dt,
+            )
+        else:
+            return None
 
     elif value is not None and relation_data['table'] != []:
         
@@ -1024,7 +1126,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
                 df = df.rename(columns=z)
                 table_data_format=df.to_dict('records')
                 table_columns_format=[{"name": c, "id": c} for c in df.columns]
-                print(f"format map {df.columns}")
+                #print(f"format map {df.columns}")
                 return rel_tbl_data,rel_tbl_col,table_data_format,table_columns_format,\
                     data,columns, relationship_data,rows,trans_col,trans_fil_condi,\
                     csv_string,filters_data,table_row

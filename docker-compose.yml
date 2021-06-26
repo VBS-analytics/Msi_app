@@ -1,5 +1,5 @@
 version: '3.9'
-
+# uwsgi --http :8000 --module django_project.wsgi
 services:
   app:
     build:
@@ -12,10 +12,11 @@ services:
         - ./data/web:/vol/web
     command: >
       sh -c "python manage.py wait_for_db &&
+             python manage.py makemigrations &&
              python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             uwsgi --http :8000 --manage-script-name --module django_project.wsgi"
     environment: 
-      - DEBUG=1
+      - DEBUG=0
       - SECRET_KEY=osthesecret
       - DB_HOST=db
       - DB_NAME=devdb
@@ -25,6 +26,7 @@ services:
       - CDB_NAME=clientdb
       - CDB_USER=vbs-dsk0098
       - CDB_PASS=Admin@optiplex
+      - ALLOWED_HOSTS=127.0.0.1
     depends_on:
       - db
 

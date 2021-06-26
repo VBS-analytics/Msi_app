@@ -2,7 +2,7 @@ import mimetypes
 
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.clickjacking import xframe_options_exempt
+# from django.views.decorators.clickjacking import xframe_options_exempt
 
 from .server import server
 
@@ -33,10 +33,10 @@ def dispatcher(request):
 @csrf_exempt
 def dash_json(request, **kwargs):
     """Handle Dash JSON API requests"""
-    print(request.get_full_path())
+    #flaprint(request.get_full_path())
     return HttpResponse(dispatcher(request), content_type='application/json')
 
-@xframe_options_exempt
+# @xframe_options_exempt
 def dash_index(request, **kwargs):
     """Handle Dash CSS requests"""
     return HttpResponse(dispatcher(request), content_type='text/html')
