@@ -142,5 +142,5 @@ def relationship_tab():
                         )
                     )
                 )
-            ,className='pretty_container nine columns'),
+            ,className='pretty_container nine columns',id='relationship-table-div'),
     ]

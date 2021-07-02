@@ -23,7 +23,9 @@ def get_table_names(session_id):
     db_address=host #for linux enter host ip
     pwd=os.environ.get('CDB_PASS')
     db_user=os.environ.get('CDB_USER')
-    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:3306/vscrmnew'
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
     db_connection = create_engine(db_connection_str)
     DB_TABLE_NAMES = db_connection.table_names()
     db_connection=db_connection.dispose()
@@ -38,9 +40,11 @@ def get_join_dataframe(table_name):
     db_address=host #for linux enter host ip
     pwd=os.environ.get('CDB_PASS')
     db_user=os.environ.get('CDB_USER')
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
 
     sql_qry = f'SELECT *from {table_name}'
-    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:3306/vscrmnew'
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
     db_connection = create_engine(db_connection_str)
     df1 = read_sql(sql_qry, con=db_connection)
     df3 = read_sql(f'DESC {table_name};',con=db_connection)
@@ -364,7 +368,9 @@ def get_column_values(table_name,column_name):
     db_address=host #for linux enter host ip
     pwd=os.environ.get('CDB_PASS')
     db_user=os.environ.get('CDB_USER')
-    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:3306/vscrmnew'
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
     db_connection = create_engine(db_connection_str)
     table_name = table_name['table'][0]
     df1 = read_sql(f'SELECT {column_name} FROM {table_name}', con=db_connection)
@@ -567,7 +573,9 @@ def get_columns(table_name):
     db_address=host #for linux enter host ip
     pwd=os.environ.get('CDB_PASS')
     db_user=os.environ.get('CDB_USER')
-    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:3306/vscrmnew'
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
     db_connection = create_engine(db_connection_str)
     df1 = read_sql(f'SELECT * FROM {table_name} LIMIT 1', con=db_connection)
     db_connection=db_connection.dispose()
@@ -586,7 +594,9 @@ def get_table_from_db(table_name):
     db_address=host #for linux enter host ip
     pwd=os.environ.get('CDB_PASS')
     db_user=os.environ.get('CDB_USER')
-    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:3306/vscrmnew'
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
     db_connection = create_engine(db_connection_str)
     sql_qry = f'SELECT * FROM {table_name}'
     df1 = read_sql(f'SELECT * FROM {table_name}', con=db_connection)

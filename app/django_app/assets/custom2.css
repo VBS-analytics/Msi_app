@@ -21,6 +21,8 @@
   .dropdown-toggle{ 
     -webkit-appearance: none;
   }
+
+  .relationship-table-div .row { display: block; margin: 0; }
   /* .column,
   .columns {
     width: 100%;
