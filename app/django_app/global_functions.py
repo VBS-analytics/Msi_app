@@ -12,6 +12,8 @@ import io
 import base64
 import os
 
+import sys
+
 # get table names
 def get_table_names(session_id):
     host=os.environ.get('CDB_HOST')
@@ -83,34 +85,6 @@ def check_if_all_none(list_of_elem):
             return False
     return result
 
-# Returns wheather a join is success or failure.
-def get_join_main(d,sql_qry):
-    temp_dfs = []
-    result = check_if_all_none(sql_qry)
-            
-    if result:
-        temp_dfs.append(get_joined_table(d,None))
-    else:
-        stats = False
-        for i in sql_qry:
-            if type(i) is dict:
-                if i['table_names'][0].find('/') > -1 and temp_dfs!=[]:
-                    temp_dfs.append(get_joined_table(i, temp_dfs[-1]))
-                else:
-                    temp_dfs.append(get_joined_table(i,None))
-                
-                if type(i) is dict:
-                    if d['table_names'] == i['table_names']:
-                        stats = True
-        
-
-        if stats is False:
-            temp_dfs.append(get_joined_table(d,temp_dfs[-1]))
-        
-    if temp_dfs[-1].shape[0] > 0:
-        return 'Success', list(temp_dfs[-1].columns)
-    else:
-        return 'Error', []
 
 
 
@@ -153,6 +127,38 @@ def get_joined_table(d,dd):
         df_left=0
         df_right=0
         return ddf
+
+# Returns wheather a join is success or failure.
+def get_join_main(d,sql_qry):
+    temp_dfs = []
+    result = check_if_all_none(sql_qry)
+            
+    if result:
+        temp_dfs.append(get_joined_table(d,None))
+    else:
+        stats = False
+        for i in sql_qry:
+            if type(i) is dict:
+                if i['table_names'][0].find('/') > -1 and temp_dfs!=[]:
+                    temp_dfs.append(get_joined_table(i, temp_dfs[-1]))
+                else:
+                    temp_dfs.append(get_joined_table(i,None))
+                
+                if type(i) is dict:
+                    if d['table_names'] == i['table_names']:
+                        stats = True
+        
+
+        if stats is False:
+            temp_dfs.append(get_joined_table(d,temp_dfs[-1]))
+        
+    # sys.stderr.write(str(y))
+   
+
+    if temp_dfs[-1].shape[0] > 0:
+        return 'Success', list(temp_dfs[-1].columns)
+    else:
+        return 'Error', []
 
 # return table for the frontend.
 def get_table_from_sql_query(sql_qry):
@@ -538,9 +544,15 @@ def get_format_mapping(relation_data,format_data,fil_condi,col):
             if condi is not None:
                 df1=df1[condi]
             if list(columns_select) != []:
-                df1=df1[list(columns_select)]
+                df1=df1[list(columns_select)] #select or drop filter applied
+        
+        # sys.stderr.write(str(df1.columns))
+        # sys.stderr.write(str(colm_nms))
+        # print(df1.columns,flush=True)
+        # print(colm_nms,flush=True)
+        formt_colms = list(set(colm_nms))
 
-        df1=df1[colm_nms].head(10)
+        df1=df1[formt_colms].head(10)
         return df1, download_data
     else:
         return None, None

@@ -1,6 +1,6 @@
 import os
 from dash.dependencies import Output, Input
-from dash_core_components import Location
+from dash_core_components import Location, Loading
 from dash_html_components import Div,A, I, Br, H5, P, Img
 from dash_bootstrap_components import Row, Col, Collapse, NavbarToggler, Navbar,\
     NavbarBrand, Nav, NavItem, Modal, ModalHeader, ModalBody, ModalFooter, Card,\
@@ -14,7 +14,7 @@ from . import router
 # from .server import app
 
 
-app.layout = Div(children=[
+app.layout = Loading(type='circle',children=[Div(children=[
     Div(id="output-clientside"),
     
     Navbar([
@@ -71,4 +71,4 @@ app.layout = Div(children=[
     ]),
     Br(),
     Div(id='content',style={"display": "flex", "flex-direction": "column"}),
-],id="mainContainer",style={"display": "flex", "flex-direction": "column"})
+],id="mainContainer",style={"display": "flex", "flex-direction": "column"})])

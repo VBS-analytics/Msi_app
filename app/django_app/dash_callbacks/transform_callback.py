@@ -1055,12 +1055,12 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
                 # df = df.fillna('None')
                 if df is not None:
                     z={}
-                    [z.update({j:i}) for i,j in ret_data['format_map_data'].items()]
+                    [z.update({i:df[j]}) for i,j in ret_data['format_map_data'].items()]
 
                     # trans_col = {}
                     # [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
 
-                    df = df.rename(columns=z)
+                    df = DataFrame(z)
                     table_data_format=df.to_dict('records')
                     table_columns_format=[{"name": c, "id": c} for c in df.columns]
 
@@ -1117,13 +1117,17 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
             # df = df.fillna('None')
             if df is not None:
                 z={}
-                [z.update({j:i}) for i,j in format_data.items()]
+                [z.update({i:df[j]}) for i,j in format_data.items()]
                 
 
                 # trans_col = {}
                 # [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+                # sys.stderr.write(str(df.columns))
+                # sys.stderr.write(str(z))
+                # print(f"\n{df.columns}",flush=True)
+                # print(f"\n{}",flush=True)
 
-                df = df.rename(columns=z)
+                df = DataFrame(z)
                 table_data_format=df.to_dict('records')
                 table_columns_format=[{"name": c, "id": c} for c in df.columns]
                 #print(f"format map {df.columns}")

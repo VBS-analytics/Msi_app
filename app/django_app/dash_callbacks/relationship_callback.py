@@ -11,7 +11,7 @@ from ..global_functions import get_columns, get_join_main
 
 import json
 from .. models import MsiFilters
-
+import sys
 import regex
 import ast 
 
@@ -492,11 +492,19 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
     if n_clicks is not None and value_l is not None and value_r is not None and\
         join_value is not None:
 
+        compo_id  = id_rel['index']
+        for i in sql_qry:
+            if i is not None:
+                if i['compo_id'] == compo_id:
+                    sql_qry.remove(i)
+                    
+
         d = {
             'table_names':[tbl_l,tbl_r],
             'join':join_value,
             'join_on':[value_l,value_r],
-            'col_list':[]
+            'col_list':[],
+            'compo_id':compo_id,
         }
 
         data,col_list = get_join_main(d,sql_qry)
@@ -512,10 +520,14 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
                 y=app.get_asset_url('sql-join-right-icon.png')
             elif join_value == 'outer':
                 y=app.get_asset_url('sql-join-outer-icon.png')
+        elif data == 'Error':
+            y = app.get_asset_url('sql-join-icon.png')
         
         rel_icon={'props':{'src':y},
                             'type':'Img',
                             'namespace':'dash_html_components'}
+    
+        
         
         return d, rel_icon, data
     else:
