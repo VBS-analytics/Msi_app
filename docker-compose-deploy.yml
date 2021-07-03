@@ -20,6 +20,9 @@ services:
       - CDB_PASS=${CDB_PASS}
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    networks:
+      vpcbr:
+        ipv4_address: 172.21.12.17
     depends_on:
       - db
   
@@ -33,7 +36,18 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
+    networks:
+      vpcbr:
+        ipv4_address: 172.21.12.18
 
 volumes: 
   postgres-data:
   static-data:
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.12.0/24
+          geteway: 172.21.12.1

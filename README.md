@@ -19,3 +19,8 @@ sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf
 [mysqld]
 bind-address = 0.0.0.0
 sudo systemctl restart mysql.service
+
+### For gettings the docker IP
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 9cfa26373293
+`9cfa26373293` is the container id '172.22.0.3'
+172.23.0.3

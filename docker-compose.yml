@@ -24,11 +24,15 @@ services:
       - DB_NAME=devdb
       - DB_USER=devuser
       - DB_PASS=devpass
-      - CDB_HOST=172.17.0.1
-      - CDB_NAME=clientdb
+      - CDB_HOST=172.21.12.188
+      - CDB_NAME=vscrmnew
       - CDB_USER=vbs-dsk0098
       - CDB_PASS=Admin@optiplex
       - ALLOWED_HOSTS=127.0.0.1
+      - CDB_PORT=3306
+    networks:
+      vpcbr:
+        ipv4_address: 172.21.12.17
     depends_on:
       - db
 
@@ -38,3 +42,15 @@ services:
       - POSTGRES_DB=devdb
       - POSTGRES_USER=devuser
       - POSTGRES_PASSWORD=devpass
+    networks:
+      vpcbr:
+        ipv4_address: 172.21.12.18
+  
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.12.0/24
+          geteway: 172.21.12.1
