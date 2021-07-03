@@ -31,7 +31,7 @@ services:
       - ALLOWED_HOSTS=127.0.0.1
       - CDB_PORT=3306
     networks:
-      vpcbr:
+      msi_ip:
         ipv4_address: 172.21.12.17
     depends_on:
       - db
@@ -43,14 +43,14 @@ services:
       - POSTGRES_USER=devuser
       - POSTGRES_PASSWORD=devpass
     networks:
-      vpcbr:
+      msi_ip:
         ipv4_address: 172.21.12.18
   
 
 networks:
-  vpcbr:
+  msi_ip:
     driver: bridge
     ipam:
+      driver: default
       config:
         - subnet: 172.21.12.0/24
-          geteway: 172.21.12.1

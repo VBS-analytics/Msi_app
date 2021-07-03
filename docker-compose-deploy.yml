@@ -21,7 +21,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
     networks:
-      vpcbr:
+      msi_network:
         ipv4_address: 172.21.12.17
     depends_on:
       - db
@@ -37,7 +37,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
     networks:
-      vpcbr:
+      msi_network:
         ipv4_address: 172.21.12.18
 
 volumes: 
@@ -45,9 +45,9 @@ volumes:
   static-data:
 
 networks:
-  vpcbr:
+  msi_network:
     driver: bridge
+    driver: default
     ipam:
       config:
         - subnet: 172.21.12.0/24
-          geteway: 172.21.12.1
