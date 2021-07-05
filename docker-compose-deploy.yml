@@ -22,7 +22,7 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
     networks:
       msi_network:
-        ipv4_address: 172.21.12.19
+        ipv4_address: 172.21.12.17
     depends_on:
       - db
   
