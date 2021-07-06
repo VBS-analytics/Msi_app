@@ -8,8 +8,8 @@ services:
     ports:
       - 8000:8000
     volumes:
-        - ./app:/app
-        - ./data/web:/vol/web
+      - ./app:/app
+      - ./data/web:/vol/web
     command: >
       sh -c "python manage.py wait_for_db &&
       python manage.py makemigrations &&
@@ -32,7 +32,7 @@ services:
       - CDB_PORT=3306
     networks:
       msi_ip:
-        ipv4_address: 172.21.12.17
+        ipv4_address: 172.0.3.19
     depends_on:
       - db
 
@@ -44,7 +44,7 @@ services:
       - POSTGRES_PASSWORD=devpass
     networks:
       msi_ip:
-        ipv4_address: 172.21.12.18
+        ipv4_address: 172.0.3.20
   
 
 networks:
@@ -52,4 +52,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.21.12.0/24
+        - subnet: 172.0.3.0/24
