@@ -48,6 +48,5 @@ networks:
   msi_network:
     driver: bridge
     ipam:
-      driver: default
       config:
         - subnet: 172.0.3.0/24
