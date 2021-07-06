@@ -6,7 +6,7 @@ services:
       context: .
     restart: always
     ports:
-      - 8001:8000
+      - 80:8000
     volumes:
       - static-data:/vol/web
     environment:
@@ -22,7 +22,7 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
     networks:
       msi_network:
-        ipv4_address: 172.21.12.17
+        ipv4_address: 172.0.3.19
     depends_on:
       - db
   
@@ -38,7 +38,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
     networks:
       msi_network:
-        ipv4_address: 172.21.12.18
+        ipv4_address: 172.0.3.20
 
 volumes: 
   postgres-data:
@@ -50,4 +50,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 172.21.12.0/24
+        - subnet: 172.0.3.0/24
