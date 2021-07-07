@@ -26,6 +26,8 @@ def get_table_names():
     db_port=os.environ.get('CDB_PORT')
     db_name=os.environ.get('CDB_NAME')
     db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
+    sys.stderr.write(str(db_connection_str))
+    print(f"\n{str(db_connection_str)}",flush=True)
     db_connection = create_engine(db_connection_str)
     DB_TABLE_NAMES = db_connection.table_names()
     db_connection=db_connection.dispose()
