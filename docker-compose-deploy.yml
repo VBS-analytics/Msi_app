@@ -20,6 +20,7 @@ services:
       - CDB_PASS=${CDB_PASS}
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CDB_PORT=${CDB_PORT}
     networks:
       msi_network:
         ipv4_address: 172.0.3.19
