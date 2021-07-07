@@ -90,8 +90,6 @@ def check_if_all_none(list_of_elem):
     return result
 
 
-
-
 def get_joined_table(d,dd):
 
     if type(dd) is DataFrame:
