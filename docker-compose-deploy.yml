@@ -21,9 +21,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - CDB_PORT=${CDB_PORT}
-    networks:
-      msi_network:
-        ipv4_address: 172.0.3.19
+
     depends_on:
       - db
   
@@ -37,17 +35,7 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
-    networks:
-      msi_network:
-        ipv4_address: 172.0.3.20
 
 volumes: 
   postgres-data:
   static-data:
-
-networks:
-  msi_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.0.3.0/24
