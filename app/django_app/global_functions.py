@@ -15,7 +15,7 @@ import os
 import sys
 
 # get table names
-def get_table_names(session_id):
+def get_table_names():
     host=os.environ.get('CDB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']

@@ -22,7 +22,7 @@ def index():
     
     session_id = str(uuid.uuid4())
     if session_id is not None:
-        db_table_names = get_table_names(session_id)
+        db_table_names = get_table_names()
         return [            
                 Store(id='db-table-names',data=db_table_names),
                 Store(id='relationship-data',data=dict(table=[],columns=None,saved_data=False)),
