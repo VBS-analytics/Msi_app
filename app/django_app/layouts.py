@@ -2,22 +2,21 @@ from dash_core_components import Store
 from dash_bootstrap_components import Tabs, Tab
 from .global_functions import get_table_names
 
-lazy_import = None
+
 def index():
-    global lazy_import
-    if lazy_import is None:
-        import uuid
-        
-        '''importing the layouts'''
-        from .dash_layouts.relationship_layout import relationship_tab
-        from .dash_layouts.transformations_layout import transform_tab
-        from .dash_layouts.formatmapping_layout import formatmap_tab
+    
+    import uuid
+    
+    '''importing the layouts'''
+    from .dash_layouts.relationship_layout import relationship_tab
+    from .dash_layouts.transformations_layout import transform_tab
+    from .dash_layouts.formatmapping_layout import formatmap_tab
 
 
-        '''importing the callbacks'''
-        from .dash_callbacks import relationship_callback
-        from .dash_callbacks import transform_callback
-        from .dash_callbacks import formatmap_callback
+    '''importing the callbacks'''
+    from .dash_callbacks import relationship_callback
+    from .dash_callbacks import transform_callback
+    from .dash_callbacks import formatmap_callback
         
 
     
