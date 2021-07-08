@@ -132,9 +132,7 @@ def transform_tab():
                             id='transformations-dropdown',
                             value=None,
                             options=[{'label':i,'value':i} for i in \
-                                ['Select or drop columns','Filter rows',\
-                                    'Sort rows','Group by and aggregate',\
-                                        'Change columns datatype']],
+                                ['Filter rows','Select or drop columns']],
                         ),
                     ],width=3),
 

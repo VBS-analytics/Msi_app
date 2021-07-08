@@ -92,8 +92,7 @@ def get_filter_rows(table_names,columns):
 
 )
 def update_filter_div(data,childs):
-    if data is not None:
-        
+    if data is not None and data['filters_data']['filters'] != {}:
         return data['filter_rows']
     else:
         return childs
@@ -216,17 +215,13 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
     ]
 )
 def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data):
-    indx = id['index']
-
-    # sys.stderr.write(str(indx))
-    # print(f"\n{str(indx)}",flush=True)
-    # print(f"\n{str(ret_data)}",flush=True)
+    indx = id['index'] 
 
     # textfile = open("example.txt", "w")
     # a = textfile.write(str(ret_data))
     # textfile.close()
 
-    if value is not None and ret_data is not None:
+    if value is not None and ret_data is not None and ret_data['filters_data']['filters'] != {}:
         dat_rows = ret_data['filter_rows'][2]['props']['children']
         lnth = len(dat_rows)
         

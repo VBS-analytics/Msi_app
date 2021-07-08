@@ -4,7 +4,7 @@ from dash_core_components import Location, Loading
 from dash_html_components import Div,A, I, Br, H5, P, Img
 from dash_bootstrap_components import Row, Col, Collapse, NavbarToggler, Navbar,\
     NavbarBrand, Nav, NavItem, Modal, ModalHeader, ModalBody, ModalFooter, Card,\
-        CardBody, Button
+        CardBody, Button, DropdownMenu, DropdownMenuItem
 
 
 from .server import app
@@ -12,6 +12,44 @@ from . import router
 
 # callbacks could go here, or in another callback.py file with this at the top:
 # from .server import app
+
+dropdown = DropdownMenu(
+        children=[
+            # Div([
+            #     Row([],id="filters-row"),
+            # ],id="applied-filters-div"),
+
+            # Div([
+            #     Row([],id="add-filters-row"),
+            # ],id="add-applied-filters-div"),
+
+            # Div([
+            #     Row([],id="treemap-filters-row")
+            # ],id="treemap-applied-filters-div"),
+            
+            # Div([
+            #     Label('Filters'),I(className='fa fa-times')
+            # ],id='add-applied-filters-div'),
+            DropdownMenuItem(style={'display':'none'},id={'type':'applied-changes-menu','index':0}),
+
+            # Div([],id='applied-filters-div'),
+
+            DropdownMenuItem('Clear All',className='fa fa-trash',id='clear-filters'),
+                # Button("Clear Fliters", color="success", className="mr-1",id="clear-filters"),
+
+            # DropdownMenuItem([
+            #     I('     Clear All',className='fa fa-trash',id='clear-filters')
+            #     # Button("Clear Fliters", color="success", className="mr-1",id="clear-filters"),
+            # ]),
+            
+            DropdownMenuItem(divider=True,id='menu-divider'),
+        ],
+        nav=True,
+        in_navbar=True,
+        id='applied-changes-dropdown',
+        # label="Applied Filters",
+        className='py-0',
+        direction="left")
 
 
 app.layout = Loading(type='circle',children=[Div(children=[
@@ -27,7 +65,7 @@ app.layout = Loading(type='circle',children=[Div(children=[
             Collapse(
                 Nav([
                     Row([
-                        # Col(dropdown),
+                        Col(dropdown),
                         Col(NavItem(A(I(className="fas fa-filter"),id='saved-filters-btn'))),
                         Col(NavItem([A(I(className='fa fa-save'),id='run')])),
                         Col(NavItem([A(I(className='fa fa-download'),id='download',download='file.xlsx',target="_blank")])),
