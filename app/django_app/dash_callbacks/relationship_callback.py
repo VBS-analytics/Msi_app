@@ -54,13 +54,17 @@ def display_rows(data1,data2):
     ],
     [
         Input('saved-filters-btn','n_clicks'),
+        Input('saved-fil-modal-close','n_clicks'),
     ],
     [
         State('saved-fil-modal','is_open')
     ]
 )
-def update_saved_filters(n_clicks,is_open):
-    if n_clicks is not None:
+def update_saved_filters(n_clicks,close_n_clicks,is_open):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == 'saved-filters-btn' and n_clicks is not None:
         filters_objects = MsiFilters.objects.all().values()
          
         radio_options=[] 
@@ -74,6 +78,8 @@ def update_saved_filters(n_clicks,is_open):
         fil_options = [{'label':i,'value':i} for i in radio_options]
      
         return not is_open, fil_options
+    elif triggred_compo == 'saved-fil-modal-close' and close_n_clicks is not None:
+        return not is_open, []
     else:
         return is_open, []
 
@@ -146,14 +152,24 @@ def update_retrived_data(n_clicks,del_n_clicks,value,data):
 @app.callback(
     Output('sf-modal','is_open'),
     [
-        Input('run','n_clicks')
+        Input('run','n_clicks'),
+        Input('modal-sf-close','n_clicks'),
     ],
     [
         State('sf-modal','is_open')
     ]
 )
-def sf_modal_open(n_clicks,is_open):
-    if n_clicks:
+def sf_modal_open(n_clicks,close_n_clicks,is_open):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    sys.stderr.write(str(triggred_compo))
+    print(f"\n{str(is_open)}")
+    print(f"\n{str(close_n_clicks)}")
+
+    if triggred_compo == 'run' and n_clicks is not None:
+        return not is_open
+    elif triggred_compo == 'modal-sf-close' and close_n_clicks is not None:
         return not is_open
     else:
         return is_open

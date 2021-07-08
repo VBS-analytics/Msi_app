@@ -33,6 +33,10 @@ def relationship_tab():
                     Col(
                         Button("Delete", id="saved-fil-modal-delete", className="ml-auto")
                     ,width=2),
+
+                    Col(
+                        Button("Close", id="saved-fil-modal-close",className="ml-auto")
+                    ,width=2),
                     
                 ]),
             ],
@@ -51,6 +55,7 @@ def relationship_tab():
 
                     ModalFooter([
                         Button("Save",id='modal-sf-save',className='ml-auto'),
+                        Button("Close",id='modal-sf-close',className='ml-auto'),
                     ]),
                 ],id='sf-modal',centered=True,size='sm'),
             
