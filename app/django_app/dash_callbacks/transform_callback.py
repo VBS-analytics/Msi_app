@@ -85,15 +85,75 @@ def get_filter_rows(table_names,columns):
     Output('filters-div','children'),
     [
         Input('retrived-data','data'),
+        Input('preview-table-button','n_clicks'),
     ],
     [
         State('filters-div','children'),
     ]
 
 )
-def update_filter_div(data,childs):
-    if data is not None and data['filters_data']['filters'] != {}:
+def update_filter_div(data,n_clicks,childs):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
         return data['filter_rows']
+    elif triggred_compo == 'preview-table-button' and n_clicks is not None:
+        return [
+                Row(
+                    Col(
+                        Dropdown(
+                            id='filters-select-drop',
+                            options=[{'label':i,'value':i} for i in ['Select','Drop']],
+                            value=None
+                        )
+                    ,width=3)
+                ),
+
+                Row(Col(H6('where'),width=3)),
+
+                Div([
+                    Row([
+                        Col(
+                            Dropdown(
+                                id={'type':'filters-column-names','index':0},
+                                value=None
+                            )
+                        ,width=4),
+
+                        Col(
+                            Dropdown(
+                                id={'type':'filters-conditions','index':0}
+                            )
+                        ,width=3),
+
+                        Col([
+                            Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
+                            Textarea(id={"type":'trans-text','index':0},style={'display':'none'}),
+                            TextInput(id={'type':'trans-input','index':0},style={'display':'none'}),
+                            DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
+                            DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
+                            DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
+                            Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
+                        ],id={'type':'filters-text-drpdwn','index':0},width=4),
+
+                    ],id={'type':'condition-rows','index':0}),
+
+                    Row([
+                        dhc.Button(id={'type':'logic-close','index':0},hidden=True)
+                    ],
+                    id={'type':'filters-logic','index':0}),
+
+
+                ],id='filters-conditional-div'),
+
+                Row(
+                    Col(
+                        Button('add condition', size='sm', id='filters-add-condition')
+                    )
+                ),
+                
+            ]
     else:
         return childs
 
@@ -988,15 +1048,26 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
         [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
         df = df.rename(columns=col_rename)
         table_data_fil = df.to_dict('records')
+
+
+        # col = [{"name": i, "id": i} for i in ["column-1","column-2","column-3"]]
+        # rel = dict(table=[],columns=None,saved_data=False)
+        fil_data = dict(
+                    select_or_drop_columns=dict(),
+                    filters=dict(),
+                    index_k=None,
+                )
+        # return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
         
             
         return table_data_rel, table_columns_rel,table_data_format, table_columns_format,\
             table_data_fil, table_columns_fil,relationship_data, table_rows_no,\
-            trans_col,trans_fil_condi,csv_string,filters_data,table_row
+            trans_col,None,csv_string,fil_data,table_row
     
 
     elif triggred_compo == 'retrived-data' and ret_data is not None:
         tbl = ret_data['relationship_data']['table']
+        # print(tbl,flush=True)
 
         if tbl is not None and type(tbl) is str:
             df,table_rows_no,csv_string = get_table_from_sql_query(tbl)
@@ -1072,6 +1143,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
                     relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row
 
         else:
+            print('Second Condition',flush=True)
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
 
                 df,rows,csv_string=get_table_from_sql_query(relationship_data['table'])

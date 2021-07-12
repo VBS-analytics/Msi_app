@@ -1,11 +1,14 @@
+from numpy.lib.npyio import save
+from numpy.lib.twodim_base import tri
 from flask_caching import Cache
 from ..server import app
 from dash.dependencies import Output, Input, State, MATCH, ALL
 from dash import callback_context
 from dash_core_components import Dropdown, Store
-from dash_html_components import Div, H5, Br
+from dash_html_components import Div, H5, Br, I
 from dash_bootstrap_components import Col, Row, Modal, ModalHeader, ModalFooter,\
     ModalBody, Button, DropdownMenuItem
+import dash_html_components as dhc
 
 from ..global_functions import get_columns, get_join_main
 
@@ -97,6 +100,7 @@ def update_saved_filters(n_clicks,close_n_clicks,is_open):
 )
 def save_to_db(n_clicks,data,fil_name):
     if n_clicks is not None and fil_name is not None:
+        # print(data,flush=True)
         data = json.dumps(data)
         filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
         filter_data.save()
@@ -131,6 +135,7 @@ def update_retrived_data(n_clicks,del_n_clicks,value,data):
             dat = None
         
         if dat is not None:
+            # print(dat[0]['filter_data'],flush=True)
             return json.loads(dat[0]['filter_data'])
         else:
             return None
@@ -163,9 +168,9 @@ def sf_modal_open(n_clicks,close_n_clicks,is_open):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    sys.stderr.write(str(triggred_compo))
-    print(f"\n{str(is_open)}")
-    print(f"\n{str(close_n_clicks)}")
+    # sys.stderr.write(str(triggred_compo))
+    # print(f"\n{str(is_open)}")
+    # print(f"\n{str(close_n_clicks)}")
 
     if triggred_compo == 'run' and n_clicks is not None:
         return not is_open
@@ -190,7 +195,7 @@ def sf_modal_open(n_clicks,close_n_clicks,is_open):
         State('transformations-table-column-data','data'),
         State('transformations-filters-condi','data'),
         State('save-changes','data'),
-        State('filters-data','data'),
+        State('filters-data','data'), 
         State('select-drop-select-drop','value'),
         State('select-drop-col-names','value')
     ],
@@ -203,25 +208,32 @@ def update_chngs_db(relationship_data,\
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # print(save_changes_data,flush=True)
+    # print(relationship_data,flush=True)
+
     if triggred_compo == 'relationship-data':
+        # print(f"\n{type(relationship_data)}",flush=True)
+        # print(f"\n{tables_row}",flush=True)
         save_changes_data['relationship_data']=relationship_data
         save_changes_data['filters_data']=filters_data
         save_changes_data['transformations_table_column_data']=transformations_table_column_data
         save_changes_data['transformations_filters_condi']=transformations_filters_condi
         tables_row = str(tables_row)
-        tables_row=regex.sub("'n_clicks': \d*","'n_clicks': None",tables_row)
+        tables_row=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",tables_row)
         tables_row=ast.literal_eval(str(tables_row))
 
         save_changes_data['tables_rows'] = tables_row
         
         filter_rows = str(filter_rows)
-        filter_rows=regex.sub("'n_clicks': \d*","'n_clicks': None",filter_rows)
+        filter_rows=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",filter_rows)
         filter_rows=ast.literal_eval(str(filter_rows))
 
         save_changes_data['filter_rows'] = filter_rows
 
         save_changes_data['sel_val'] = sel_drp_val
         save_changes_data['sel_col'] = sel_drp_col_val
+        
+        # print(f"\n\n{save_changes_data}",flush=True)
         return save_changes_data
     
     elif triggred_compo == 'format-map-data':
@@ -240,6 +252,7 @@ def update_chngs_db(relationship_data,\
     Output('applied-changes-dropdown','children'),
     [
         Input('relationship-data','data'),
+        
     ],
     [
         State('filters-data','data'),
@@ -252,6 +265,10 @@ def update_applied_filters_menu(relation_data,filters_data,applied_changes,appli
     rel_val = relation_data['table']
     sel_val = filters_data['select_or_drop_columns']
     fil_val = filters_data['filters']
+
+    # print(rel_val,flush=True)
+    # print(sel_val,flush=True)
+    # print(fil_val,flush=True)
 
     relationship_menu = [True if type(i['props']['id']) == dict and \
             i['props']['children'] is not None and\
@@ -327,6 +344,7 @@ def update_db_table_names(data):
     [
         Input('add-table-button','n_clicks'),
         Input('retrived-data','data'),
+        Input({'type':'relationship-table-close','index':ALL},'n_clicks'),
     ],
     [
         State('table-rows-save','data'),
@@ -335,9 +353,11 @@ def update_db_table_names(data):
         State('tables-row','children'),
     ]
 )
-def update_tables_row(clk,ret_data,table_save,value,data,childs):
+def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    
     
     if triggred_compo == 'add-table-button':
         x=data
@@ -369,7 +389,10 @@ def update_tables_row(clk,ret_data,table_save,value,data,childs):
                             )
                         ])
                     ]),
-                    ModalFooter([Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto')])
+                    ModalFooter([
+                        Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto'),
+                        Button("Close",id={'type':'close-join-modal','index':component_id},className='ml-auto'),
+                    ])
                 ],id={'type':'join-modal','index':component_id},centered=True,size='lg')
             
             store = Store(id={'type':'sql-joins-query','index':component_id},data=None)
@@ -409,7 +432,32 @@ def update_tables_row(clk,ret_data,table_save,value,data,childs):
                 'namespace': 'dash_bootstrap_components'}
             )
 
+            childs.append(
+                Col(
+                    dhc.Button(
+                        I(className='fa fa-times'),
+                        id={'type':'relationship-table-close','index':component_id},
+                    )
+                )
+            )
+
+
             return childs
+    elif triggred_compo.rfind('relationship-table-close') > -1:
+        # indx = triggred_compo['index']
+        indx = int(triggred_compo[9])
+
+        childs_copy = childs.copy()
+
+        for itm in childs_copy:
+            try:
+                if itm['props']['children']['props']['id']['index'] == indx:
+                    childs.remove(itm)
+            except:
+                if itm['props']['id']['index'] == indx:
+                    childs.remove(itm)
+
+        return childs
     elif triggred_compo == 'retrived-data' and ret_data is not None:
         return ret_data['tables_rows']
     else:
@@ -448,6 +496,8 @@ def update_add_button_status(values,childs):
     ],
     [
         Input({'type':'relationship-sql-joins','index':MATCH},'n_clicks'),
+        Input({'type':'close-join-modal','index':MATCH},'n_clicks'),
+
         
     ],
     [
@@ -457,9 +507,10 @@ def update_add_button_status(values,childs):
         State({'type':'sql-joins-query','index':ALL},'data'),
     ]
 )
-def update_join_modal(n_clicks,value,id_1,id_2,sql_qry):
-        
-    if n_clicks is not None and None not in value:
+def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    if triggred_compo.rfind('relationship-sql-joins') > -1 and n_clicks is not None and None not in value:
         index_no=id_2['index']
         right_name = value[index_no]
 
@@ -473,6 +524,8 @@ def update_join_modal(n_clicks,value,id_1,id_2,sql_qry):
         right_opt = [{'label':i,'value':i} for i in get_columns(right_name)]
 
         return True,left_opt,right_opt,left_name,right_name
+    elif triggred_compo.rfind('close-join-modal') > -1 and close_n_clicks is not None:
+        return False, [], [], 'None', 'None'
     else:
         return False,[],[],'None','None'
 
@@ -504,6 +557,8 @@ def update_join_modal(n_clicks,value,id_1,id_2,sql_qry):
 )
 def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
     sql_qry,sql_join_icon,join_status,id_rel):
+
+    
 
     if n_clicks is not None and value_l is not None and value_r is not None and\
         join_value is not None:

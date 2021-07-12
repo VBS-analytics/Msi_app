@@ -1,8 +1,9 @@
 
 from dash_core_components import Dropdown, Input, RadioItems, Store
-from dash_html_components import Br, Div, Label, H5, A, Img
+from dash_html_components import Br, Div, Label, H5, A, Img, I
 from dash_bootstrap_components import Modal, ModalHeader, ModalFooter, ModalBody, \
     Button, Row, Col
+import dash_html_components as dhc
 
 from dash_table import DataTable
 from ..server import app
@@ -129,9 +130,19 @@ def relationship_tab():
 
                                 ])
                             ]),
-                            ModalFooter([Button("Apply",id={'type':'apply-join-modal','index':0},className='ml-auto')])
+                            ModalFooter([
+                                Button("Apply",id={'type':'apply-join-modal','index':0},className='ml-auto'),
+                                Button("Close",id={'type':'close-join-modal','index':0},className='ml-auto'),
+                            ])
                         ],id={'type':'join-modal','index':0},centered=True,size='lg'
                     ),
+
+                    Col(
+                        dhc.Button(
+                            I(className='fa fa-times'),
+                            id={'type':'relationship-table-close','index':0},
+                        )
+                    ,width=1,style={'display':'none'})
                 ],id="tables-row")
             ],id='table-dropdown-div',className='pretty_container ten columns'),
 
