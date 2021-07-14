@@ -30,11 +30,11 @@ dropdown = DropdownMenu(
             # Div([
             #     Label('Filters'),I(className='fa fa-times')
             # ],id='add-applied-filters-div'),
-            DropdownMenuItem(style={'display':'none'},id={'type':'applied-changes-menu','index':0}),
+            # DropdownMenuItem(style={'display':'none'},id={'type':'applied-changes-menu','index':0}),
 
             # Div([],id='applied-filters-div'),
 
-            DropdownMenuItem('Clear All',className='fa fa-trash',id='clear-filters'),
+            DropdownMenuItem('Clear All',className='fa fa-trash',id={'type':'applied-changes-menu','index':0}),
                 # Button("Clear Fliters", color="success", className="mr-1",id="clear-filters"),
 
             # DropdownMenuItem([

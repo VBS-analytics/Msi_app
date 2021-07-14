@@ -136,9 +136,9 @@ def transform_tab():
                         ),
                     ],width=3),
 
-                    Col([
-                        Button("Preview", color="primary",id='preview-filter-table-button', className="mr-1",size="sm"),
-                    ],width=1),
+                    # Col([
+                    #     Button("Preview", color="primary",id='preview-filter-table-button', className="mr-1",size="sm"),
+                    # ],width=1),
 
                     Col([
                         A(I(className="fa fa-plus"),id='add-col-btn')

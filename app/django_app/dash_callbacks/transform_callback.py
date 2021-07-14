@@ -1,3 +1,4 @@
+from numpy.core.multiarray import empty_like
 from ..server import app, server
 from dash.dependencies import Output, Input, State, ALL, MATCH
 from dash import callback_context
@@ -20,7 +21,7 @@ from itertools import chain
 
 import sys
 
-
+from dash.exceptions import PreventUpdate
 
 # add condition row
 def get_condition_rows(columns,indx):
@@ -86,20 +87,18 @@ def get_filter_rows(table_names,columns):
     [
         Input('retrived-data','data'),
         Input('preview-table-button','n_clicks'),
+        Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
     ],
     [
         State('filters-div','children'),
-    ]
-
+        State({'type':'applied-changes-menu','index':ALL},'children'),
+    ],
 )
-def update_filter_div(data,n_clicks,childs):
+def update_filter_div(data,n_clicks,menu_n_clicks,childs,apply_menu_child):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
-        return data['filter_rows']
-    elif triggred_compo == 'preview-table-button' and n_clicks is not None:
-        return [
+    empty_div = [
                 Row(
                     Col(
                         Dropdown(
@@ -154,8 +153,57 @@ def update_filter_div(data,n_clicks,childs):
                 ),
                 
             ]
+
+    if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
+        return data['filter_rows']
+    elif triggred_compo == 'preview-table-button':
+        if n_clicks is not None:
+            return empty_div
+        else:
+            raise PreventUpdate
+    elif triggred_compo.rfind('applied-changes-menu') > -1:
+        # print(f"{apply_menu_child}",flush=True)
+        # print(f"{menu_n_clicks}",flush=True)
+
+        if any(menu_n_clicks):
+            for idx,i in enumerate(menu_n_clicks):
+                if i is not None and i > 0:
+                    if apply_menu_child[idx].startswith('Filters'):
+                        return empty_div
+        else:
+            raise PreventUpdate
     else:
         return childs
+
+# retrived status
+@app.callback(
+    Output('filters-retrived-status','data'),
+    [
+        Input('filters-add-condition','n_clicks'),
+        Input('preview-table-button','n_clicks'),
+        Input('filters-apply','n_clicks'),
+        Input('select-drop-apply','n_clicks'),
+    ],
+    [
+        State('filters-retrived-status','data')
+    ]
+)
+def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_clicks,\
+    sel_apply_n_clicks,data):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == "filters-add-condition" and fil_add_condi_n_clicks is not None:
+        return True
+    elif triggred_compo == "preview-table-button" and previ_n_clicks is not None:
+        return True
+    elif triggred_compo == "filters-apply" and fil_apply_n_clicks is not None:
+        return True
+    elif triggred_compo == "select-drop-apply" and sel_apply_n_clicks is not None:
+        return True
+    else:
+        return None
+
 
 # Adds a new condition row for filter rows.
 @app.callback(
@@ -166,9 +214,10 @@ def update_filter_div(data,n_clicks,childs):
     [
         State('filters-conditional-div','children'),
         State('transformations-table-column-data','data'),
+        State('filters-retrived-status','data')
     ],
 )
-def update_filters_condition_div(n_clicks,childs,trans_columns):
+def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
     
@@ -194,7 +243,7 @@ def update_filters_condition_div(n_clicks,childs,trans_columns):
         childs.append(condition_row)
         return childs
     else:
-        return childs
+        raise PreventUpdate
 
 # clear added filter component
 @app.callback(
@@ -215,7 +264,7 @@ def close_condition(n_clciks,id,childs,fil_childs):
     if n_clciks is not None:
         return None, None
     else:
-        return childs, fil_childs
+        raise PreventUpdate
 
 # Update condition dropdown based on column selected Eg: >, <, ==..etc
 @app.callback(
@@ -272,16 +321,22 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
         
         State('relationship-data','data'),
         State('retrived-data','data'),
+        State('filters-retrived-status','data')
     ]
 )
-def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data):
+def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data,ret_stat):
     indx = id['index'] 
 
     # textfile = open("example.txt", "w")
     # a = textfile.write(str(ret_data))
     # textfile.close()
+    print(f"{relation_data['saved_data']}",flush=True)
+    print(f"{ret_stat}",flush=True)
 
-    if value is not None and ret_data is not None and ret_data['filters_data']['filters'] != {}:
+
+    
+    if value is not None and ret_data is not None and ret_data['filters_data']['filters'] != {} and \
+        relation_data is not None and relation_data['saved_data'] is True and ret_stat is None:
         dat_rows = ret_data['filter_rows'][2]['props']['children']
         lnth = len(dat_rows)
         
@@ -372,7 +427,6 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             )
         else:
             return None
-
     elif value is not None and relation_data['table'] != []:
         
         if value in ['<','<=','==','>=','>','!=']:
@@ -476,15 +530,35 @@ def check_applied_filters(sel_drp_val):
     ],
     [
         Input('retrived-data','data'),
+        Input('preview-table-button','n_clicks'),
+        Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
     ],
     [
         State('select-drop-select-drop','value'),
-        State('select-drop-col-names','value')
+        State('select-drop-col-names','value'),
+        State({'type':'applied-changes-menu','index':ALL},'children'),
     ]
 )
-def ret_changes(ret_data,sel_val,sel_col_val):
-    if ret_data is not None:
+def ret_changes(ret_data,n_clicks,menu_n_clicks,sel_val,sel_col_val,apply_childs):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == 'retrived-data' and ret_data is not None:
         return ret_data['sel_val'],ret_data['sel_col']
+    
+    elif triggred_compo == 'preview-table-button':
+        if n_clicks is not None:
+            return None, []
+        else:
+            raise PreventUpdate
+    elif triggred_compo.rfind('applied-changes-menu') > -1:
+        if any(menu_n_clicks):
+            for idx,i in enumerate(menu_n_clicks):
+                if i is not None and i > 0:
+                    if apply_childs[idx].startswith('Select'):
+                        return None, []
+        else:
+            raise PreventUpdate
     else:
         return sel_val, sel_col_val
 
@@ -709,11 +783,9 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
         Input('retrived-data','data'),
         Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
 
-        Input('preview-filter-table-button','n_clicks'),
         Input('select-drop-apply','n_clicks'),
         Input('filters-apply','n_clicks'),
         Input('format-map-data','data'),
-        
     ],
     [
 
@@ -768,7 +840,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
 
 )
 
-def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
+def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
     sel_aply_n_clicks,fil_aply_n_clicks,format_data,table_row,rel_tbl_data,rel_tbl_col,\
     rel_tbl_drpdwn,rel_join,join_qry,relationship_data,apply_menu_child,\
     relation_rows,data,columns,trans_column_data,trans_fil_condi,sel_drp_val,\
@@ -791,7 +863,10 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
     relationship_data = relationship_data
     table_rows_no = relation_rows
 
+    
+
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    # print(f"##### {triggred_compo}",flush=True)
 
 
     col={}
@@ -838,6 +913,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
                 }
             })
             filters_data['index_k']=k if i_k is None else i_k
+
+            relationship_data['saved_data']=False
             
             if filters_data['index_k'] is not None:
                 df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
@@ -987,6 +1064,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
         filters_data['filters'][in_k]['select_drop']=fil_sel_val
         filters_data['index_k']=in_k if i_k is None else i_k
 
+        relationship_data['saved_data']=False
 
         if filters_data['index_k'] is not None:
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
@@ -1173,6 +1251,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
     elif triggred_compo == 'format-map-data':
         d = {'column_names':[]}
 
+        relationship_data['saved_data']=False
+
         if format_data != {} and format_data is not None:
             d["column_names"]=list(format_data.values())
             # col={}
@@ -1209,124 +1289,127 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,n_clicks,\
                 rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row
     
     elif triggred_compo.rfind('applied-changes-menu') > -1:
-        
-        for idx,i in enumerate(menu_n_clicks):
+        # print(f"{apply_menu_child}",flush=True)
+        if any(menu_n_clicks):
+            for idx,i in enumerate(menu_n_clicks):
 
-            if i is not None and i > 0:
-                if apply_menu_child[idx].startswith('Table Relation'):
-                    col = [{"name": i, "id": i} for i in ["column-1","column-2","column-3"]]
-                    rel = dict(table=[],columns=None,saved_data=False)
-                    fil_data = dict(
-                                select_or_drop_columns=dict(),
-                                filters=dict(),
-                                index_k=None,
-                            )
-                    return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
+                if i is not None and i > 0:
+                    relationship_data['saved_data']=False
+                    if apply_menu_child[idx].startswith('Table Relation') or apply_menu_child[idx].startswith('Clear'):
+                        col = [{"name": i, "id": i} for i in ["column-1","column-2","column-3"]]
+                        rel = dict(table=[],columns=None,saved_data=False)
+                        fil_data = dict(
+                                    select_or_drop_columns=dict(),
+                                    filters=dict(),
+                                    index_k=None,
+                                )
+                        return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
 
-                elif apply_menu_child[idx].startswith('Select/Drop'):
-                    indx = filters_data['index_k']
-                    # sel_keys = list(filters_data['select_or_drop_columns'].keys())
-                    fil_keys = list(filters_data['filters'].keys())
+                    elif apply_menu_child[idx].startswith('Select/Drop'):
+                        indx = filters_data['index_k']
+                        # sel_keys = list(filters_data['select_or_drop_columns'].keys())
+                        fil_keys = list(filters_data['filters'].keys())
 
-                    if int(indx) == 1 and filters_data['select_or_drop_columns'] != {}:
-                        # delete the select_or_drop
-                        filters_data['select_or_drop_columns'].popitem()
-                        filters_data['index_k']=0
+                        if int(indx) == 1 and filters_data['select_or_drop_columns'] != {}:
+                            # delete the select_or_drop
+                            filters_data['select_or_drop_columns'].popitem()
+                            filters_data['index_k']=0
 
-                    elif int(indx) > 1 and filters_data['select_or_drop_columns']:
-                        # delete the select_or_drop
-                        filters_data['select_or_drop_columns'].popitem()
-                        new_indx = int(indx) - 1
-                        
-                        if abs(new_indx - int(fil_keys[0])) == 1:
-                            pop_item = filters_data['filters'].popitem()
-                            filters_data['filters']={new_indx:pop_item[1]}
+                        elif int(indx) > 1 and filters_data['select_or_drop_columns']:
+                            # delete the select_or_drop
+                            filters_data['select_or_drop_columns'].popitem()
+                            new_indx = int(indx) - 1
                             
-                        filters_data['index_k']=new_indx
+                            if abs(new_indx - int(fil_keys[0])) == 1:
+                                pop_item = filters_data['filters'].popitem()
+                                filters_data['filters']={new_indx:pop_item[1]}
+                                
+                            filters_data['index_k']=new_indx
 
-                    if filters_data['index_k'] is not None:
-                        df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
-                        # df = df.fillna('None')
-                        table_data_format=df.to_dict('records')
-                        table_columns_format=[{"name": c, "id": c} for c in df.columns]
+                        if filters_data['index_k'] is not None:
+                            df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+                            # df = df.fillna('None')
+                            table_data_format=df.to_dict('records')
+                            table_columns_format=[{"name": c, "id": c} for c in df.columns]
 
-                        column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
-                        table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
+                            column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
+                            table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
 
-                        trans_col = {}
-                        [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+                            trans_col = {}
+                            [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
 
-                        col_rename={}
-                        [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
-                        df = df.rename(columns=col_rename)
-                        table_data_fil = df.to_dict('records')
+                            col_rename={}
+                            [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
+                            df = df.rename(columns=col_rename)
+                            table_data_fil = df.to_dict('records')
 
-                        return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
-                            table_data_fil, table_columns_fil,relationship_data,rows,\
-                            trans_col, sql_qry,csv_string,filters_data,table_row
+                            return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
+                                table_data_fil, table_columns_fil,relationship_data,rows,\
+                                trans_col, sql_qry,csv_string,filters_data,table_row
+                        else:
+                            return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
+                            table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+                            csv_string,filters_data,table_row
+
+                    elif apply_menu_child[idx].startswith('Filters'):
+                        indx = filters_data['index_k']
+                        
+                        sel_keys = list(filters_data['select_or_drop_columns'].keys())
+                        # fil_keys = list(filters_data['filters'].keys())
+
+                        if int(indx) == 1 and filters_data['filters'] != {}:
+                            # delete the select_or_drop
+                            filters_data['filters'].popitem()
+                            filters_data['index_k']=0
+
+                        elif int(indx) > 1 and filters_data['filters'] != {}:
+                            # delete the select_or_drop
+                            filters_data['filters'].popitem()
+                            new_indx = int(indx) - 1
+                            
+                            if abs(new_indx - int(sel_keys[0])) == 1:
+                                pop_item = filters_data['select_or_drop_columns'].popitem()
+                                filters_data['select_or_drop_columns']={new_indx:pop_item[1]}
+                                
+                            filters_data['index_k']=new_indx
+                        
+                        
+
+                        if filters_data['index_k'] is not None:
+
+                            df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+                            # df = df.fillna('None')
+                            table_data_format=df.to_dict('records')
+                            table_columns_format=[{"name": c, "id": c} for c in df.columns]
+
+                            column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
+                            table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
+
+                            trans_col = {}
+                            [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+
+                            col_rename={}
+                            [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
+                            df = df.rename(columns=col_rename)
+                            table_data_fil = df.to_dict('records')
+
+                            return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
+                                table_data_fil, table_columns_fil,relationship_data,rows,\
+                                trans_col, sql_qry,csv_string,filters_data,table_row
+                        else:
+                            return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
+                            table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+                            csv_string,filters_data,table_row
+
                     else:
                         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
-                        table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                        csv_string,filters_data,table_row
-
-                elif apply_menu_child[idx].startswith('Filters'):
-                    indx = filters_data['index_k']
-                    
-                    sel_keys = list(filters_data['select_or_drop_columns'].keys())
-                    # fil_keys = list(filters_data['filters'].keys())
-
-                    if int(indx) == 1 and filters_data['filters'] != {}:
-                        # delete the select_or_drop
-                        filters_data['filters'].popitem()
-                        filters_data['index_k']=0
-
-                    elif int(indx) > 1 and filters_data['filters'] != {}:
-                        # delete the select_or_drop
-                        filters_data['filters'].popitem()
-                        new_indx = int(indx) - 1
-                        
-                        if abs(new_indx - int(sel_keys[0])) == 1:
-                            pop_item = filters_data['select_or_drop_columns'].popitem()
-                            filters_data['select_or_drop_columns']={new_indx:pop_item[1]}
-                            
-                        filters_data['index_k']=new_indx
-                    
-                    
-
-                    if filters_data['index_k'] is not None:
-
-                        df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
-                        # df = df.fillna('None')
-                        table_data_format=df.to_dict('records')
-                        table_columns_format=[{"name": c, "id": c} for c in df.columns]
-
-                        column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
-                        table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
-
-                        trans_col = {}
-                        [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
-
-                        col_rename={}
-                        [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
-                        df = df.rename(columns=col_rename)
-                        table_data_fil = df.to_dict('records')
-
-                        return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
-                            table_data_fil, table_columns_fil,relationship_data,rows,\
-                            trans_col, sql_qry,csv_string,filters_data,table_row
-                    else:
-                        return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
-                        table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                        csv_string,filters_data,table_row
-
-                else:
-                    return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
-                        table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                        csv_string,filters_data,table_row
+                            table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+                            csv_string,filters_data,table_row
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row
+            # raise PreventUpdate
 
     else:
         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\

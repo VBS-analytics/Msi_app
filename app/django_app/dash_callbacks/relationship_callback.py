@@ -18,6 +18,8 @@ import sys
 import regex
 import ast 
 
+from dash.exceptions import PreventUpdate
+
 # Display no.of rows count to front-end from memory.
 @app.callback(
     Output('noofpolicies-card','children'),

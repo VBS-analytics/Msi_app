@@ -68,6 +68,7 @@ def index():
 
                 Store(id='download_data',data=None),
                 Store(id='session-id',data=session_id),
+                Store(id='filters-retrived-status',data=None),
 
                 Tabs([
                     Tab(relationship_tab(),label='Table relationship'),
