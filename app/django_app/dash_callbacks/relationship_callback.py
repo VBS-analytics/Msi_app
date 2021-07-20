@@ -1,5 +1,6 @@
 from numpy.lib.npyio import save
 from numpy.lib.twodim_base import tri
+from pandas.io import sql
 from flask_caching import Cache
 from ..server import app
 from dash.dependencies import Output, Input, State, MATCH, ALL
@@ -10,13 +11,14 @@ from dash_bootstrap_components import Col, Row, Modal, ModalHeader, ModalFooter,
     ModalBody, Button, DropdownMenuItem
 import dash_html_components as dhc
 
-from ..global_functions import get_columns, get_join_main
+from ..global_functions import get_columns, get_join_main, get_main_sql_query
 
 import json
 from .. models import MsiFilters
 import sys
 import regex
 import ast 
+import re
 
 from dash.exceptions import PreventUpdate
 
@@ -369,12 +371,22 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
 
             options=[{'label':i,'value':i} for i in x]
 
+            childs = str(childs)
+            apply_clicks = re.findall("'apply-join-modal', 'index': [\d|None]*}, 'className': 'ml-auto'. 'n_clicks': [\d|None]*",childs)
+            for s in apply_clicks:
+                new_s=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",s)
+                childs=childs.replace(s,new_s)
+
+
+            # childs=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",childs)
+            childs=ast.literal_eval(str(childs))
+
             mod = Modal([
                     ModalHeader(H5('Join on')),
                     ModalBody([
                         Div([
                             Row(Col(Dropdown(id={'type':'sql-join-modal','index':component_id},\
-                                options=[{'label':i,'value':i} for i in ['left', 'right', 'outer', 'inner']]))),
+                                options=[{'label':i,'value':i} for i in ['LEFT', 'RIGHT', 'CROSS', 'INNER']]))),
                             Br(),
                             Row([
                                 Col(H5(id={'type':'left-table-name','index':component_id})),
@@ -443,6 +455,8 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
                 )
             )
 
+            
+
 
             return childs
     elif triggred_compo.rfind('relationship-table-close') > -1:
@@ -499,8 +513,6 @@ def update_add_button_status(values,childs):
     [
         Input({'type':'relationship-sql-joins','index':MATCH},'n_clicks'),
         Input({'type':'close-join-modal','index':MATCH},'n_clicks'),
-
-        
     ],
     [
         State({'type':'relationship-table-dropdown','index':ALL},'value'),
@@ -514,8 +526,9 @@ def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
     if triggred_compo.rfind('relationship-sql-joins') > -1 and n_clicks is not None and None not in value:
         index_no=id_2['index']
+        index_no=[i for i,v in enumerate(id_1) if v['index'] == index_no][0]
         right_name = value[index_no]
-
+        
         if sql_qry != [] and sql_qry[index_no-1] is not None:
             left_name = str(sql_qry[index_no-1]['table_names'][0]) + ' / ' + str(sql_qry[index_no-1]['table_names'][1])
             left_opt = [{'label':i,'value':i} for i in sql_qry[index_no-1]['col_list']]
@@ -530,6 +543,36 @@ def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
         return False, [], [], 'None', 'None'
     else:
         return False,[],[],'None','None'
+
+# update the join and relationship to main-sql-query memory
+@app.callback(
+    Output('main-sql-query','data'),
+    [
+        Input({'type':'sql-joins-query','index':ALL},'data'),
+    ],
+    [
+        State({'type':'relationship-table-dropdown','index':ALL},'value'),
+        State({'type':'relationship-table-dropdown','index':ALL},'id'),
+    ]
+)
+def update_main_sql_query(data,rel_values,ids):
+    sql_qry = [i for i in data if i]
+    
+    if sql_qry != []:
+        rel_values=list(filter(None,rel_values))
+        print(f"RELATION SHIP {rel_values}")
+
+
+        # print(f"IDS {ids}")
+        status,qry_list=get_main_sql_query(sql_qry,rel_values)
+        if status:
+            return qry_list
+        else:
+            return None
+    else:
+        return None
+
+
 
 
 # apply join function
@@ -560,13 +603,14 @@ def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
 def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
     sql_qry,sql_join_icon,join_status,id_rel):
 
-    
+    # print(f"corona --- {id_rel}")
+    # print(f"Corona -- {n_clicks}")
 
     if n_clicks is not None and value_l is not None and value_r is not None and\
         join_value is not None:
 
         compo_id  = id_rel['index']
-        for i in sql_qry:
+        for i in sql_qry: # removing if the component if its already exists.
             if i is not None:
                 if i['compo_id'] == compo_id:
                     sql_qry.remove(i)
@@ -579,19 +623,20 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
             'col_list':[],
             'compo_id':compo_id,
         }
+        # print(f"{sql_qry}",flush=True)
 
         data,col_list = get_join_main(d,sql_qry)
         d['col_list']=col_list
 
         y = app.get_asset_url('sql-join-icon.png')
         if data != 'Error':
-            if join_value == 'inner':
+            if join_value == 'INNER':
                 y=app.get_asset_url('sql-join-inner-icon.png')
-            elif join_value == 'left':
+            elif join_value == 'LEFT':
                 y=app.get_asset_url('sql-join-left-icon.png')
-            elif join_value == 'right':
+            elif join_value == 'RIGHT':
                 y=app.get_asset_url('sql-join-right-icon.png')
-            elif join_value == 'outer':
+            elif join_value == 'CROSS':
                 y=app.get_asset_url('sql-join-outer-icon.png')
         elif data == 'Error':
             y = app.get_asset_url('sql-join-icon.png')
@@ -600,8 +645,13 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
                             'type':'Img',
                             'namespace':'dash_html_components'}
     
-        
-        
         return d, rel_icon, data
     else:
-        return None, sql_join_icon, []
+        sql_q = None
+        compo_id  = id_rel['index']
+        for i in sql_qry: # removing if the component if its already exists.
+            if i is not None:
+                if i['compo_id'] == compo_id:
+                    sql_q = i
+
+        return sql_q, sql_join_icon, join_status

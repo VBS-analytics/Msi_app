@@ -25,7 +25,7 @@ def index():
         db_table_names = get_table_names()
         return [            
                 Store(id='db-table-names',data=db_table_names),
-                Store(id='relationship-data',data=dict(table=[],columns=None,saved_data=False)),
+                Store(id='relationship-data',data=dict(table=[],columns=None,saved_data=False,table_order=[])),
                 Store(id='filters-data',data=dict(
                     select_or_drop_columns=dict(),
                     filters=dict(),
@@ -48,6 +48,7 @@ def index():
                 Store(id='transformations-rows',data=None),
                 Store(id='filter-condi-index',data=None),
                 Store(id='table-rows-save',data={}),
+                Store(id='main-sql-query',data=None),
 
                 Store(
                     id='save-changes',

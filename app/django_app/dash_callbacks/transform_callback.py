@@ -11,8 +11,8 @@ from dash_bootstrap_components import Col, Row, Button
 import dash_html_components as dhc
 
 
-from ..global_functions import get_transformations, get_full_table_from_sql_query,\
-    get_format_mapping, get_columns_dtypes, get_table_from_sql_query, check_if_all_none
+from ..global_functions import get_transformations,\
+    get_format_mapping, get_columns_dtypes, get_table_from_sql_query, get_column_values
 
 
 from pandas import DataFrame, Series
@@ -330,8 +330,8 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
     # textfile = open("example.txt", "w")
     # a = textfile.write(str(ret_data))
     # textfile.close()
-    print(f"{relation_data['saved_data']}",flush=True)
-    print(f"{ret_stat}",flush=True)
+    # print(f"{relation_data['saved_data']}",flush=True)
+    # print(f"{ret_stat}",flush=True)
 
 
     
@@ -361,7 +361,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
             
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
             # print(f"columns .. {df1.columns}")
 
             if type(df1) is Series:
@@ -375,7 +375,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                     )
         
         elif value in ['days'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
@@ -403,7 +403,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             ]) 
         
         elif value in ['before','after','equals','not'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
@@ -416,7 +416,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             )
         
         elif value in ['range'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
             max_dt = df1.max()
             min_dt = df1.min()
 
@@ -439,7 +439,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
             
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
             # print(f"columns .. {df1.columns}")
 
             if type(df1) is Series:
@@ -453,7 +453,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                     )
         
         elif value in ['days'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
@@ -481,7 +481,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             ]) 
         
         elif value in ['before','after','equals','not'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
@@ -494,7 +494,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             )
         
         elif value in ['range'] and relation_data['table']!=[]:
-            df1=get_full_table_from_sql_query(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],column_name)
             max_dt = df1.max()
             min_dt = df1.min()
 
@@ -794,7 +794,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
         State('table','columns'),
         State({'type':'relationship-table-dropdown','index':ALL},'value'),
         State({'type':'relationship-sql-joins','index':ALL},'children'),
-        State({'type':'sql-joins-query','index':ALL},'data'),
+        State('main-sql-query','data'),
         State('relationship-data','data'),
         State({'type':'applied-changes-menu','index':ALL},'children'),
         State('relation-rows','data'),
@@ -915,6 +915,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
             filters_data['index_k']=k if i_k is None else i_k
 
             relationship_data['saved_data']=False
+            
             
             if filters_data['index_k'] is not None:
                 df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
@@ -1065,6 +1066,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
         filters_data['index_k']=in_k if i_k is None else i_k
 
         relationship_data['saved_data']=False
+        
 
         if filters_data['index_k'] is not None:
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
@@ -1094,15 +1096,16 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
 
     elif triggred_compo == 'preview-table-button':
 
-        result = check_if_all_none(join_qry)
+        # result = check_if_all_none(join_qry)
+        rel_tbl_drpdwn=list(filter(None,rel_tbl_drpdwn))
 
-        if result is True and rel_tbl_drpdwn != []:
+        if join_qry is None and rel_tbl_drpdwn != []:
             if rel_tbl_drpdwn[0] is not None:
-                df,table_rows_no,csv_string=get_table_from_sql_query(rel_tbl_drpdwn[0])
+                df,table_rows_no,csv_string=get_table_from_sql_query(rel_tbl_drpdwn[0],rel_tbl_drpdwn)
                 table_names = rel_tbl_drpdwn[0]
         
-        elif result is False:
-            df,table_rows_no,csv_string=get_table_from_sql_query(join_qry)
+        elif join_qry is not None:
+            df,table_rows_no,csv_string=get_table_from_sql_query(join_qry,rel_tbl_drpdwn)
             table_names = join_qry
             
         else:
@@ -1110,8 +1113,9 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
             table_rows_no = 0
         
         relationship_data["table"]=table_names
-        relationship_data['columns']=df.columns
+        relationship_data['columns']=list(df.columns)
         relationship_data['saved_data']=False
+        relationship_data['table_order']=rel_tbl_drpdwn
 
         table_data_rel=table_data_format=df.to_dict('records')
         table_columns_rel=table_columns_format=[{"name": c, "id": c} for c in df.columns]
@@ -1125,6 +1129,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
         col_rename={}
         [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
         df = df.rename(columns=col_rename)
+        # print(f"{df.columns}")
         table_data_fil = df.to_dict('records')
 
 
@@ -1145,14 +1150,16 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
 
     elif triggred_compo == 'retrived-data' and ret_data is not None:
         tbl = ret_data['relationship_data']['table']
+        tbl_order = ret_data['relationship_data']['table_order']
         # print(tbl,flush=True)
+        tbl_order=list(filter(None,tbl_order))
 
         if tbl is not None and type(tbl) is str:
-            df,table_rows_no,csv_string = get_table_from_sql_query(tbl)
+            df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
 
         elif tbl is not None and type(tbl) is list:
-            df,table_rows_no,csv_string = get_table_from_sql_query(tbl)
+            df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
         else:
             df=DataFrame()
@@ -1167,6 +1174,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
         relationship_data["table"]=table_names
         relationship_data['columns']=df.columns
         relationship_data['saved_data']=True
+        relationship_data['table_order']=tbl_order
 
         if ret_data['filters_data']['index_k'] is not None:
             df,sql_qry,rows,csv_string = get_transformations(relationship_data,ret_data['filters_data'],col)
@@ -1223,8 +1231,10 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
         else:
             print('Second Condition',flush=True)
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
+                
+                rel_tbl_drpdwn=list(filter(None,relationship_data['table_order']))
 
-                df,rows,csv_string=get_table_from_sql_query(relationship_data['table'])
+                df,rows,csv_string=get_table_from_sql_query(relationship_data['table'],rel_tbl_drpdwn)
                 # df = df.fillna('None')
 
                 table_data_rel=df.to_dict('records')
@@ -1243,6 +1253,34 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
                 [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
                 df = df.rename(columns=col_rename)
                 table_data_fil = df.to_dict('records')
+
+                if ret_data['format_map_data'] != {}:
+                    d = {'column_names':[]}
+                    d["column_names"]=list(ret_data['format_map_data'].values())
+                    # col={}
+                    # [col.update({j:i}) for i,j in ret_data['format_map_data'].items()]
+                    # print(col)
+
+                    df, csv_string = get_format_mapping(relationship_data,d,None,col)
+                    # df = df.fillna('None')
+                    if df is not None:
+                        z={}
+                        [z.update({i:df[j]}) for i,j in ret_data['format_map_data'].items()]
+
+                        # trans_col = {}
+                        # [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+
+                        df = DataFrame(z)
+                        table_data_format=df.to_dict('records')
+                        table_columns_format=[{"name": c, "id": c} for c in df.columns]
+
+                        return table_data_rel,table_columns_rel,table_data_format,\
+                            table_columns_format, table_data_fil, table_columns_fil,\
+                            relationship_data,rows,trans_col,trans_fil_condi,csv_string,filters_data,table_row
+                    else:
+                        return table_data_rel,table_columns_rel,table_data, table_columns,\
+                            table_data_fil, table_columns_fil,\
+                            relationship_data,rows,trans_col, trans_fil_condi,csv_string,filters_data,table_row
 
             return table_data_rel,table_columns_rel,table_data_format,\
                 table_columns_format,table_data_fil, table_columns_fil,\
