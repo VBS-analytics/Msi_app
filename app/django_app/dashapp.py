@@ -103,7 +103,7 @@ app.layout = Loading(type='circle',children=[Div(children=[
                 # CardHeader("Card header"),
                 CardBody([
                     H5(id='noofpolicies-card',className="card-title"),
-                    P("Total No.of Policies",className="card-text"),
+                    P("Total No.of records",className="card-text"),
                 ])
         ,color="light"),width=2)
     ]),

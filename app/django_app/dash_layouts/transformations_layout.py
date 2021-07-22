@@ -50,6 +50,7 @@ def transform_tab():
                 ModalHeader(H5('Filter rows')),
                 ModalBody(
                     Div([
+                        Row(Col(H6('Select or drop rows'),width=3)),
                         Row(
                             Col(
                                 Dropdown(

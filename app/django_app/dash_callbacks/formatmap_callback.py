@@ -1,3 +1,4 @@
+import sys
 from ..server import app, server
 from ..global_functions import get_downloaded_data
 
@@ -73,7 +74,8 @@ def update_file_upload_columns(contents,ret_data,filename,relationship_data, \
                 # Assume that the user uploaded an excel file
                 df = read_excel(io.BytesIO(decoded))
         except Exception as e:
-            print(e)
+            sys.stderr.write(e)
+            print(e,flush=True)
         
         components = []
         for j,k in enumerate(df.columns):

@@ -310,7 +310,7 @@ def get_join_main(d,sql_qry):
         except:
             df1=DataFrame()
         db_connection = db_connection.dispose()
-        print(f"TEMP STR {temp_str}")
+        # print(f"TEMP STR {temp_str}")
         if df1.shape[0] > 0:
             return 'Success', list(df1.columns)
         else:
@@ -759,7 +759,7 @@ def get_transformations(relationship_data,filters_data,col):
         filter_query = table_name.replace(';',condi+';')
     else:
         filter_query = table_name
-    print(f"MAIN ma {table_name}",flush=True)
+    # print(f"MAIN ma {table_name}",flush=True)
     
     
     host=os.environ.get('CDB_HOST')
@@ -847,10 +847,10 @@ def get_transformations(relationship_data,filters_data,col):
         "col_replace":col,
         "col_select":None,
     }
-    print(f"INSIDE THE TRANSFORMATION {df1.shape}",flush=True)
-    print(f"INSIDE THE TRANSFORMATION {filters_condition}",flush=True)
-    print(f"INSIDE THE TRANSFORMATION {rows}",flush=True)
-    print(f"INSIDE THE TRANSFORMATION {download_data}",flush=True)
+    # print(f"INSIDE THE TRANSFORMATION {df1.shape}",flush=True)
+    # print(f"INSIDE THE TRANSFORMATION {filters_condition}",flush=True)
+    # print(f"INSIDE THE TRANSFORMATION {rows}",flush=True)
+    # print(f"INSIDE THE TRANSFORMATION {download_data}",flush=True)
 
 
     return df1.head(),filters_condition,rows, download_data
@@ -956,7 +956,7 @@ def get_format_mapping(relation_data,format_data,fil_condi,col):
         # sys.stderr.write(str(df1.columns))
         # sys.stderr.write(str(colm_nms))
         # print(df1.columns,flush=True)
-        # print(colm_nms,flush=True)
+        print(colm_nms,flush=True)
         formt_colms = list(set(colm_nms))
 
         df1=df1[formt_colms].head()

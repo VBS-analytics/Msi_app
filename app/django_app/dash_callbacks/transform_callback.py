@@ -45,6 +45,7 @@ def get_condition_rows(columns,indx):
 def get_filter_rows(table_names,columns):
     col = columns
     return Div([
+        Row(Col(H6('Select or drop rows'),width=3)),
         Row(
             Col(
                 Dropdown(
@@ -98,7 +99,10 @@ def update_filter_div(data,n_clicks,menu_n_clicks,childs,apply_menu_child):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # print(f"FILTERS DIV {triggred_compo}",flush=True)
+
     empty_div = [
+                Row(Col(H6('Select or drop rows'),width=3)),
                 Row(
                     Col(
                         Dropdown(
@@ -164,12 +168,16 @@ def update_filter_div(data,n_clicks,menu_n_clicks,childs,apply_menu_child):
     elif triggred_compo.rfind('applied-changes-menu') > -1:
         # print(f"{apply_menu_child}",flush=True)
         # print(f"{menu_n_clicks}",flush=True)
+        
 
         if any(menu_n_clicks):
             for idx,i in enumerate(menu_n_clicks):
                 if i is not None and i > 0:
+                    # print(f"{i}",flush=True)
+                    # print(f"{idx}",flush=True)
                     if apply_menu_child[idx].startswith('Filters'):
                         return empty_div
+            raise PreventUpdate
         else:
             raise PreventUpdate
     else:
@@ -557,9 +565,10 @@ def ret_changes(ret_data,n_clicks,menu_n_clicks,sel_val,sel_col_val,apply_childs
                 if i is not None and i > 0:
                     if apply_childs[idx].startswith('Select'):
                         return None, []
+            raise PreventUpdate
         else:
             sys.stderr.write(str(menu_n_clicks))
-            print(f"PREVENT UPDATE",flush=True)
+            # print(f"PREVENT UPDATE",flush=True)
             raise PreventUpdate
     else:
         return sel_val, sel_col_val
@@ -1100,6 +1109,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
 
         # result = check_if_all_none(join_qry)
         rel_tbl_drpdwn=list(filter(None,rel_tbl_drpdwn))
+        # print(f"{rel_tbl_drpdwn}",flush=True)
 
         if join_qry is None and rel_tbl_drpdwn != []:
             if rel_tbl_drpdwn[0] is not None:
@@ -1231,7 +1241,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
                     relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row
 
         else:
-            print('Second Condition',flush=True)
+            # print('Second Condition',flush=True)
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
                 
                 rel_tbl_drpdwn=list(filter(None,relationship_data['table_order']))
