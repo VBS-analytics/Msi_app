@@ -558,6 +558,8 @@ def ret_changes(ret_data,n_clicks,menu_n_clicks,sel_val,sel_col_val,apply_childs
                     if apply_childs[idx].startswith('Select'):
                         return None, []
         else:
+            sys.stderr.write(str(menu_n_clicks))
+            print(f"PREVENT UPDATE",flush=True)
             raise PreventUpdate
     else:
         return sel_val, sel_col_val

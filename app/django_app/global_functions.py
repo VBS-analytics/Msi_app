@@ -685,11 +685,16 @@ def get_column_values(relationship,column_name):
 
 
 def get_transformations(relationship_data,filters_data,col):
-    # print(filters_data)
+    
     # print(filters_data['select_or_drop_columns'].keys())
     # print(filters_data['filters'].keys())
     # if filters_data['select_or_drop_columns'] != {}:
-    table_name = relationship_data['table']
+    if type(relationship_data['table']) is list:
+        table_name = relationship_data['table'][0]
+    else:
+        table_name = f"SELECT * FROM {relationship_data['table']};"
+
+    # print(f"{table_name}",flush=True)
     table_order = relationship_data['table_order']
     columns_to_select=[]
     SQL_QRY = []
@@ -751,11 +756,11 @@ def get_transformations(relationship_data,filters_data,col):
             columns_select.append(ele)
 
     if condi is not None:
-        filter_query = table_name[0].replace(';',condi+';')
+        filter_query = table_name.replace(';',condi+';')
     else:
-        filter_query = table_name[0]
-    # print(f"MAIN ma {table_name}")
-    print(f"INSIDE THE TRANSFORMATION {filter_query}",flush=True)
+        filter_query = table_name
+    print(f"MAIN ma {table_name}",flush=True)
+    
     
     host=os.environ.get('CDB_HOST')
     if host == 'windows':
@@ -783,28 +788,29 @@ def get_transformations(relationship_data,filters_data,col):
         for col in df1.columns:
             stat=False
             for i in table_order:
-                c = col.split('___')[0] # changing the column name to original.
-                stat = get_column_datatype(c,i)
-                # if stat is not False:
-                #     break
-                if stat is not False:
-                    if ('datetime','datetime2','smalldatetime','date','time','datetimeoffset','timestamp') in stat:
-                        df1[col] = to_datetime(df1[col], infer_datetime_format=True)
-                        break
+                if i is not None:
+                    c = col.split('___')[0] # changing the column name to original.
+                    stat = get_column_datatype(c,i)
+                    # if stat is not False:
+                    #     break
+                    if stat is not False:
+                        if ('datetime','datetime2','smalldatetime','date','time','datetimeoffset','timestamp') in stat:
+                            df1[col] = to_datetime(df1[col], infer_datetime_format=True)
+                            break
 
-                    if ('money','smallmoney','float','decimal','numeric') in stat:
-                        df1[col] = df1[col].fillna(0)
-                        df1[col] = df1[col].astype(float)
-                        break
+                        if ('money','smallmoney','float','decimal','numeric') in stat:
+                            df1[col] = df1[col].fillna(0)
+                            df1[col] = df1[col].astype(float)
+                            break
 
-                    if ('tinyint','smallint','int','bigint') in stat:
-                        df1[col] = df1[col].fillna(0)
-                        df1[col] = df1[col].astype(int)
-                        break
+                        if ('tinyint','smallint','int','bigint') in stat:
+                            df1[col] = df1[col].fillna(0)
+                            df1[col] = df1[col].astype(int)
+                            break
 
-                    if 'bit' in stat:
-                        df1[col]=df1[col].apply(lambda k: int.from_bytes(k,byteorder='big',signed=False))
-                        break
+                        if 'bit' in stat:
+                            df1[col]=df1[col].apply(lambda k: int.from_bytes(k,byteorder='big',signed=False))
+                            break
 
     columns_select_1= [j for sub in columns_select for j in sub]
     columns_select = set(columns_select_1)
@@ -841,7 +847,10 @@ def get_transformations(relationship_data,filters_data,col):
         "col_replace":col,
         "col_select":None,
     }
-    
+    print(f"INSIDE THE TRANSFORMATION {df1.shape}",flush=True)
+    print(f"INSIDE THE TRANSFORMATION {filters_condition}",flush=True)
+    print(f"INSIDE THE TRANSFORMATION {rows}",flush=True)
+    print(f"INSIDE THE TRANSFORMATION {download_data}",flush=True)
 
 
     return df1.head(),filters_condition,rows, download_data
@@ -849,7 +858,13 @@ def get_transformations(relationship_data,filters_data,col):
 
 def get_format_mapping(relation_data,format_data,fil_condi,col):
     # print(fil_condi)
-    table_name = relation_data['table']
+    if type(relation_data['table']) is list:
+        table_name = relation_data['table'][0]
+    else:
+        table_name = f"SELECT * FROM {relation_data['table']};"
+
+    # table_name = relation_data['table']
+
     if format_data['column_names'] != []:
         colm_nms = format_data['column_names']
 
@@ -877,7 +892,7 @@ def get_format_mapping(relation_data,format_data,fil_condi,col):
             main_query = fil_condi['SQL_QRY']
             columns_select=fil_condi['selected_columns']
         else:
-            main_query = table_name[0]
+            main_query = table_name
             columns_select=[]
         
         main_query=main_query.replace(';',' LIMIT 5;')
@@ -1038,6 +1053,11 @@ def get_downloaded_data(download_data):
     this function accepts **download_data** a dict variable which as all the data about
     the table relation, applied filters and format mapped.
     '''
+    if type(download_data['sql_qry']) is list:
+        table_name = download_data['sql_qry'][0]
+    else:
+        table_name = f"SELECT * FROM {download_data['sql_qry']};"
+
     host=os.environ.get('CDB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']
@@ -1054,7 +1074,7 @@ def get_downloaded_data(download_data):
         main_query = download_data['filter_condi']['SQL_QRY']
         columns_select=download_data['filter_condi']['selected_columns']
     else:
-        main_query = download_data['sql_qry'][0]
+        main_query = table_name
         columns_select=[]
     
     try:
