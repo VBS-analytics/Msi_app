@@ -167,11 +167,17 @@ def index():
                 Store(id='session-id',data=session_id),
                 Store(id='filters-retrived-status',data=None),
 
+                # html.Div([
+                #     dbc.Row(
+                #         dbc.Col([
                 Tabs([
                     Tab(relationship_tab(),label='Table relationship'),
                     Tab(transform_tab(),label='Table transformations'),
                     Tab(formatmap_tab(),label='Format Mapping'),
                     # Tab(sal_hier_layout(),label='Pivot table'),
+                    #         ]),
+                    #     ],width={"size": 12, "offset": 1})
+                    # )
                 ]),
             ]
     else:

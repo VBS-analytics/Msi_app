@@ -3,7 +3,7 @@ from dash import Dash
 import dash_bootstrap_components as dbc
 
 URL_BASE_PATHNAME = '/'
-FA = "https://use.fontawesome.com/releases/v5.8.1/css/all.css"
+FA = "/assets/font-awesome-4.7.0/css/font-awesome.min.css"
 # FA = '/assets/all.css'
 # os.path.join(os.path.join(os.path.join(os.getcwd(),"vlstm_crm_django_app_1"),"assets"),"all.css")
 # print(f"WWW{os.getcwd()}")
