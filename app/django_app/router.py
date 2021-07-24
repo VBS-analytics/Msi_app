@@ -7,7 +7,7 @@ from . import layouts
 
 pages = (
     ('', layouts.index),
-    # ('fig1', layouts.fig1),
+    ('help', layouts.get_help_page),
     # ('fig2', layouts.fig2),
 )
 

@@ -69,6 +69,7 @@ app.layout = Loading(type='circle',children=[Div(children=[
                         Col(NavItem(A(I(className="fas fa-filter"),id='saved-filters-btn'))),
                         Col(NavItem([A(I(className='fa fa-save'),id='run')])),
                         Col(NavItem([A(I(className='fa fa-download'),id='download',download='file.xlsx',target="_blank")])),
+                        Col(NavItem([A(I(className='fa fa-question'),id='help',href='/help',target="_blank")])),
                     ],className="ml-auto flex-nowrap mt-3 mt-md-0",align="center"),
                 ], className="ml-auto", navbar=True),
                 id="navbar-collapse2",
