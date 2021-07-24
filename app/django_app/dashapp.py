@@ -59,7 +59,7 @@ app.layout = Loading(type='circle',children=[Div(children=[
             Row([
                 #height="40px",width='100px'
                 Col(NavbarBrand([Img(src=app.get_asset_url('Valuestream-Logo.png'), style={"height": "40px","width": "auto","margin-bottom": "25px"})])),
-                Col(NavbarBrand(H5("MIS Report Generator"),className="ml-2")),
+                Col(NavbarBrand(H5("MIS Report Generator (beta)"),className="ml-2")),
             ],align="center",no_gutters=True),
             NavbarToggler(id="navbar-toggler2"),
             Collapse(
