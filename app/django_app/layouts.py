@@ -167,18 +167,34 @@ def index():
                 Store(id='session-id',data=session_id),
                 Store(id='filters-retrived-status',data=None),
 
-                # html.Div([
-                #     dbc.Row(
-                #         dbc.Col([
-                Tabs([
-                    Tab(relationship_tab(),label='Table relationship'),
-                    Tab(transform_tab(),label='Table transformations'),
-                    Tab(formatmap_tab(),label='Format Mapping'),
-                    # Tab(sal_hier_layout(),label='Pivot table'),
-                    #         ]),
-                    #     ],width={"size": 12, "offset": 1})
-                    # )
-                ]),
+                html.Div([
+                    dbc.Row([
+                        dbc.Col(dbc.Card(
+                                # CardHeader("Card header"),
+                                dbc.CardBody([
+                                    html.H5(id='noofpolicies-card',className="card-title"),
+                                    html.P("Total No.of records",className="card-text"),
+                                ])
+                        ,color="light"),width=2)
+                    ]),
+                ],style={"margin-left": "20px"}),
+                
+                html.Br(),
+
+                html.Div([
+                    #     dbc.Row(
+                    #         dbc.Col([
+                    Tabs([
+                        Tab(relationship_tab(),label='Table relationship'),
+                        Tab(transform_tab(),label='Table transformations'),
+                        Tab(formatmap_tab(),label='Format Mapping'),
+                        # Tab(sal_hier_layout(),label='Pivot table'),
+                        #         ]),
+                        #     ],width={"size": 12, "offset": 1})
+                        # )
+                    ]),
+                ],style={"margin-left": "20px"}),
+                
             ]
     else:
         return []

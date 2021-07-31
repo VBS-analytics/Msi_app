@@ -19,8 +19,49 @@ import sys
 import regex
 import ast 
 import re
+import os
+
+from django.conf import settings
+
+from crontab import CronTab
 
 from dash.exceptions import PreventUpdate
+
+@app.callback(
+    [
+        Output('sch-hourly-body','style'),
+        Output('sch-daily-body','style'),
+        Output('sch-weekly-body','style'),
+        Output('sch-monthly-body','style'),
+    ],
+    [
+        Input("schedule-radio","value")
+    ]
+)
+def update_view_of_schedules(value):
+    if value == "hourly":
+        return {},{"display":"none"},{"display":"none"},{"display":"none"}
+    elif value == "daily":
+        return {"display":"none"},{},{"display":"none"},{"display":"none"}
+    elif value == "weekly":
+        return {"display":"none"},{"display":"none"},{},{"display":"none"}
+    elif value == "monthly":
+        return {"display":"none"},{"display":"none"},{"display":"none"},{}
+    else:
+        return {"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}
+
+@app.callback(
+    Output('schedule-body','style'),
+    [
+        Input('schedule-cklist','value')
+    ],
+)
+def update_view_of_schedule_body(value):
+    if value != []:
+        return {}
+    else:
+        return {"display":"none"}
+
 
 # Display no.of rows count to front-end from memory.
 @app.callback(
@@ -51,6 +92,47 @@ def display_rows(data1,data2):
         return data1
     else:
         return None
+
+
+# show schedule filters in a pop-up
+@app.callback(
+    [
+        Output('schedule-fil-modal','is_open'),
+        Output('schedule-radio-btn','options'),
+    ],
+    [
+        Input('scheduled-outputs','n_clicks'),
+        Input('schedule-fil-modal-close','n_clicks'),
+    ],
+    [
+        State('schedule-fil-modal','is_open')
+    ]
+)
+def update_schedule_filters(n_clicks,close_n_clicks,is_open):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == 'scheduled-outputs' and n_clicks is not None:
+        # value = settings.BASE_DIR
+        media_path = os.path.join(os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'media'),'django_app')
+        arr_txt = [x for x in os.listdir(media_path) if x.endswith(".xlsx")] 
+        radio_options=[] 
+        for i in arr_txt:
+            fil_name = i
+            # fil_date = i['filter_date']
+
+            option_name = str(fil_name)
+            radio_options.append(option_name)
+        
+        fil_options = [{'label':i,'value':i} for i in radio_options]
+     
+        return not is_open, fil_options
+    elif triggred_compo == 'schedule-fil-modal-close' and close_n_clicks is not None:
+        return not is_open, []
+    else:
+        return is_open, []
+
+
 
 
 # show saved changes in a pop-up
@@ -100,15 +182,71 @@ def update_saved_filters(n_clicks,close_n_clicks,is_open):
     [
         State('save-changes','data'),
         State('modal-sf-filter-name','value'),
+        
+        State('schedule-cklist','value'),
+        State('schedule-radio','value'),
+        
+        State('sch-hourly-min-input','value'),
+        
+        State('sch-daily-hour-input','value'),
+        State('sch-daily-min-input','value'),
+
+        State('sch-weekly-week-input','value'),
+        State('sch-weekly-hour-input','value'),
+        State('sch-weekly-min-input','value'),
+
+        State('sch-monthly-month-input','value'),
+        State('sch-monthly-date-input','value'),
+        State('sch-monthly-hour-input','value'),
+        State('sch-monthly-min-input','value'),
+
+        State('sch-email-input','value'),
     ]
 )
-def save_to_db(n_clicks,data,fil_name):
+def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
+    sch_hly_val,sch_dly_hr_val,sch_dly_min_val,sch_wly_wk_val,\
+    sch_wly_hr_val,sch_wly_min_val,sch_mly_mon_val,sch_mly_dt_val,\
+    sch_mly_hr_val,sch_mly_min_val,sch_email_val):
     if n_clicks is not None and fil_name is not None:
-        # print(data,flush=True)
-        data = json.dumps(data)
-        filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
-        filter_data.save()
-        return False
+        if cklist_value != []:
+            sch_str=""
+            if 'hourly' in sch_radio_value:
+                sch_str=f'{sch_hly_val} * * * *'
+            elif 'daily' in sch_radio_value:
+                sch_str=f'{sch_dly_min_val} {sch_dly_hr_val} * * *'
+            elif 'weekly' in sch_radio_value:
+                sch_str=f"{sch_wly_min_val} {sch_wly_hr_val} * * {','.join(sch_wly_wk_val)}"
+            elif 'monthly' in sch_radio_value:
+                sch_str=f"{sch_mly_min_val} {sch_mly_hr_val} {sch_mly_dt_val} {','.join(sch_mly_mon_val)} *"
+            
+            cron = CronTab(user=True)
+
+            local = os.path.join(settings.BASE_DIR,'django_app')
+
+            log_file = os.path.join(local,'test.out')
+
+            schedule_script_loc = os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'schedule_script.py')
+
+            job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name} >> {log_file}',comment=str(fil_name))
+            
+            # for j in cron:
+            #     print(sch_str,flush=True)
+            #     print(j,flush=True)
+
+            if sch_str != "":
+                job.setall(sch_str)
+                cron.write()
+
+            data = json.dumps(data)
+            filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+            filter_data.save()
+            return False
+                
+        else:
+            data = json.dumps(data)
+            filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+            filter_data.save()
+            return False
     else:
         return True
 
@@ -150,6 +288,9 @@ def update_retrived_data(n_clicks,del_n_clicks,value,data):
 
         try:
             dat = MsiFilters.objects.filter(filter_name=fil_name,filter_date=fil_date).delete()
+            cron = CronTab(user=True)
+            cron.remove_all(comment=str(fil_name))
+            cron.write()
         except:
             dat = None
 

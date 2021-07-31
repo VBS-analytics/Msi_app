@@ -12,7 +12,7 @@ from . import router
 
 # callbacks could go here, or in another callback.py file with this at the top:
 # from .server import app
-
+bolt = I(className="fa fa-bolt")
 dropdown = DropdownMenu(
         children=[
             # Div([
@@ -47,8 +47,8 @@ dropdown = DropdownMenu(
         nav=True,
         in_navbar=True,
         id='applied-changes-dropdown',
-        # label="Applied Filters",
-        className='py-0',
+        label='Applied changes',
+        # className='fa fa-bolt',
         direction="left")
 
 
@@ -66,7 +66,11 @@ app.layout = Loading(type='circle',children=[Div(children=[
                 Nav([
                     Row([
                         Col(dropdown),
-                        Col(NavItem(A(I(className="fa fa-filter"),id='saved-filters-btn'))),
+                    ]),
+                 
+                    Row([
+                        Col(NavItem(A(I(className="fa fa-clock-o"),id='scheduled-outputs'))),
+                        Col(NavItem(A(I(className="fa fa-filter",style={"font-size":"15px"}),id='saved-filters-btn'))),
                         Col(NavItem([A(I(className='fa fa-save'),id='run')])),
                         Col(NavItem([A(I(className='fa fa-download'),id='download',download='file.xlsx',target="_blank")])),
                         Col(NavItem([A(I(className='fa fa-question'),id='help',href='/help',target="_blank")])),
@@ -99,15 +103,8 @@ app.layout = Loading(type='circle',children=[Div(children=[
     Br(),
     Location(id='url', refresh=False),
 
-    Row([
-        Col(Card(
-                # CardHeader("Card header"),
-                CardBody([
-                    H5(id='noofpolicies-card',className="card-title"),
-                    P("Total No.of records",className="card-text"),
-                ])
-        ,color="light"),width=2)
-    ]),
-    Br(),
+    
+    
+    # Br(),
     Div(id='content',style={"display": "flex", "flex-direction": "column"}),
 ],id="mainContainer",style={"display": "flex", "flex-direction": "column"})])

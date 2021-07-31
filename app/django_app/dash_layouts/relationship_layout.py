@@ -1,5 +1,5 @@
 
-from dash_core_components import Dropdown, Input, RadioItems, Store
+from dash_core_components import Dropdown, Input, RadioItems, Store,Checklist
 from dash_html_components import Br, Div, Label, H5, A, Img, I
 from dash_bootstrap_components import Modal, ModalHeader, ModalFooter, ModalBody, \
     Button, Row, Col
@@ -10,6 +10,40 @@ from ..server import app
 
 def relationship_tab():
     return [
+            Modal(
+            [
+                ModalHeader([
+                    H5("Scheduled files renderd"),
+                ]),
+                ModalBody([
+                    Div(
+                        Row(
+                            Col(
+                                RadioItems(
+                                    id='schedule-radio-btn'
+                                )
+                            )
+
+                        )
+                    ,className='pretty_container ten columns')
+                ],id='saved-fil-modal-body'),
+                ModalFooter([
+                    Col(
+                        Button("Apply", id="schedule-fil-modal-apply", className="ml-auto")
+                    ,width=2),
+
+                    Col(
+                        Button("Delete", id="schedule-fil-modal-delete", className="ml-auto")
+                    ,width=2),
+
+                    Col(
+                        Button("Close", id="schedule-fil-modal-close",className="ml-auto")
+                    ,width=2),
+                    
+                ]),
+            ],
+            id='schedule-fil-modal',centered=True,size='lg'),
+
             Modal(
             [
                 ModalHeader([
@@ -50,35 +84,137 @@ def relationship_tab():
                     ]),
                     
                     ModalBody([
-                        Input(id='modal-sf-filter-name',value=None),
-                        Label("Saved Successfully!!",id='modal-sf-status',hidden=True)
+                        Div([
+                            Input(id='modal-sf-filter-name',value=None),
+                            Label("Saved Successfully!!",id='modal-sf-status',hidden=True)
+                        ]),
+                        Div([
+                            Checklist(
+                                options=[
+                                    {'label': 'Schedule', 'value': 'schedule'},
+                                ],
+                                value=[],
+                                id="schedule-cklist"
+                            )  
+                        ]),
+                        Div([
+                            Row([
+                                Col([
+                                    RadioItems(
+                                        options=[
+                                            {'label': 'Hourly', 'value': 'hourly'},
+                                            {'label': 'Daily', 'value': 'daily'},
+                                            {'label': 'Weekly', 'value': 'weekly'},
+                                            {'label': 'Monthly', 'value': 'monthly'},
+                                            # {'label': 'Yearly', 'value': 'yearly'},
+                                        ],
+                                        value=[],
+                                        id="schedule-radio"
+                                    )
+                                ],width=2),
+                                Col([
+                                    #hourly
+                                    Div([
+                                        Label("Enter Minutes (0-59)"),
+                                        Input(id="sch-hourly-min-input",placeholder="MM"),
+                                    ],style={"display":"none"},id="sch-hourly-body"),
+
+                                    #daily
+                                    Div([
+                                        Row([
+                                            Col([
+                                                Label("Enter Hours (0-23)"),
+                                                Input(id="sch-daily-hour-input",placeholder="HH")
+                                            ]),
+                                            Col([
+                                                Label("Enter Minutes (0-59)"),
+                                                Input(id="sch-daily-min-input",placeholder="MM")
+                                            ]),
+                                        ])
+                                    ],style={"display":"none"},id="sch-daily-body"),
+
+                                    #weekly
+                                    Div([
+                                        Row([
+                                            Col([
+                                                Label("Select Day"),
+                                                Dropdown(
+                                                id="sch-weekly-week-input",
+                                                options=[{'label':i,'value':i} for i in ["SUN","MON","TUE","WED","THU","FRI","SAT"]],
+                                                value=[],
+                                                multi=True
+                                            )]),
+
+                                            Col([
+                                                Label("Enter Hours (0-23)"),
+                                                Input(id="sch-weekly-hour-input",placeholder="HH")
+                                            ]),
+                                            Col([
+                                                Label("Enter Minutes (0-59)"),
+                                                Input(id="sch-weekly-min-input",placeholder="MM")
+                                            ]),
+                                        ])
+                                    ],style={"display":"none"},id="sch-weekly-body"),
+
+                                    #monthly
+                                    Div([
+                                        Row([
+                                            Col([
+                                                Label("Select Month"),
+                                                Dropdown(
+                                                id="sch-monthly-month-input",
+                                                options=[{'label':i,'value':i} for i in ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]],
+                                                value=[],
+                                                multi=True
+                                            )]),
+                                            Col([
+                                                Label("Enter date (1-31)"),
+                                                Input(id="sch-monthly-date-input",placeholder="1-31")
+                                            ]),
+
+                                            Col([
+                                                Label("Enter Hours (0-23)"),
+                                                Input(id="sch-monthly-hour-input",placeholder="HH")
+                                            ]),
+                                            Col([
+                                                Label("Enter Minutes (0-59)"),
+                                                Input(id="sch-monthly-min-input",placeholder="MM")
+                                            ]),
+                                        ])
+                                    ],style={"display":"none"},id="sch-monthly-body")
+                                ])
+                            ]),
+                            Row([
+                                Col([
+                                    Label("Enter E-mail for alerts"),
+                                    Input(id="sch-email-input",placeholder="Email..")
+                                ]),
+                            ])
+                        ],id='schedule-body',style={"display":"none"})
+
                     ],id='modal-sf-body'),
 
                     ModalFooter([
                         Button("Save",id='modal-sf-save',className='ml-auto'),
                         Button("Close",id='modal-sf-close',className='ml-auto'),
                     ]),
-                ],id='sf-modal',centered=True,size='sm'),
-            
-            
-
+                ],id='sf-modal',centered=True,size='lg'),
+           
+            Br(),
             Div(
                 Row([
                     Col([
                         Button("Add Table", color="primary",id='add-table-button', className="mr-1",size="sm",disabled=True),
-                    ],width=3),
+                    ],width={"size": 3}),
 
-                    Col([
+                    Col([    
                         Button("Run", color="primary",id='preview-table-button', className="mr-1",size="sm",disabled=True),
-                        # Button("Save relation", color="primary",id='save-relationship-button', className="mr-1",size="sm"),
-                    ],width=3)
+                    ],width={"size": 3, "offset": 1}),
                 ])
             ),
             
             Br(),
-            Br(),
-
-            
+                        
             Div([
                 Row([
                     Col(
@@ -155,8 +291,9 @@ def relationship_tab():
                             id='table',
                             columns=[{"name": i, "id": i} for i in ["column-1","column-2","column-3"]],
                             data= [],
+                            style_table={'overflowX': 'scroll','minWidth': '100%'},
                         )
                     )
                 )
-            ,className='pretty_container nine columns',id='relationship-table-div'),
+            ,className='pretty_container nine columns'),
     ]

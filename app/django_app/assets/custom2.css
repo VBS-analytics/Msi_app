@@ -7,6 +7,10 @@
   /* overflow-y: scroll;   */
 /* }  */
 
+/* table first column fix */
+.dash-spreadsheet-inner.dash-spreadsheet.dash-empty-01.dash-no-filter.dash-fill-width {
+  padding: 0 20px;
+}
 
 .container {
     position: relative;
@@ -22,7 +26,7 @@
     -webkit-appearance: none;
   }
 
-  .relationship-table-div .row { display: block; margin: 0; }
+  /* .relationship-table-div .row { display: block; margin: 0; } */
   /* .column,
   .columns {
     width: 100%;

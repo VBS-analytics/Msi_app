@@ -21,6 +21,7 @@ Flask-Caching==1.8.0
 xlsxwriter
 regex
 psycopg2>=2.8.6,<2.9
+python-crontab
 
 # ===========================================
 

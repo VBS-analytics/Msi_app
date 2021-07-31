@@ -122,8 +122,6 @@ def transform_tab():
                 ]),
             ],id='change-col-dtype-modal',centered=True,size='xl'),
             
-
-            Br(),
             Br(),
 
             Div(
@@ -154,6 +152,7 @@ def transform_tab():
                             id='table-filter',
                             columns=[{"name": i, "id": i} for i in ["column-1","column-2","column-3"]],
                             data= [],
+                            style_table={'overflowX': 'scroll'},
                         )
                     )
                 )

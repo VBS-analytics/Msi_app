@@ -785,31 +785,31 @@ def get_transformations(relationship_data,filters_data,col):
     db_connection = db_connection.dispose()
 
     if df1.empty is False:
-        for col in df1.columns:
+        for colm in df1.columns:
             stat=False
             for i in table_order:
                 if i is not None:
-                    c = col.split('___')[0] # changing the column name to original.
+                    c = colm.split('___')[0] # changing the column name to original.
                     stat = get_column_datatype(c,i)
                     # if stat is not False:
                     #     break
                     if stat is not False:
                         if ('datetime','datetime2','smalldatetime','date','time','datetimeoffset','timestamp') in stat:
-                            df1[col] = to_datetime(df1[col], infer_datetime_format=True)
+                            df1[colm] = to_datetime(df1[colm], infer_datetime_format=True)
                             break
 
                         if ('money','smallmoney','float','decimal','numeric') in stat:
-                            df1[col] = df1[col].fillna(0)
-                            df1[col] = df1[col].astype(float)
+                            df1[colm] = df1[colm].fillna(0)
+                            df1[colm] = df1[colm].astype(float)
                             break
 
                         if ('tinyint','smallint','int','bigint') in stat:
-                            df1[col] = df1[col].fillna(0)
-                            df1[col] = df1[col].astype(int)
+                            df1[colm] = df1[colm].fillna(0)
+                            df1[colm] = df1[colm].astype(int)
                             break
 
                         if 'bit' in stat:
-                            df1[col]=df1[col].apply(lambda k: int.from_bytes(k,byteorder='big',signed=False))
+                            df1[colm]=df1[colm].apply(lambda k: int.from_bytes(k,byteorder='big',signed=False))
                             break
 
     columns_select_1= [j for sub in columns_select for j in sub]
@@ -1136,7 +1136,83 @@ def get_downloaded_data(download_data):
         media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         data = base64.b64encode(xlsx_io.read()).decode("utf-8")
         csv_string = f'data:{media_type};base64,{data}'
+        
         return csv_string
+
+
+
+# function to export the table as excel file.
+def get_downloaded_data_to_folder(download_data,loc,file_name):
+    '''
+    This function returns the table which appears on format mapping tab as excel.
+    this function accepts **download_data** a dict variable which as all the data about
+    the table relation, applied filters and format mapped.
+    '''
+    if type(download_data['sql_qry']) is list:
+        table_name = download_data['sql_qry'][0]
+    else:
+        table_name = f"SELECT * FROM {download_data['sql_qry']};"
+
+    host=os.environ.get('CDB_HOST')
+    if host == 'windows':
+        host = os.environ['DOCKER_HOST_IP']
+
+    db_address=host #for linux enter host ip
+    pwd=os.environ.get('CDB_PASS')
+    db_user=os.environ.get('CDB_USER')
+    db_port=os.environ.get('CDB_PORT')
+    db_name=os.environ.get('CDB_NAME')
+    db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
+    db_connection = create_engine(db_connection_str)
+    
+    if download_data['filter_condi'] is not None:   
+        main_query = download_data['filter_condi']['SQL_QRY']
+        columns_select=download_data['filter_condi']['selected_columns']
+    else:
+        main_query = table_name
+        columns_select=[]
+    
+    try:
+        df1 = read_sql(main_query, con=db_connection)
+        # rows = read_sql(main_query.replace(re.findall('SELECT.*FROM',main_query)[0],"SELECT COUNT(*) FROM"),con=db_connection)['COUNT(*)'][0]
+    except:
+        df1=DataFrame()
+        # rows=0
+    db_connection = db_connection.dispose()
+
+    if list(columns_select) != []:
+        df1=df1[list(columns_select)]
+        
+    
+    if download_data['col_select'] is not None:
+        df1=df1[download_data['col_select']]
+    
+    if download_data['col_replace'] != {} and download_data['col_replace'] is not None:
+        # xlsx_io = io.BytesIO()
+        # writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
+        
+        df1.rename(columns=download_data['col_replace']).to_excel(os.path.join(loc,file_name),index=False)
+        # writer.save()
+        # xlsx_io.seek(0)
+        # https://en.wikipedia.org/wiki/Data_URI_scheme
+        # media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # data = base64.b64encode(xlsx_io.read()).decode("utf-8")
+        # csv_string = f'data:{media_type};base64,{data}'
+        # return csv_string
+    else:
+        # xlsx_io = io.BytesIO()
+        # writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
+        
+        df1.to_excel(os.path.join(loc,file_name),index=False)
+        # writer.save()
+        # xlsx_io.seek(0)
+        # # https://en.wikipedia.org/wiki/Data_URI_scheme
+        # media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # data = base64.b64encode(xlsx_io.read()).decode("utf-8")
+        # csv_string = f'data:{media_type};base64,{data}'
+        
+        # return csv_string
+
 
 # return table for the frontend.
 # def get_full_table_from_sql_query(sql_qry,col_names):
