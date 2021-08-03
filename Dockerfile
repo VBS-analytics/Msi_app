@@ -19,7 +19,7 @@ RUN python -m venv /py && \
     mkdir -p /vol/web/media && \
     # chown -R msi_user:msi_user /vol && \
     # chmod -R 755 /vol && \
-    # chmod -R +x /scripts && \
+    chmod -R +x /scripts && \
     echo "deb http://ftp.hk.debian.org/debian buster main" | tee -a /etc/apt/sources.list && \
     apt-get update && apt-get -y install cron
 
