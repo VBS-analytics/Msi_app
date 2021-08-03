@@ -20,12 +20,15 @@ import regex
 import ast 
 import re
 import os
-
+from django.http import HttpResponse
 from django.conf import settings
+
+from pandas import read_excel, ExcelWriter
 
 from crontab import CronTab
 
 from dash.exceptions import PreventUpdate
+from dash_extensions.snippets import send_bytes, send_file
 
 @app.callback(
     [
@@ -93,6 +96,33 @@ def display_rows(data1,data2):
     else:
         return None
 
+# download scheduled excel files
+@app.callback(
+    Output('schedule-fil-download','data'),
+    [
+        Input('schedule-fil-modal-download','n_clicks'),
+    ],
+    [
+        State('schedule-radio-btn','value')
+    ]
+)
+def download_schedule_excel(n_clicks,value):
+    # file_path = os.path.join(settings.MEDIA_ROOT, path)
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    # file_name = os.path.basename(value)
+
+    if triggred_compo == 'schedule-fil-modal-download' and n_clicks is not None and value is not None:
+        # def to_xlsx(bytes_io):
+        #     xslx_writer = ExcelWriter(bytes_io, engine="xlsxwriter")
+        #     df=read_excel(value)
+        #     df.to_excel(xslx_writer, index=False)
+        #     xslx_writer.save()
+
+        # return send_bytes(to_xlsx, file_name)
+        return send_file(value)
+    return None
+
 
 # show schedule filters in a pop-up
 @app.callback(
@@ -103,19 +133,22 @@ def display_rows(data1,data2):
     [
         Input('scheduled-outputs','n_clicks'),
         Input('schedule-fil-modal-close','n_clicks'),
+        Input('schedule-fil-modal-delete','n_clicks'),
     ],
     [
-        State('schedule-fil-modal','is_open')
+        State('schedule-fil-modal','is_open'),
+        State('schedule-radio-btn','value')
     ]
 )
-def update_schedule_filters(n_clicks,close_n_clicks,is_open):
+def update_schedule_filters(n_clicks,close_n_clicks,del_n_clicks,is_open,value):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if triggred_compo == 'scheduled-outputs' and n_clicks is not None:
         # value = settings.BASE_DIR
         media_path = os.path.join(os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'media'),'django_app')
-        arr_txt = [x for x in os.listdir(media_path) if x.endswith(".xlsx")] 
+        arr_txt = [x for x in os.listdir(media_path) if x.endswith(".xlsx")]
+        file_loc = [os.path.join(media_path,i) for i in arr_txt]
         radio_options=[] 
         for i in arr_txt:
             fil_name = i
@@ -124,11 +157,29 @@ def update_schedule_filters(n_clicks,close_n_clicks,is_open):
             option_name = str(fil_name)
             radio_options.append(option_name)
         
-        fil_options = [{'label':i,'value':i} for i in radio_options]
+        fil_options = [{'label':i,'value':j} for i,j in zip(radio_options,file_loc)]
      
         return not is_open, fil_options
     elif triggred_compo == 'schedule-fil-modal-close' and close_n_clicks is not None:
         return not is_open, []
+    elif triggred_compo == 'schedule-fil-modal-delete' and del_n_clicks is not None and value is not None:
+        os.remove(value)
+        media_path = os.path.join(os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'media'),'django_app')
+        arr_txt = [x for x in os.listdir(media_path) if x.endswith(".xlsx")]
+        file_loc = [os.path.join(media_path,i) for i in arr_txt]
+        radio_options=[] 
+        for i in arr_txt:
+            fil_name = i
+            # fil_date = i['filter_date']
+
+            option_name = str(fil_name)
+            radio_options.append(option_name)
+        
+        fil_options = [{'label':i,'value':j} for i,j in zip(radio_options,file_loc)]
+  
+
+        return is_open, fil_options
+
     else:
         return is_open, []
 
@@ -144,12 +195,14 @@ def update_schedule_filters(n_clicks,close_n_clicks,is_open):
     [
         Input('saved-filters-btn','n_clicks'),
         Input('saved-fil-modal-close','n_clicks'),
+        Input('retrived-data','data'),
     ],
     [
-        State('saved-fil-modal','is_open')
+        State('saved-fil-modal','is_open'),
+        State('filter-radio-btn','value'),
     ]
 )
-def update_saved_filters(n_clicks,close_n_clicks,is_open):
+def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -169,6 +222,22 @@ def update_saved_filters(n_clicks,close_n_clicks,is_open):
         return not is_open, fil_options
     elif triggred_compo == 'saved-fil-modal-close' and close_n_clicks is not None:
         return not is_open, []
+    elif triggred_compo == 'retrived-data' and ret_data is None and fil_radio_val is not None:
+        filters_objects = MsiFilters.objects.all().values()
+         
+        radio_options=[] 
+        for i in filters_objects:
+            fil_name = i['filter_name']
+            fil_date = i['filter_date']
+
+            option_name = str(fil_name) + ' ▬ ' + str(fil_date)
+            radio_options.append(option_name)
+        
+        fil_options = [{'label':i,'value':i} for i in radio_options]
+     
+        return is_open, fil_options
+    elif triggred_compo == 'retrived-data' and ret_data is not None:
+        return False, []
     else:
         return is_open, []
 
@@ -219,15 +288,20 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
             elif 'monthly' in sch_radio_value:
                 sch_str=f"{sch_mly_min_val} {sch_mly_hr_val} {sch_mly_dt_val} {','.join(sch_mly_mon_val)} *"
             
-            cron = CronTab(user=True)
+            cron = CronTab(user='root')
 
             local = os.path.join(settings.BASE_DIR,'django_app')
 
-            log_file = os.path.join(local,'test.out')
+            # log_file = os.path.join(local,'test.out')
 
             schedule_script_loc = os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'schedule_script.py')
 
-            job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name} >> {log_file}',comment=str(fil_name))
+            
+
+            # fil_name = fil_name + '_' + now
+
+            job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
+            # job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name}',comment=str(fil_name))
             
             # for j in cron:
             #     print(sch_str,flush=True)

@@ -7,6 +7,7 @@ import dash_html_components as dhc
 
 from dash_table import DataTable
 from ..server import app
+from dash_extensions import Download
 
 def relationship_tab():
     return [
@@ -26,19 +27,25 @@ def relationship_tab():
 
                         )
                     ,className='pretty_container ten columns')
-                ],id='saved-fil-modal-body'),
+                ],id='schedule-fil-modal-body'),
                 ModalFooter([
-                    Col(
-                        Button("Apply", id="schedule-fil-modal-apply", className="ml-auto")
-                    ,width=2),
-
                     Col(
                         Button("Delete", id="schedule-fil-modal-delete", className="ml-auto")
                     ,width=2),
 
                     Col(
+                        Button("Download", id="schedule-fil-modal-download", className="ml-auto")
+                    ,width=2),
+
+                    Col(
                         Button("Close", id="schedule-fil-modal-close",className="ml-auto")
                     ,width=2),
+
+                    # Col(A(I(className='fa fa-download'),id='schedule-fil-download',download='file.xlsx',target="_blank")),
+
+                    Col(
+                        Download(id="schedule-fil-download")
+                    ,width=2)
                     
                 ]),
             ],

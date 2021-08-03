@@ -15,6 +15,7 @@ import os
 import sys
 
 import re
+from dash_extensions.snippets import send_bytes
 
 # get table names
 def get_table_names():
@@ -1114,30 +1115,36 @@ def get_downloaded_data(download_data):
         df1=df1[download_data['col_select']]
     
     if download_data['col_replace'] != {} and download_data['col_replace'] is not None:
-        xlsx_io = io.BytesIO()
-        writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
-        
-        df1.rename(columns=download_data['col_replace']).to_excel(writer)
-        writer.save()
-        xlsx_io.seek(0)
-        # https://en.wikipedia.org/wiki/Data_URI_scheme
-        media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        data = base64.b64encode(xlsx_io.read()).decode("utf-8")
-        csv_string = f'data:{media_type};base64,{data}'
-        return csv_string
+        def to_xlsx(bytes_io):
+            xlsx_io = io.BytesIO()
+            writer = ExcelWriter(bytes_io, engine='xlsxwriter')
+            
+            df1.rename(columns=download_data['col_replace']).to_excel(writer,index=False)
+            writer.save()
+
+        return send_bytes(to_xlsx, "some_name.xlsx")
+        # xlsx_io.seek(0)
+        # # https://en.wikipedia.org/wiki/Data_URI_scheme
+        # media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # data = base64.b64encode(xlsx_io.read()).decode("utf-8")
+        # csv_string = f'data:{media_type};base64,{data}'
+        # return csv_string
     else:
-        xlsx_io = io.BytesIO()
-        writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
+        def to_xlsx(bytes_io):
+            xlsx_io = io.BytesIO()
+            writer = ExcelWriter(bytes_io, engine='xlsxwriter')
+            
+            df1.to_excel(writer,index=False)
+            writer.save()
+            
+        return send_bytes(to_xlsx, "some_name.xlsx")
+        # xlsx_io.seek(0)
+        # # https://en.wikipedia.org/wiki/Data_URI_scheme
+        # media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        # data = base64.b64encode(xlsx_io.read()).decode("utf-8")
+        # csv_string = f'data:{media_type};base64,{data}'
         
-        df1.to_excel(writer)
-        writer.save()
-        xlsx_io.seek(0)
-        # https://en.wikipedia.org/wiki/Data_URI_scheme
-        media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        data = base64.b64encode(xlsx_io.read()).decode("utf-8")
-        csv_string = f'data:{media_type};base64,{data}'
-        
-        return csv_string
+        # return csv_string
 
 
 
@@ -1183,7 +1190,11 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
     if list(columns_select) != []:
         df1=df1[list(columns_select)]
         
-    
+    # print(df1.shape)
+    # print(type(download_data['col_replace']))
+    # print(download_data['col_replace'])
+    # print(os.path.join(loc,file_name))
+
     if download_data['col_select'] is not None:
         df1=df1[download_data['col_select']]
     

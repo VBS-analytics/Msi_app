@@ -132,5 +132,5 @@ STATICFILES_DIRS = (str(os.path.join(os.path.join(BASE_DIR,'django_app'),'assets
 STATIC_URL = '/assets/assets/'
 MEDIA_URL = '/assets/media/'
 
-MEDIA_ROOT = '/vol/web/media'
+MEDIA_ROOT = os.path.join(os.path.join(BASE_DIR,'django_app'),'media')
 STATIC_ROOT = '/vol/web/assets'

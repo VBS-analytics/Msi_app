@@ -2,6 +2,7 @@ from dash_core_components import Upload
 from dash_html_components import A, Div, Br
 from dash_bootstrap_components import Button, Row, Col
 from dash_table import DataTable
+from dash_extensions import Download
 
 def formatmap_tab():
     return [
@@ -33,8 +34,11 @@ def formatmap_tab():
                         Button("Preview", color="primary",id='preview-table-format-button', className="mr-1",size="sm",disabled=True)
                     ,width={"size": 3}),
                     Col(
-                        Button("Generate Excel", color="primary",id='generate-excel-format-button', className="mr-1",size="sm")
-                    ,width={"size": 3, "offset": 1})
+                        [
+                            Button("Download Excel", color="primary",id='generate-excel-format-button', className="mr-1",size="sm"),
+                            Download(id='download-excel')
+                        ]
+                    ,width={"size": 3, "offset": 1}),
                 ])
             ),
 

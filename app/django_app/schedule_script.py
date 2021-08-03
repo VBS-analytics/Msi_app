@@ -1,3 +1,4 @@
+#!/py/bin/python
 import os
 import sys
 import json
@@ -7,6 +8,7 @@ from sqlalchemy import create_engine
 from global_functions import get_transformations, get_format_mapping,\
     get_table_from_sql_query, get_downloaded_data_to_folder
 from pandas import DataFrame, read_sql
+from datetime import date, datetime
 
 def get_data_from_database(fil_name):
     host=os.environ.get('DB_HOST')
@@ -19,37 +21,16 @@ def get_data_from_database(fil_name):
     db_port=os.environ.get('DB_PORT')
     db_name=os.environ.get('DB_NAME')
     
-    # print(f"testing {db_name}")
-    # print(db_user)
-    # print(db_address)
-    # print(pwd)
     db_connection_str = f"postgresql+psycopg2://{db_user}:{pwd}@{db_address}/{db_name}"
     db_connection = create_engine(db_connection_str)
 
     df1 = read_sql(f"select * from django_app_msifilters where filter_name='{fil_name}'",con=db_connection)
-    
+
     db_connection=db_connection.dispose()
     if df1.empty is False:
         return json.loads(df1['filter_data'].iloc[0])
     else:
         return None
-    
-    # if df1.empty:
-    #     return False
-    # else:
-    #     return True
-
-
-    # try:
-    #     dat = MsiFilters.objects.filter(filter_name=fil_name).values()
-    # except:
-    #     dat = None
-    
-    # if dat is not None:
-    #     # print(dat[0]['filter_data'],flush=True)
-    #     return json.loads(dat[0]['filter_data'])
-    # else:
-    #     return None
 
 def get_download_data(ret_data,loc,file_name):
     if ret_data is not None:
@@ -117,12 +98,17 @@ def get_download_data(ret_data,loc,file_name):
 
 if __name__ == '__main__':
     print(sys.argv[1])
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    loc = os.path.join(os.path.join(dir_path,'media'),'django_app')
+    # dir_path = os.path.dirname(os.path.realpath(__file__))
+    # loc = os.path.join(os.path.join(dir_path,'media'),'django_app')
+    loc = "/app/django_app/media/django_app"
     filter_name = sys.argv[1]
+    # print(os.environ.get('DB_HOST'))
+    # print(loc)
     ret_data = get_data_from_database(filter_name)
-    file_name=str(filter_name) + ".xlsx"
-    print(loc)
-    print(file_name)
-    print(ret_data)
+    # print('After get database')
+    now = datetime.now().ctime().replace(" ","_")
+    file_name=str(filter_name) + '_' + now +".xlsx"
+    
+    # print(loc)
     get_download_data(ret_data,loc,file_name)
+    # print('\n')

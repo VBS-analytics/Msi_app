@@ -6,7 +6,8 @@ ls -la /vol/
 ls -la /vol/web
 
 whoami
-
+service cron start
+printenv > /etc/environment
 python manage.py wait_for_db
 python manage.py collectstatic --noinput
 

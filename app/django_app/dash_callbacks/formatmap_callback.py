@@ -15,7 +15,7 @@ import base64
 
 # download data from format table
 @app.callback(
-    Output('download','href'),
+    Output('download-excel','data'),
     [
         Input('generate-excel-format-button','n_clicks'),
     ],

@@ -22,6 +22,8 @@ xlsxwriter
 regex
 psycopg2>=2.8.6,<2.9
 python-crontab
+dash-extensions==0.0.58
+openpyxl
 
 # ===========================================
 
