@@ -33,7 +33,6 @@ services:
       - CDB_PASS=Admin@optiplex
       - ALLOWED_HOSTS=127.0.0.1
       - CDB_PORT=3306
-      - TZ=Asia/Kolkata
     depends_on:
       - db
 

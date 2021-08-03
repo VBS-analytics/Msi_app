@@ -21,7 +21,6 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - CDB_PORT=${CDB_PORT}
-      - TZ=Asia/Kolkata
 
     depends_on:
       - db

@@ -989,7 +989,7 @@ def get_table_from_db(table_name):
     Returns a single table dataframe, which accepts a table name as argument.
     '''
     # db_addre`s`s=os.environ['DOCKER_HOST_IP'] #for windows machine
-    print(os.environ.get['CDB_HOST'])
+    print(os.environ.get('CDB_HOST'))
     host=os.environ.get('CDB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']
