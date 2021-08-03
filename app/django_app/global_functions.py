@@ -1000,6 +1000,7 @@ def get_table_from_db(table_name):
     db_port=os.environ.get('CDB_PORT')
     db_name=os.environ.get('CDB_NAME')
     db_connection_str = f'mysql+pymysql://{db_user}:{pwd}@{db_address}:{db_port}/{db_name}'
+    print(db_connection_str)
     db_connection = create_engine(db_connection_str)
     sql_qry = f'SELECT * FROM {table_name}'
     df1 = read_sql(f'SELECT * FROM {table_name} LIMIT 5;', con=db_connection)
