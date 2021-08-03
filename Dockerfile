@@ -28,7 +28,7 @@ RUN python -m venv /py && \
 
 RUN chmod a+x /app/django_app/schedule_script.py /app/django_app/global_functions.py && \
     mkdir -p /app/django_app/media/django_app && chmod -R 777 /app/django_app/media && \
-    update-locale LC_TIME=en_IN.UTF-8
+    echo 'LC_TIME=en_IN.UTF-8' >> /etc/default/locale
 
 ENV PATH="/scripts:/py/bin:$PATH"
 
