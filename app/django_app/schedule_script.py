@@ -11,6 +11,7 @@ from pandas import DataFrame, read_sql
 from datetime import date, datetime
 
 def get_data_from_database(fil_name):
+    print("inside get_data_from_database")
     host=os.environ.get('DB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']
@@ -20,11 +21,14 @@ def get_data_from_database(fil_name):
     db_user=os.environ.get('DB_USER')
     db_port=os.environ.get('DB_PORT')
     db_name=os.environ.get('DB_NAME')
+    print('env variables fetched')
     
     db_connection_str = f"postgresql+psycopg2://{db_user}:{pwd}@{db_address}/{db_name}"
     db_connection = create_engine(db_connection_str)
 
     df1 = read_sql(f"select * from django_app_msifilters where filter_name='{fil_name}'",con=db_connection)
+
+    print(df1.shape)
 
     db_connection=db_connection.dispose()
     if df1.empty is False:
@@ -34,6 +38,7 @@ def get_data_from_database(fil_name):
 
 def get_download_data(ret_data,loc,file_name):
     if ret_data is not None:
+        print('first condition')
         col={}
         csv_string = None
         # print(type(ret_data))
@@ -76,7 +81,7 @@ def get_download_data(ret_data,loc,file_name):
 
                 df, csv_string = get_format_mapping(relationship_data,d,sql_qry,col)
         else:
-            # print('Second Condition',flush=True)
+            print('Second Condition')
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
                 
                 rel_tbl_drpdwn=list(filter(None,relationship_data['table_order']))

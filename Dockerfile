@@ -27,7 +27,7 @@ RUN python -m venv /py && \
 #     usermod -a -G msi_user msi_user
 
 RUN chmod a+x /app/django_app/schedule_script.py /app/django_app/global_functions.py && \
-    chmod -R 777 /app/django_app/media
+    mkdir -p /app/django_app/media/django_app && chmod -R 777 /app/django_app/media
 
 ENV PATH="/scripts:/py/bin:$PATH"
 
