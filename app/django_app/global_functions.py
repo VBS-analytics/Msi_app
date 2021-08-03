@@ -989,7 +989,7 @@ def get_table_from_db(table_name):
     Returns a single table dataframe, which accepts a table name as argument.
     '''
     # db_addre`s`s=os.environ['DOCKER_HOST_IP'] #for windows machine
-    print(os.environ.get('CDB_HOST'))
+    # print(os.environ.get('CDB_HOST'))
     host=os.environ.get('CDB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']
@@ -1007,7 +1007,7 @@ def get_table_from_db(table_name):
 
     df3 = read_sql(f'DESC {table_name};',con=db_connection)
 
-    # print("")
+    print(f"db {df1.shape}")
     # print(list(df3['Type']))
 
     bit_types = df3[df3['Type'].str.startswith('bit')]['Field']
@@ -1020,6 +1020,8 @@ def get_table_from_db(table_name):
 
     datetime_types = df3[df3['Type'].str.startswith(('datetime','datetime2',\
         'smalldatetime','date','time','datetimeoffset','timestamp'))]['Field']
+
+    print("dataframe initalization")
 
     if datetime_types.empty is False:
         for i in datetime_types:
@@ -1038,6 +1040,8 @@ def get_table_from_db(table_name):
     if bit_types.empty is False:
         for i in bit_types:
             df1[i]=df1[i].apply(lambda k: int.from_bytes(k,byteorder='big'))
+
+    print("value conversion done")
 
     download_data = {
         "sql_qry":[table_name],
