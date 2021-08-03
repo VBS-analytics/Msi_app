@@ -47,15 +47,19 @@ def get_download_data(ret_data,loc,file_name):
         tbl_order = ret_data['relationship_data']['table_order']
         # print(tbl,flush=True)
         tbl_order=list(filter(None,tbl_order))
+        print(type(tbl))
 
         if tbl is not None and type(tbl) is str:
+            print("its str")
             df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
 
         elif tbl is not None and type(tbl) is list:
+            print("its list")
             df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
         else:
+            print("empty")
             df=DataFrame()
             table_names = None
             table_rows_no = 0
