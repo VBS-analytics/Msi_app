@@ -41,8 +41,8 @@ def get_download_data(ret_data,loc,file_name):
         print('first condition')
         col={}
         csv_string = None
-        # print(type(ret_data))
-        # print(ret_data['relationship_data'])
+        print(ret_data['relationship_data']['table_order'])
+        print(ret_data['relationship_data']['table'])
         tbl = ret_data['relationship_data']['table']
         tbl_order = ret_data['relationship_data']['table_order']
         # print(tbl,flush=True)
@@ -97,6 +97,7 @@ def get_download_data(ret_data,loc,file_name):
 
                     df, csv_string = get_format_mapping(relationship_data,d,None,col)
         
+        print(csv_string)
         if csv_string is not None:
             get_downloaded_data_to_folder(csv_string,loc,file_name)
 

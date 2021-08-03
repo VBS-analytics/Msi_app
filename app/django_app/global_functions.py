@@ -1006,7 +1006,7 @@ def get_table_from_db(table_name):
 
     df3 = read_sql(f'DESC {table_name};',con=db_connection)
 
-    # print(list(df3['Field']))
+    # print("")
     # print(list(df3['Type']))
 
     bit_types = df3[df3['Type'].str.startswith('bit')]['Field']
@@ -1044,6 +1044,7 @@ def get_table_from_db(table_name):
         "col_replace":None,
         "col_select":None,
     }
+    print("inside get_table_from_db")
 
     return df1, rows, download_data
 
@@ -1190,7 +1191,7 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
     if list(columns_select) != []:
         df1=df1[list(columns_select)]
         
-    # print(df1.shape)
+    print(df1.shape)
     # print(type(download_data['col_replace']))
     # print(download_data['col_replace'])
     # print(os.path.join(loc,file_name))
