@@ -93,7 +93,6 @@ def relationship_tab():
                     ModalBody([
                         Div([
                             Input(id='modal-sf-filter-name',value=None),
-                            Label("Saved Successfully!!",id='modal-sf-status',hidden=True)
                         ]),
                         Div([
                             Checklist(
@@ -193,11 +192,19 @@ def relationship_tab():
                             ]),
                             Row([
                                 Col([
+                                    Label("Auto-Delete after n days"),
+                                    Input(id="sch-auto-del-input",placeholder="days in number..",type='number')
+                                ]),
+                            ]),
+                            Row([
+                                Col([
                                     Label("Enter E-mail for alerts"),
                                     Input(id="sch-email-input",placeholder="Email..")
                                 ]),
                             ])
-                        ],id='schedule-body',style={"display":"none"})
+                        ],id='schedule-body',style={"display":"none"}),
+
+                        Div(Label("Saved Successfully!!",id='modal-sf-status',hidden=True)),
 
                     ],id='modal-sf-body'),
 

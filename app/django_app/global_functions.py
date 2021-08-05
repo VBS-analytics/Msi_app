@@ -118,7 +118,7 @@ def get_main_sql_query(sql_qry,rel_tables):
             for j in z[i]:
                 query=query + j.split("___")[1] + '.' + j.split("___")[0] + ' AS ' + j + ','
 
-        if query[-1] == ',':
+        if query != "" and query[-1] == ',':
             query=query[:-1]
         
         col_list = list(set(l))

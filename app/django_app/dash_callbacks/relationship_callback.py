@@ -270,12 +270,13 @@ def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val)
         State('sch-monthly-min-input','value'),
 
         State('sch-email-input','value'),
+        State('sch-auto-del-input','value'),
     ]
 )
 def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
     sch_hly_val,sch_dly_hr_val,sch_dly_min_val,sch_wly_wk_val,\
     sch_wly_hr_val,sch_wly_min_val,sch_mly_mon_val,sch_mly_dt_val,\
-    sch_mly_hr_val,sch_mly_min_val,sch_email_val):
+    sch_mly_hr_val,sch_mly_min_val,sch_email_val,sch_auto_del_val):
     if n_clicks is not None and fil_name is not None:
         if cklist_value != []:
             sch_str=""
@@ -310,6 +311,10 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
             if sch_str != "":
                 job.setall(sch_str)
                 cron.write()
+                if sch_auto_del_val is not None:
+                    job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
+                    job2.setall('0 0 * * *')
+                    cron.write()
 
             data = json.dumps(data)
             filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
