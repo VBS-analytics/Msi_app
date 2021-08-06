@@ -89,13 +89,14 @@ def get_filter_rows(table_names,columns):
         Input('retrived-data','data'),
         Input('preview-table-button','n_clicks'),
         Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
+        Input("filters-clear-all","n_clicks"),
     ],
     [
         State('filters-div','children'),
         State({'type':'applied-changes-menu','index':ALL},'children'),
     ],
 )
-def update_filter_div(data,n_clicks,menu_n_clicks,childs,apply_menu_child):
+def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,apply_menu_child):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -180,6 +181,8 @@ def update_filter_div(data,n_clicks,menu_n_clicks,childs,apply_menu_child):
             raise PreventUpdate
         else:
             raise PreventUpdate
+    elif triggred_compo == 'filters-clear-all' and fil_clear_n_clicks is not None:
+        return empty_div
     else:
         return childs
 
@@ -793,6 +796,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
         Input('preview-table-button','n_clicks'),
         Input('retrived-data','data'),
         Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
+        Input("filters-clear-all","n_clicks"),
 
         Input('select-drop-apply','n_clicks'),
         Input('filters-apply','n_clicks'),
@@ -851,7 +855,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
 
 )
 
-def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
+def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,\
     sel_aply_n_clicks,fil_aply_n_clicks,format_data,table_row,rel_tbl_data,rel_tbl_col,\
     rel_tbl_drpdwn,rel_join,join_qry,relationship_data,apply_menu_child,\
     relation_rows,data,columns,trans_column_data,trans_fil_condi,sel_drp_val,\
@@ -1460,6 +1464,56 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row
             # raise PreventUpdate
+    elif triggred_compo == "filters-clear-all" and fil_clear_all_n_clicks is not None and relationship_data is not None and filters_data['index_k'] is not None:
+        indx = filters_data['index_k']
+                        
+        sel_keys = list(filters_data['select_or_drop_columns'].keys())
+        # fil_keys = list(filters_data['filters'].keys())
+
+        if int(indx) == 1 and filters_data['filters'] != {}:
+            # delete the select_or_drop
+            filters_data['filters'].popitem()
+            filters_data['index_k']=0
+
+        elif int(indx) > 1 and filters_data['filters'] != {}:
+            # delete the select_or_drop
+            filters_data['filters'].popitem()
+            new_indx = int(indx) - 1
+            
+            if abs(new_indx - int(sel_keys[0])) == 1:
+                pop_item = filters_data['select_or_drop_columns'].popitem()
+                filters_data['select_or_drop_columns']={new_indx:pop_item[1]}
+                
+            filters_data['index_k']=new_indx
+        
+        
+
+        if filters_data['index_k'] is not None:
+
+            df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+            # df = df.fillna('None')
+            table_data_format=df.to_dict('records')
+            table_columns_format=[{"name": c, "id": c} for c in df.columns]
+
+            column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
+            table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
+
+            trans_col = {}
+            [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+
+            col_rename={}
+            [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
+            df = df.rename(columns=col_rename)
+            table_data_fil = df.to_dict('records')
+
+            return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
+                table_data_fil, table_columns_fil,relationship_data,rows,\
+                trans_col, sql_qry,csv_string,filters_data,table_row
+        else:
+            return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
+            table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+            csv_string,filters_data,table_row
+
 
     else:
         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\

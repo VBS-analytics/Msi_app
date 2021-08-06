@@ -47,7 +47,10 @@ def transform_tab():
             ],id='select-drop-modal',centered=True,size='xl'),
 
             Modal([
-                ModalHeader(H5('Filter rows')),
+                ModalHeader([
+                    H5('Filter rows'),
+                    Button("Clear all",id='filters-clear-all',color='link')
+                ]),
                 ModalBody(
                     Div([
                         Row(Col(H6('Select or drop rows'),width=3)),
@@ -112,7 +115,7 @@ def transform_tab():
                     Button("Close", id="filters-close", className="ml-auto"),
                 ]),
 
-            ],id='filters-modal',centered=True,size='xl'),
+            ],id='filters-modal',scrollable=True,centered=True,size='xl'),
 
             Modal([
                 ModalHeader(H5('Change columns datatype')),
