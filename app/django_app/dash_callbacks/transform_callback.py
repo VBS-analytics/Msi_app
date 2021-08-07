@@ -23,6 +23,8 @@ import sys
 
 from dash.exceptions import PreventUpdate
 
+from datetime import date
+
 # add condition row
 def get_condition_rows(columns,indx):
     return Row([
@@ -401,6 +403,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                         placeholder='mm/dd/YYYY',
                         min_date_allowed=min_dt,
                         max_date_allowed=max_dt,
+                        initial_visible_month=date.today()
                     ),
 
                     Checklist(
@@ -424,6 +427,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                 placeholder='mm/dd/YYYY',
                 min_date_allowed=min_dt,
                 max_date_allowed=max_dt,
+                initial_visible_month=date.today()
             )
         
         elif value in ['range'] and relation_data['table']!=[]:
@@ -479,6 +483,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                         placeholder='mm/dd/YYYY',
                         min_date_allowed=min_dt,
                         max_date_allowed=max_dt,
+                        initial_visible_month=date.today()
                     ),
 
                     Checklist(
@@ -502,6 +507,7 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                 placeholder='mm/dd/YYYY',
                 min_date_allowed=min_dt,
                 max_date_allowed=max_dt,
+                initial_visible_month=date.today()
             )
         
         elif value in ['range'] and relation_data['table']!=[]:
