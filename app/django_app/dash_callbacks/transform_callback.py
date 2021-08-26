@@ -3,10 +3,12 @@ from ..server import app, server
 from dash.dependencies import Output, Input, State, ALL, MATCH
 from dash import callback_context
 from dash_core_components import Dropdown, Textarea, DatePickerRange, DatePickerSingle,\
-    Checklist
+    Checklist, RadioItems
 from dash_core_components import Input as TextInput
-from dash_html_components import H6, Br, Div, I
-from dash_bootstrap_components import Col, Row, Button
+from dash_html_components import H6, Br, Div, I, Hr, A, Strong
+from dash_bootstrap_components import Col, Row, Button, Form, FormGroup,FormText,\
+    Label
+
 
 import dash_html_components as dhc
 
@@ -25,64 +27,336 @@ from dash.exceptions import PreventUpdate
 
 from datetime import date
 
+
+def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
+    trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,trans_use_curr_id,
+    trans_text,trans_multi,trans_dt_single,trans_dt_start,trans_dt_end,trans_use_current_dt,
+    trans_input,trans_days_single,fil_condi,logic_val,logic_val_id,fil_col,fil_sel_val,
+    relationship_data,col):
+
+    index_k = 0 if filters_data['index_k'] is None else filters_data['index_k']
+    in_k = None
+    if index_k != 0 and filters_data['filters'] != {}:
+        check_val = True if index_k in filters_data['filters'].keys() else False
+
+        if check_val is False:
+            idx = list(filters_data['filters'].keys())[0]
+            filters_data['filters'].pop(str(idx))
+            in_k = int(idx)
+        else:
+            filters_data['filters'].pop(str(index_k))
+            in_k = int(index_k)
+        
+    i_k = None
+    if in_k is not None and int(in_k) < filters_data['index_k']:
+        i_k = filters_data['index_k']
+    elif in_k is not None and int(in_k) >= filters_data['index_k']:
+        i_k = in_k
+
+    in_k = in_k if in_k is not None else index_k+1
+    filters_data['filters'].update({
+        in_k:{
+            'select_drop':None,
+            'index':[],
+            'columns':[],
+            'condition':[],
+            'values':[],
+            'logic':[]
+        }
+    })
+    
+
+    trans_text_id=[i['index'] for i in trans_text_id]
+    trans_multi_id=[i['index'] for i in trans_multi_id]
+    fil_col_id=[i['index'] for i in fil_col_id]
+    trans_input_id=[i['index'] for i in trans_input_id]
+    trans_dt_id=[i['index'] for i in trans_dt_id]
+    trans_dt_single_id = [i['index'] for i in trans_dt_single_id]
+    trans_days_id = [i['index'] for i in trans_days_id]
+    trans_use_curr_id = [i['index'] for i in trans_use_curr_id]
+
+    x={'index':[],'val':[]}
+    [(x['index'].append(i),x['val'].append(j)) for i,j in \
+        zip(trans_text_id,trans_text)]
+    [(x['index'].append(i),x['val'].append(j)) for i,j in \
+        zip(trans_multi_id,trans_multi)]
+    # [(x['index'].append(i),x['val'].append(j)) for i,j in \
+    #     zip(trans_days_id,trans_days_single)]
+    # [(x['index'].append(i),x['val'].append(j)) for i,j in \
+    #     zip(trans_use_curr_id,trans_use_current_dt)]
+    [(x['index'].append(i),x['val'].append(j)) for i,j in \
+        zip(trans_dt_single_id,trans_dt_single)]
+    # [(x['index'].append(i),x['val'].append(j)) for i,j in \
+    #     zip(trans_input_id,trans_input)]
+    # [(x['index'].append(i),x['val'].append(j)) for i,j in \
+    #     zip(trans_dt_single_id,trans_dt_single)]
+    [(x['index'].append(i),x['val'].append(j)) for i,j in \
+        zip(trans_dt_id,zip(trans_dt_start,trans_dt_end))]
+    
+    # x_l=len(trans_dt_single_id)
+    # y_l=len(trans_input_id)
+
+    # z=[None for i in range(abs(x_l-y_l))]
+
+    # if x_l < y_l:
+    #     trans_dt_single=list(chain(trans_dt_single,z))
+    #     trans_dt_single_id=list(chain(trans_dt_single_id,z))
+    # elif y_l < x_l:
+    #     trans_input=list(chain(trans_input,z))
+    #     trans_input_id=list(chain(trans_input_id,z))
+    
+    for indx, idx_1 in zip(range(len(trans_input_id)),trans_use_curr_id):
+        if trans_use_current_dt[indx] != []:
+            x['index'].append(idx_1)
+            x['val'].append([trans_input[indx],trans_use_current_dt[indx]])
+        elif trans_days_single[indx] is not None:
+            x['index'].append(idx_1)
+            x['val'].append([trans_input[indx],trans_days_single[indx]])
+
+    
+    indx_ismis = [i for i,v in zip(fil_col_id,fil_condi) if v == 'is missing']
+    indx_isntmis = [i for i,v in zip(fil_col_id,fil_condi) if v == 'is not missing']
+
+    if indx_ismis != []:
+        [(x['index'].append(v),x['val'].append('IS-None')) for v in indx_ismis]
+    if indx_isntmis != []:
+        [(x['index'].append(v),x['val'].append('NOT-None')) for v in indx_isntmis]
+
+    logic_val.insert(0,None)
+
+    logic_val_id = [i['index'] for i in logic_val_id]
+    logic_val_id.insert(0,00)
+
+    y={
+        'index':fil_col_id,
+        'fil_condi':fil_condi,
+        'fil_col':fil_col,
+        
+    }
+
+    z={
+        'logi_id':logic_val_id,
+        'logic_val':logic_val
+    }
+
+    x = DataFrame(x).sort_values(by='index')['val'].to_list()
+    y = DataFrame(y).sort_values(by='index').reset_index()
+    z = DataFrame(z).sort_values(by='logi_id').reset_index()
+
+
+    for i,k,j,v,l in zip(y['fil_col'],y['fil_condi'],y['index'],x,z['logic_val']):
+        filters_data['filters'][in_k]['index'].append(j)
+        filters_data['filters'][in_k]['condition'].append(k)
+        filters_data['filters'][in_k]['columns'].append(i)
+        filters_data['filters'][in_k]['values'].append(v)
+        filters_data['filters'][in_k]['logic'].append(l)
+    filters_data['filters'][in_k]['select_drop']=fil_sel_val
+    filters_data['index_k']=in_k if i_k is None else i_k
+
+    relationship_data['saved_data']=False
+    
+
+    if filters_data['index_k'] is not None:
+        df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+        return df,sql_qry,rows, csv_string
+    else:
+        return None,None,None,None
+
+
+# remove added new column
+@app.callback(
+    Output('add-new-col-modal-apply','disabled'),
+    [
+        Input({"type":"add-new-col-name","index":ALL},'value'),
+        Input({"type":'add-col-value-input',"index":ALL},'value'),
+    ]
+)
+def update_add_new_col_apply(col_name_val, col_input_val):
+    if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
+        return False
+    else:
+        return True
+
+@app.callback(
+    Output('add-new-col','data'),
+    [
+        Input('add-new-col-modal-apply','n_clicks')
+    ],
+    [
+        State({"type":"add-new-col-name","index":ALL},'value'),
+        State({"type":'add-col-value-input',"index":ALL},'value'),
+    ]
+)
+def update_add_new_col_values(n_clicks,col_name_val,col_input_val):
+    if n_clicks is not None:
+        if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
+            qry_str = ""
+            for col_name, col_val in zip(col_name_val,col_input_val):
+                # if radio_val[0] == "single value":
+                    
+                # if qry_str == "":
+                #     qry_str = qry_str + '"' + col_val + '" AS ' + col_name
+                # else:
+                #     qry_str = qry_str + ', "' + col_val + '" AS ' + col_name
+                    
+                # elif radio_val[0] == "conditional value":
+                if qry_str == "":
+                    qry_str = qry_str + str(col_val) + ' AS ' + str(col_name)
+                else:
+                    qry_str = qry_str + ', ' + str(col_val) + ' AS ' + str(col_name)
+            
+            
+            return dict(add_col_names=col_name_val,add_col_qry=qry_str)
+        else:
+            raise PreventUpdate
+    else:
+        raise PreventUpdate
+
+# add new column button
+@app.callback(
+    Output('add-col-form','children'),
+    [
+        Input('add-col-new-col-but','n_clicks'),
+        Input({'type':'add-col-remove','index':ALL},'n_clicks'),
+    ],
+    [
+        State('add-col-form','children'),
+        State({'type':'add-col-remove','index':ALL},'id'),
+    ]
+)
+def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == "add-col-new-col-but" and n_clicks is not None:
+        indx = n_clicks+1
+        
+        grp_1 = FormGroup([
+                    Col(A(I(className="fa fa-trash"),id={'type':'add-col-remove','index':indx}),className="text-right"),
+                    dhc.Label("Enter column name"),
+                    TextInput(id={"type":"add-new-col-name","index":indx},type="text",minLength=5,required=True),
+                    FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
+                ],id={"type":'add-col-grp-1','index':indx})
+        
+        grp_2 = FormGroup([
+                    dhc.Label("Assign value to new column"),
+                    # RadioItems(
+                    #         options=[{'label':i,'value':i} for i in zip(["single value","conditional value"])],
+                    #         id={"type":"add-col-value-radio","index":indx},
+                    # ),
+                    TextInput(id={"type":'add-col-value-input',"index":indx},type='text',required=True),
+                ],id={"type":'add-col-grp-2','index':indx})
+        
+        
+        # childs.append(trash_but)
+        childs.append(grp_1)
+        childs.append(grp_2)
+        childs.append(Hr(id={"type":'add-col-hr-3','index':indx}))
+        return childs
+
+    elif triggred_compo.rfind('add-col-remove') > -1:
+        indx=None
+        if any(trash_n_clicks):
+            indx = [idx for idx,i in enumerate(trash_n_clicks) if i is not None and i > 0]
+            indx = add_col_remove_id[indx[0]]
+            indx = indx['index']    
+
+        childs_copy = childs.copy()
+                    
+
+        if indx is not None:
+            for idx,i in enumerate(childs):
+                if i['props']['id']['index'] == int(indx):
+                    childs_copy.remove(i)
+            return childs_copy
+        raise PreventUpdate
+    else:
+        raise PreventUpdate
+
 # add condition row
 def get_condition_rows(columns,indx):
     return Row([
-                Col(
-                    Dropdown(
-                        id={'type':'filters-column-names','index':indx},
-                        options=[{'label':i,'value':i} for i in columns.keys()],
-                        value=None
-                    )
-                ,width=4),
-
-                Col(
-                    Dropdown(id={'type':'filters-conditions','index':indx})
-                ,width=3),
-
-                Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
-            ],id={'type':'condition-rows','index':indx})
-
-# generates the body for filter rows
-def get_filter_rows(table_names,columns):
-    col = columns
-    return Div([
-        Row(Col(H6('Select or drop rows'),width=3)),
-        Row(
-            Col(
+        Col(
+            FormGroup([
+                Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
                 Dropdown(
-                    id='select_or_drop_rows_select_drop',
-                    options=[{'label':i,'value':i} for i in ['Select','Drop']],
+                    id={'type':'filters-column-names','index':indx},
+                    options=[{'label':i,'value':i} for i in columns.keys()],
                     value=None
                 )
-            ,width=3),
-        ),
-        Row(Col(H6('where'),width=3)),
+            ])
+        ,width=4),
+
+        Col(
+            FormGroup([
+                Label(Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
+                Dropdown(
+                    id={'type':'filters-conditions','index':indx}
+                )
+            ])
+        ,width=3),
+
+        Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
+
+        Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
+
+    ],id={'type':'condition-rows','index':indx})
+    # return Row([
+    #             Col(
+    #                 Dropdown(
+    #                     id={'type':'filters-column-names','index':indx},
+    #                     options=[{'label':i,'value':i} for i in columns.keys()],
+    #                     value=None
+    #                 )
+    #             ,width=4),
+
+    #             Col(
+    #                 Dropdown(id={'type':'filters-conditions','index':indx})
+    #             ,width=3),
+
+    #             Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
+    #         ],id={'type':'condition-rows','index':indx})
+
+# # generates the body for filter rows
+# def get_filter_rows(table_names,columns):
+#     col = columns
+#     return Div([
+#         Row(Col(H6('Select or drop rows'),width=3)),
+#         Row(
+#             Col(
+#                 Dropdown(
+#                     id='select_or_drop_rows_select_drop',
+#                     options=[{'label':i,'value':i} for i in ['Select','Drop']],
+#                     value=None
+#                 )
+#             ,width=3),
+#         ),
+#         Row(Col(H6('where'),width=3)),
 
         
-        Div([
-            Row([
+#         Div([
+#             Row([
                 
-                Col(
-                    Dropdown(
-                        id={'type':'trans-column-names','index':0},
-                        options=[{'label':i,'value':i} for i in columns.keys()],
-                        value=None
-                    )
-                ,width=4),
+#                 Col(
+#                     Dropdown(
+#                         id={'type':'trans-column-names','index':0},
+#                         options=[{'label':i,'value':i} for i in columns.keys()],
+#                         value=None
+#                     )
+#                 ,width=4),
 
-                Col(
-                    Dropdown(id={'type':'trans-conditions','index':0})
-                ,width=3),
+#                 Col(
+#                     Dropdown(id={'type':'trans-conditions','index':0})
+#                 ,width=3),
 
                 
-            ], id={'type':'condition-rows','index':0}),
+#             ], id={'type':'condition-rows','index':0}),
 
-        ],id='trans-conditional-div'),
+#         ],id='trans-conditional-div'),
 
-        Row(Col(Button("add condition", size="sm",id='trans-add-condition'))),
+#         Row(Col(Button("add condition", size="sm",id='trans-add-condition'))),
         
-    ])
+#     ])
 
 # display the saved filters changes to front-end
 @app.callback(
@@ -105,61 +379,71 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,appl
     # print(f"FILTERS DIV {triggred_compo}",flush=True)
 
     empty_div = [
-                Row(Col(H6('Select or drop rows'),width=3)),
-                Row(
-                    Col(
+        FormGroup([
+            Col(A(I(className="fa fa-refresh"),id='filters-clear-all'),className="text-right"),
+            dhc.Label("Select or drop rows"),
+            Dropdown(
+                    id='filters-select-drop',
+                    options=[{'label':i,'value':i} for i in ['Select','Drop']],
+                    value=None,
+                    style={"width":"50%"}
+                ),
+            # FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
+        ]),
+
+        FormGroup([
+            dhc.Label("Where,")
+        ]),
+
+        Div([
+            Row([
+                Col(
+                    FormGroup([
+                        Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':0}),
                         Dropdown(
-                            id='filters-select-drop',
-                            options=[{'label':i,'value':i} for i in ['Select','Drop']],
+                            id={'type':'filters-column-names','index':0},
                             value=None
                         )
-                    ,width=3)
-                ),
+                    ])
+                ,width=4),
 
-                Row(Col(H6('where'),width=3)),
+                Col(
+                    FormGroup([
+                        Label(Strong("condition"),html_for={'type':'filters-conditions','index':0}),
+                        Dropdown(
+                            id={'type':'filters-conditions','index':0}
+                        )
+                    ])
+                ,width=3),
 
-                Div([
-                    Row([
-                        Col(
-                            Dropdown(
-                                id={'type':'filters-column-names','index':0},
-                                value=None
-                            )
-                        ,width=4),
+                Col([
+                    FormGroup([
+                        dhc.Label(Strong("value")),
+                        Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
+                        Textarea(id={"type":'trans-text','index':0},style={'display':'none'}),
+                        TextInput(id={'type':'trans-input','index':0},style={'display':'none'}),
+                        DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
+                        DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
+                        DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
+                        Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
+                    ])
+                    
+                ],id={'type':'filters-text-drpdwn','index':0},width=4),
 
-                        Col(
-                            Dropdown(
-                                id={'type':'filters-conditions','index':0}
-                            )
-                        ,width=3),
+                # Col(dhc.Button(id={'type':'logic-close','index':0},hidden=True))
+                Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':0}),className="text-right"),
+            
+            ],id={'type':'condition-rows','index':0}),
+            Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
+        ],id='filters-conditional-div'),
 
-                        Col([
-                            Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
-                            Textarea(id={"type":'trans-text','index':0},style={'display':'none'}),
-                            TextInput(id={'type':'trans-input','index':0},style={'display':'none'}),
-                            DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
-                            DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
-                            DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
-                            Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
-                        ],id={'type':'filters-text-drpdwn','index':0},width=4),
-
-                    ],id={'type':'condition-rows','index':0}),
-
-                    Row([
-                        dhc.Button(id={'type':'logic-close','index':0},hidden=True)
-                    ],
-                    id={'type':'filters-logic','index':0}),
-
-
-                ],id='filters-conditional-div'),
-
-                Row(
-                    Col(
-                        Button('add condition', size='sm', id='filters-add-condition')
-                    )
-                ),
+        Row(
+            Col(
+                Button('add condition', size='sm', id='filters-add-condition')
+            )
+        ),
                 
-            ]
+    ]
 
     if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
         return data['filter_rows']
@@ -196,13 +480,14 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,appl
         Input('preview-table-button','n_clicks'),
         Input('filters-apply','n_clicks'),
         Input('select-drop-apply','n_clicks'),
+        Input('add-new-col','n_clicks'),
     ],
     [
         State('filters-retrived-status','data')
     ]
 )
 def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_clicks,\
-    sel_apply_n_clicks,data):
+    sel_apply_n_clicks,add_new_n_clicks,data):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -213,6 +498,8 @@ def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_click
     elif triggred_compo == "filters-apply" and fil_apply_n_clicks is not None:
         return True
     elif triggred_compo == "select-drop-apply" and sel_apply_n_clicks is not None:
+        return True
+    elif triggred_compo == "add-new-col" and add_new_n_clicks is not None:
         return True
     else:
         return None
@@ -233,8 +520,17 @@ def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_click
 def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    if triggred_compo == 'filters-add-condition' and n_clicks is not None:
+    # print(f"Files list {childs}")
+    childs_copy=childs.copy()
+    z=[childs_copy.remove(d) for d in childs if d['type']!="Br" and d['props']['children']==None]
+    if set(z) == set([None]):
+        [childs_copy.remove(d) for d in childs if d['type']=="Br"]
+    # print(childs_copy)
+    # print(triggred_compo)
+    # print(n_clicks)
+    # print(trans_columns)
+
+    if triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy!=[]:
         indx = n_clicks + 1
         condition_row = get_condition_rows(trans_columns,indx)
         logic_and_or = Row([
@@ -243,18 +539,35 @@ def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
                     options=[{'label':i,'value':i} for i in ["And","Or"]]
                 )
             ,width=3),
-
-            Col(
-                dhc.Button(
-                    I(className='fa fa-times'),
-                    id={'type':'logic-close','index':indx},
-                )
-            ,width=2),
         ],id={'type':'filters-logic','index':indx})
-        childs.append(Br())
-        childs.append(logic_and_or)
-        childs.append(condition_row)
-        return childs
+        childs_copy.append(Br())
+        childs_copy.append(logic_and_or)
+        childs_copy.append(condition_row)
+        # print(f"\n\n DIV list {childs_copy}")
+        return childs_copy
+    elif triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy==[]:
+        indx = n_clicks + 1
+        condition_row = get_condition_rows(trans_columns,indx)
+        # print("got columns")
+        logic_and_or = Row(Col("This is Temp column and row"),id={"type":"filters-logic",\
+            "index":indx},style={'display':'none'})
+
+        # print("value init")
+
+        # logic_and_or = Row([
+        #     Col(
+        #         Dropdown(id={'type':'logic-dropdown','index':indx},
+        #             options=[{'label':i,'value':i} for i in ["And","Or"]]
+        #         )
+        #     ,width=3),
+        # ],id={'type':'filters-logic','index':indx})
+        childs_copy.append(Br())
+        childs_copy.append(logic_and_or)
+        childs_copy.append(condition_row)
+        # print(childs_copy)
+        # print(f"\n\n DIV list {childs_copy}")
+        return childs_copy
+
     else:
         raise PreventUpdate
 
@@ -293,7 +606,7 @@ def close_condition(n_clciks,id,childs,fil_childs):
 )
 def update_filters_condition_dropdown(value,id,data,ret_data):
     if value is not None and data != {} and (data[value] == 'float64' or data[value] == 'int64'):
-        return [{'label':i,'value':i} for i in ['<','<=','==','!=','>','>=', \
+        return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
             'is missing','is not missing']]
     elif value is not None and data != {} and (data[value] == 'object' or data[value] == 'category'):
         return [{'label':i,'value':i} for i in ['has value(s)', 'starts with', \
@@ -305,7 +618,7 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
     elif value is not None and data == {} and ret_data is not None and\
         (ret_data['transformations_table_column_data'][value] == 'float64' or\
             ret_data['transformations_table_column_data'][value] == 'int64'):
-        return [{'label':i,'value':i} for i in ['<','<=','==','!=','>','>=', \
+        return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
             'is missing','is not missing']]
     elif value is not None and data == {} and ret_data is not None and\
         (ret_data['transformations_table_column_data'][value] == 'object' or\
@@ -334,10 +647,11 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
         
         State('relationship-data','data'),
         State('retrived-data','data'),
-        State('filters-retrived-status','data')
+        State('filters-retrived-status','data'),
+        State('add-new-col','data'), # stores all applied filters
     ]
 )
-def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data,ret_stat):
+def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data,ret_stat,add_new_col):
     indx = id['index'] 
 
     # textfile = open("example.txt", "w")
@@ -365,161 +679,180 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                 pass
         
         if value in ['<','<=','==','>=','>','!=']:
-            return Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None)
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                Textarea(id={"type":'trans-text','index':indx},\
+                    persistence=True,value=None,required=True)
+            ])
 
         elif value in ['starts with','contains','ends with']:
-            return Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None)
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                Textarea(id={"type":'trans-text','index':indx},\
+                persistence=True,value=None,required=True)
+            ])
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
             
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
             # print(f"columns .. {df1.columns}")
 
             if type(df1) is Series:
                 col=df1.unique()
             else:
                 col=df1[column_name].unique
-            return Dropdown(id={"type":'trans-multi-text','index':indx},
-                        options=[{'label':i,'value':i} for i in col],
-                        multi=True,
-                        persistence=True,
-                    )
+            return FormGroup([
+                    dhc.Label(Strong("value")),
+                    Dropdown(id={"type":'trans-multi-text','index':indx},
+                                options=[{'label':i,'value':i} for i in col],
+                                multi=True,
+                                persistence=True),
+                ])
         
         elif value in ['days'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
 
-            return Row([
-                Col(TextInput(id={'type':'trans-input','index':indx},persistence=True,
-                value=None)),
-
-                Col([
-                    DatePickerSingle(
-                        id={'type':'trans-days-single','index':indx},
-                        placeholder='mm/dd/YYYY',
-                        min_date_allowed=min_dt,
-                        max_date_allowed=max_dt,
-                        initial_visible_month=date.today()
-                    ),
-
-                    Checklist(
-                        id={'type':'trans-use-current-date','index':indx},
-                        options=[
-                            {'label': 'Use current sys date', 'value': 'Use'},
-                        ],
-                        value=[]
-                    ),
-                ])
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                TextInput(id={'type':'trans-input','index':indx},persistence=True,value=None),
+                DatePickerSingle(
+                    id={'type':'trans-days-single','index':indx},
+                    placeholder='mm/dd/YYYY',
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                    initial_visible_month=date.today()
+                ),
+                Checklist(
+                    id={'type':'trans-use-current-date','index':indx},
+                    options=[
+                        {'label': 'Use current sys date', 'value': 'Use'},
+                    ],
+                    value=[]
+                )
             ]) 
         
         elif value in ['before','after','equals','not'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
 
-            return DatePickerSingle(
-                id={'type':'trans-date-single','index':indx},
-                placeholder='mm/dd/YYYY',
-                min_date_allowed=min_dt,
-                max_date_allowed=max_dt,
-                initial_visible_month=date.today()
-            )
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                DatePickerSingle(
+                    id={'type':'trans-date-single','index':indx},
+                    placeholder='mm/dd/YYYY',
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                    initial_visible_month=date.today()
+                )
+            ])
         
         elif value in ['range'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
             max_dt = df1.max()
             min_dt = df1.min()
 
-            return DatePickerRange(
-                id={'type':'trans-date-range','index':indx},
-                min_date_allowed=min_dt,
-                max_date_allowed=max_dt,
-            )
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                DatePickerRange(
+                    id={'type':'trans-date-range','index':indx},
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                )
+            ])
         else:
             return None
     elif value is not None and relation_data['table'] != []:
         
         if value in ['<','<=','==','>=','>','!=']:
-            return Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None)
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                Textarea(id={"type":'trans-text','index':indx},\
+                    persistence=True,value=None,required=True)
+            ])
 
         elif value in ['starts with','contains','ends with']:
-            return Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None)
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                Textarea(id={"type":'trans-text','index':indx},\
+                persistence=True,value=None,required=True)
+            ])
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
             
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
             # print(f"columns .. {df1.columns}")
 
             if type(df1) is Series:
                 col=df1.unique()
             else:
                 col=df1[column_name].unique
-            return Dropdown(id={"type":'trans-multi-text','index':indx},
-                        options=[{'label':i,'value':i} for i in col],
-                        multi=True,
-                        persistence=True,
-                    )
+            
+            return FormGroup([
+                    dhc.Label(Strong("value")),
+                    Dropdown(id={"type":'trans-multi-text','index':indx},
+                                options=[{'label':i,'value':i} for i in col],
+                                multi=True,
+                                persistence=True),
+                ])
         
         elif value in ['days'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
 
-            return Row([
-                Col(TextInput(id={'type':'trans-input','index':indx},persistence=True,
-                value=None)),
-
-                Col([
-                    DatePickerSingle(
-                        id={'type':'trans-days-single','index':indx},
-                        placeholder='mm/dd/YYYY',
-                        min_date_allowed=min_dt,
-                        max_date_allowed=max_dt,
-                        initial_visible_month=date.today()
-                    ),
-
-                    Checklist(
-                        id={'type':'trans-use-current-date','index':indx},
-                        options=[
-                            {'label': 'Use current sys date', 'value': 'Use'},
-                        ],
-                        value=[]
-                    ),
-                ])
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                TextInput(id={'type':'trans-input','index':indx},persistence=True,value=None),
+                DatePickerSingle(
+                    id={'type':'trans-days-single','index':indx},
+                    placeholder='mm/dd/YYYY',
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                    initial_visible_month=date.today()
+                ),
+                Checklist(
+                    id={'type':'trans-use-current-date','index':indx},
+                    options=[
+                        {'label': 'Use current sys date', 'value': 'Use'},
+                    ],
+                    value=[]
+                )
             ]) 
         
         elif value in ['before','after','equals','not'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
 
             max_dt = df1.max()
             min_dt = df1.min()
-
-            return DatePickerSingle(
-                id={'type':'trans-date-single','index':indx},
-                placeholder='mm/dd/YYYY',
-                min_date_allowed=min_dt,
-                max_date_allowed=max_dt,
-                initial_visible_month=date.today()
-            )
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                DatePickerSingle(
+                    id={'type':'trans-date-single','index':indx},
+                    placeholder='mm/dd/YYYY',
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                    initial_visible_month=date.today()
+                )
+            ])
         
         elif value in ['range'] and relation_data['table']!=[]:
-            df1=get_column_values(relation_data['table'],column_name)
+            df1=get_column_values(relation_data['table'],add_new_col,column_name)
             max_dt = df1.max()
             min_dt = df1.min()
-
-            return DatePickerRange(
-                id={'type':'trans-date-range','index':indx},
-                min_date_allowed=min_dt,
-                max_date_allowed=max_dt,
-            )
+            return FormGroup([
+                dhc.Label(Strong("value")),
+                DatePickerRange(
+                    id={'type':'trans-date-range','index':indx},
+                    min_date_allowed=min_dt,
+                    max_date_allowed=max_dt,
+                )
+            ])
         else:
             return None
     else:
@@ -591,8 +924,8 @@ def ret_changes(ret_data,n_clicks,menu_n_clicks,sel_val,sel_col_val,apply_childs
         Input({'type':'filters-column-names','index':ALL},'value'),
         Input({'type':'filters-conditions','index':ALL},'value'),
         Input({"type":'trans-text','index':ALL},'value'),
-        Input({"type":'trans-multi-text','index':ALL},'value'),
-        Input({'type':'trans-input','index':ALL},'value'),
+        Input({"type":'trans-multi-text','index':ALL},'value'),#dropdown
+        Input({'type':'trans-input','index':ALL},'value'), #date days
         Input({'type':'trans-date-range','index':ALL},'start_date'),
         Input({'type':'trans-date-range','index':ALL},'end_date'),
         Input({'type':'trans-date-single','index':ALL},'date'),
@@ -656,7 +989,8 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
 
             if chk != []:
                 for i in chk:
-                    if all([True if k is not None and k !=[] and k != '' else False for k in i]) == True:
+                    chk_val=[True if k is not None and k !=[] and k != '' else False for k in i]
+                    if all(chk_val) is True and chk_val != []:
                         rt=True
                     else:
                         rtt=True
@@ -665,9 +999,9 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
             if chk2 != []:
                 z1=[True for i,j in zip(chk2[0],chk2[2]) if i != [] and i is not None and i != '' or j != []]
 
-                if all([True if i is not None and i != [] and i != '' else False for i in chk2[1]]) is True and\
+                chk2_val = [True if i is not None and i != [] and i != '' else False for i in chk2[1]]
+                if all(chk2_val) is True and chk2_val != [] and\
                     len(chk2[0]) == z1.count(True):
-
                     rt2=True
                 else:
                     rtt2=True
@@ -683,6 +1017,80 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
                 return True
         else:
             return True
+
+# get realtime data
+@app.callback(
+    Output('realtime-total-records','children'),
+    [
+        Input('filters-apply','disabled'),
+    ],
+    [
+        State('filters-data','data'),
+
+        State({'type':'filters-column-names','index':ALL},'id'),
+        State({'type':'filters-conditions','index':ALL},'id'),
+        State({"type":'trans-text','index':ALL},'id'),
+        State({"type":'trans-multi-text','index':ALL},'id'),
+        State({'type':'trans-input','index':ALL},'id'),
+        State({'type':'trans-date-range','index':ALL},'id'),
+        State({'type':'trans-date-single','index':ALL},'id'),
+        State({'type':'trans-days-single','index':ALL},'id'),
+        State({'type':'trans-use-current-date','index':ALL},'id'),
+        State({'type':'logic-dropdown','index':ALL},'id'),
+        State('relationship-data','data'),
+
+        State('filters-select-drop','value'),#select or drop rows
+        State({'type':'filters-column-names','index':ALL},'value'),
+        State({'type':'filters-conditions','index':ALL},'value'),
+        State({"type":'trans-text','index':ALL},'value'),
+        State({"type":'trans-multi-text','index':ALL},'value'),#dropdown
+        State({'type':'trans-input','index':ALL},'value'), #date days
+        State({'type':'trans-date-range','index':ALL},'start_date'),
+        State({'type':'trans-date-range','index':ALL},'end_date'),
+        State({'type':'trans-date-single','index':ALL},'date'),
+        State({'type':'trans-days-single','index':ALL},'date'),
+        State({'type':'trans-use-current-date','index':ALL},'value'),
+        State({'type':'logic-dropdown','index':ALL},'value'),
+    ]
+)
+def get_real_time_count(disabled,filters_data,fil_col_id,fil_condi_id,trans_text_id,\
+    trans_multi_id,trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,\
+    trans_use_curr_id,logic_val_id,relationship_data,fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
+    trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
+        trans_days_single,trans_current_date,logic_dropdown):
+
+
+    
+
+    if disabled is False:
+        print(f"filters data {filters_data}")
+        print(f"current date {trans_current_date}")
+        print(f"trans input {trans_input}")
+        print(f"trans single {trans_days_single}")
+        print(f"trans days single {trans_days_single}")
+        print(f"filter condi {fil_condi}")
+        print(f"logic dropdown {logic_dropdown}")
+        print(f"relationship {relationship_data}")
+        print(f"fil col {fil_col_names}")
+        print(f"Multi Text {trans_multi_txt}")
+            # ,logic_val_id,fil_col_names,fil_sel_drop,
+            # relationship_data
+        def local_func_get_rows():
+            df,sql_qry,rows, csv_string = get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
+                trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,trans_use_curr_id,
+                trans_txt,trans_multi_txt,trans_dt_single,trans_dt_start,trans_dt_end,trans_current_date,
+                trans_input,trans_days_single,fil_condi,logic_dropdown,logic_val_id,fil_col_names,fil_sel_drop,
+                relationship_data,None)
+            
+            no_of_records=None
+            if rows is not None:
+                no_of_records = f"{rows} records"               
+            return no_of_records
+
+        no_of_rows = local_func_get_rows()
+        return no_of_rows
+    else:
+        return None
 
 
 # enable or disable the date picker when current date is used.
@@ -708,10 +1116,8 @@ def update_state_date_picker(use_curr_date,date_pick):
 
 # transformations filters modal data feeding.
 @app.callback(
-    [
-        Output('select-drop-col-names','options'),
-        Output({'type':'filters-column-names','index':0},'options')
-    ],
+    Output({'type':'filters-column-names','index':0},'options'),
+
     [
         Input('transformations-dropdown','value'),
     ],
@@ -722,56 +1128,67 @@ def update_state_date_picker(use_curr_date,date_pick):
 )
 def update_transformation_modal(value,data,trans_column_data):
     if value is not None and data != {}:
-        if value == 'Select or drop columns':
-            col = data['columns']
-            return [{'label':i,'value':i} for i in col],[]
-
-        elif value == 'Filter rows':
+        if value == 'Filter rows':
             # modal_head = H5(value)
-            
-            return [], [{'label':i,'value':i} for i in trans_column_data.keys()]
+            return [{'label':i,'value':i} for i in trans_column_data.keys()]
+        else:
+            return []
     else:
-        return [], []
+        return []
+
+
+# transformation dropdown
+@app.callback(
+    Output("transformations-dropdown","value"),
+    [
+        Input("add-col-close", "n_clicks"),
+        Input('filters-close','n_clicks'),
+    ]
+)
+def update_trans_value(n_clicks_add,n_clicks_fil):
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == "add-col-close" and n_clicks_add is not None:
+        return []
+    elif triggred_compo == "filters-close" and n_clicks_fil is not None:
+        return []
+    # elif triggred_compo == "add-new-col-modal" and add_col_is_open is False:
+    #     return []
+    # elif triggred_compo == "filters-modal" and fil_is_open is False:
+    #     return []
 
 
 # transformations filter modal open and close.
 @app.callback(
     [
-        Output("select-drop-modal", "is_open"),
+        Output("add-new-col-modal", "is_open"),
         Output('filters-modal','is_open'),
-        Output('change-col-dtype-modal','is_open'),
     ],
     [
         Input('transformations-dropdown','value'),
-        Input('change-col-dtype-modal','n_clicks'),
-        Input("select-drop-close", "n_clicks"),
+        Input("add-col-close", "n_clicks"),
         Input('filters-close','n_clicks'),
     ],
     [
-        State("select-drop-modal", "is_open"),
+        State("add-new-col-modal", "is_open"),
         State('filters-modal','is_open'),
-        State('change-col-dtype-modal','is_open')
     ],
 )
-def transformation_modal_expand(trans_drop_value,change_col_aply, \
-    sel_drp_close,fil_close,sel_drp_is_open,fil_is_open,change_col_dtype_is_open):
+def transformation_modal_expand(trans_drop_value, add_col_close,\
+    fil_close,add_col_is_open,fil_is_open):
 
-    if trans_drop_value is not None and trans_drop_value == 'Select or drop columns':
-        if sel_drp_close:
-            return not sel_drp_is_open, False, False
-        return not sel_drp_is_open, False, False
+    if trans_drop_value is not None and trans_drop_value == 'Add new column':
+        if add_col_close:
+            return not add_col_is_open, False
+        return not add_col_is_open, False
 
     elif trans_drop_value is not None and trans_drop_value == 'Filter rows':
         if fil_close:
-            return False, not fil_is_open, False
-        return False, not fil_is_open, False
-    
-    elif trans_drop_value is not None and trans_drop_value == 'Change columns datatype':
-        if change_col_aply:
-            return False, False, not change_col_dtype_is_open
-        return False, False, not change_col_dtype_is_open
+            return False, not fil_is_open
+        return False, not fil_is_open
     else:
-        return False, False, False
+        return False, False
 
 
 # transformations table data feeding.
@@ -807,6 +1224,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
         Input('select-drop-apply','n_clicks'),
         Input('filters-apply','n_clicks'),
         Input('format-map-data','data'),
+        Input('add-new-col','data'),
     ],
     [
 
@@ -862,7 +1280,7 @@ def transformation_modal_expand(trans_drop_value,change_col_aply, \
 )
 
 def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,\
-    sel_aply_n_clicks,fil_aply_n_clicks,format_data,table_row,rel_tbl_data,rel_tbl_col,\
+    sel_aply_n_clicks,fil_aply_n_clicks,format_data,add_col_data,table_row,rel_tbl_data,rel_tbl_col,\
     rel_tbl_drpdwn,rel_join,join_qry,relationship_data,apply_menu_child,\
     relation_rows,data,columns,trans_column_data,trans_fil_condi,sel_drp_val,\
     sel_drp_col_val,trans_value,fil_sel_val,fil_col,fil_condi,trans_text,trans_multi,\
@@ -887,7 +1305,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     
 
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    # print(f"##### {triggred_compo}",flush=True)
+    #print(f"##### {triggred_compo}",flush=True)
+    # print(f"##### {add_col_data}",flush=True)
 
 
     col={}
@@ -903,7 +1322,67 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     index_k = 0 if filters_data['index_k'] is None else filters_data['index_k']
 
     
-    if triggred_compo == 'select-drop-apply':
+    
+    if triggred_compo == "add-new-col" and  add_col_data is not None and \
+        add_col_data['add_col_qry'] != "" and add_col_data['add_col_qry'] is not None and\
+        relationship_data['table']!=[]:
+        # print(add_col_data,flush=True)
+        k = None
+        if index_k != 0 and filters_data['add_new_col'] != {}:
+            check_val = True if index_k in filters_data['add_new_col'].keys() else False
+
+            if check_val is False:
+                idx = list(filters_data['add_new_col'].keys())[0]
+                filters_data['add_new_col'].pop(str(idx))
+                k = int(idx)
+            else:
+                filters_data['add_new_col'].pop(str(index_k))
+                k = int(index_k)
+
+        i_k = None
+        if k is not None and int(k) < filters_data['index_k']:
+            i_k = filters_data['index_k']
+        elif k is not None and int(k) >= filters_data['index_k']:
+            i_k = k
+
+        k = k if k is not None else index_k + 1
+
+        filters_data['add_new_col'].update({
+                k:{
+                    'query':add_col_data['add_col_qry'],
+                    'col_names':add_col_data['add_col_names']
+                }
+            })
+        filters_data['index_k']=k if i_k is None else i_k
+
+        relationship_data['saved_data']=False
+        
+        if filters_data['index_k'] is not None:
+            df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+            # df = df.fillna('None')
+            table_data_format=df.to_dict('records')
+            table_columns_format=[{"name": c, "id": c} for c in df.columns]
+
+            column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
+            table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
+
+            trans_col = {}
+            [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+
+            col_rename={}
+            [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
+            df = df.rename(columns=col_rename)
+            table_data_fil = df.to_dict('records')
+
+            return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
+                table_data_fil, table_columns_fil,relationship_data,rows,\
+                trans_col, sql_qry,csv_string,filters_data,table_row
+        else:
+            return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
+                table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+                csv_string,filters_data,table_row
+
+    elif triggred_compo == 'select-drop-apply':
         if sel_drp_val is not None:
             # keys = list(fil_data['select_or_drop_columns'].keys())
             # if keys != []:
@@ -983,7 +1462,6 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             i_k = filters_data['index_k']
         elif in_k is not None and int(in_k) >= filters_data['index_k']:
             i_k = in_k
-
 
         # if fil_col_id filters_data['filters'][index_k]['index']
         in_k = in_k if in_k is not None else index_k+1
@@ -1121,6 +1599,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         rel_tbl_drpdwn=list(filter(None,rel_tbl_drpdwn))
         # print(f"{rel_tbl_drpdwn}",flush=True)
 
+        # for single table join qry will be none.
         if join_qry is None and rel_tbl_drpdwn != []:
             if rel_tbl_drpdwn[0] is not None:
                 df,table_rows_no,csv_string=get_table_from_sql_query(rel_tbl_drpdwn[0],rel_tbl_drpdwn)
@@ -1160,6 +1639,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         fil_data = dict(
                     select_or_drop_columns=dict(),
                     filters=dict(),
+                    add_new_col=dict(),
                     index_k=None,
                 )
         # return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
@@ -1334,6 +1814,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 # print(f"\n{df.columns}",flush=True)
                 # print(f"\n{}",flush=True)
 
+                print(f" adas asd {z}")
                 df = DataFrame(z)
                 table_data_format=df.to_dict('records')
                 table_columns_format=[{"name": c, "id": c} for c in df.columns]
@@ -1361,6 +1842,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                         fil_data = dict(
                                     select_or_drop_columns=dict(),
                                     filters=dict(),
+                                    add_new_col=dict(),
                                     index_k=None,
                                 )
                         return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
@@ -1414,7 +1896,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                     elif apply_menu_child[idx].startswith('Filters'):
                         indx = filters_data['index_k']
                         
-                        sel_keys = list(filters_data['select_or_drop_columns'].keys())
+                        sel_keys = list(filters_data['add_new_col'].keys())
                         # fil_keys = list(filters_data['filters'].keys())
 
                         if int(indx) == 1 and filters_data['filters'] != {}:
@@ -1428,8 +1910,58 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                             new_indx = int(indx) - 1
                             
                             if abs(new_indx - int(sel_keys[0])) == 1:
-                                pop_item = filters_data['select_or_drop_columns'].popitem()
-                                filters_data['select_or_drop_columns']={new_indx:pop_item[1]}
+                                pop_item = filters_data['add_new_col'].popitem()
+                                filters_data['add_new_col']={new_indx:pop_item[1]}
+                                
+                            filters_data['index_k']=new_indx
+                        
+                        
+
+                        if filters_data['index_k'] is not None:
+
+                            df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
+                            # df = df.fillna('None')
+                            table_data_format=df.to_dict('records')
+                            table_columns_format=[{"name": c, "id": c} for c in df.columns]
+
+                            column_dtypes =get_columns_dtypes(df.dtypes.to_dict().items())
+                            table_columns_fil=[{"name": c, "id": c} for c in column_dtypes]
+
+                            trans_col = {}
+                            [trans_col.update({i:str(j)}) for i,j in df.dtypes.to_dict().items()]
+
+                            col_rename={}
+                            [col_rename.update({i:j}) for i,j in zip(df.columns,column_dtypes)]
+                            df = df.rename(columns=col_rename)
+                            table_data_fil = df.to_dict('records')
+
+                            return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
+                                table_data_fil, table_columns_fil,relationship_data,rows,\
+                                trans_col, sql_qry,csv_string,filters_data,table_row
+                        else:
+                            return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
+                            table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
+                            csv_string,filters_data,table_row
+
+                    elif apply_menu_child[idx].startswith('New column added'):
+                        indx = filters_data['index_k']
+                        
+                        # sel_keys = list(filters_data['add_new_col'].keys())
+                        fil_keys = list(filters_data['filters'].keys())
+
+                        if int(indx) == 1 and filters_data['add_new_col'] != {}:
+                            # delete the select_or_drop
+                            filters_data['add_new_col'].popitem()
+                            filters_data['index_k']=0
+
+                        elif int(indx) > 1 and filters_data['add_new_col'] != {}:
+                            # delete the select_or_drop
+                            filters_data['add_new_col'].popitem()
+                            new_indx = int(indx) - 1
+                            
+                            if abs(new_indx - int(fil_keys[0])) == 1:
+                                pop_item = filters_data['filters'].popitem()
+                                filters_data['filters']={new_indx:pop_item[1]}
                                 
                             filters_data['index_k']=new_indx
                         
@@ -1470,10 +2002,14 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row
             # raise PreventUpdate
-    elif triggred_compo == "filters-clear-all" and fil_clear_all_n_clicks is not None and relationship_data is not None and filters_data['index_k'] is not None:
+    
+    elif triggred_compo == "filters-clear-all" and \
+        fil_clear_all_n_clicks is not None and relationship_data is not None and \
+        filters_data['index_k'] is not None:
+
         indx = filters_data['index_k']
                         
-        sel_keys = list(filters_data['select_or_drop_columns'].keys())
+        sel_keys = list(filters_data['add_new_col'].keys())
         # fil_keys = list(filters_data['filters'].keys())
 
         if int(indx) == 1 and filters_data['filters'] != {}:
@@ -1487,8 +2023,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             new_indx = int(indx) - 1
             
             if abs(new_indx - int(sel_keys[0])) == 1:
-                pop_item = filters_data['select_or_drop_columns'].popitem()
-                filters_data['select_or_drop_columns']={new_indx:pop_item[1]}
+                pop_item = filters_data['add_new_col'].popitem()
+                filters_data['add_new_col']={new_indx:pop_item[1]}
                 
             filters_data['index_k']=new_indx
         
@@ -1524,3 +2060,32 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     else:
         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\
             rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row
+
+
+# # clear-all
+# @app.callback(
+#     Output('url','pathname'),
+#     [
+#         Input('clear-all','n_clicks')
+#     ]
+# )
+# def update_url_path_name(n_clicks):
+#     if n_clicks is not None:
+#         print(f"PATH NAME {n_clicks}")
+#         return "/"
+#     else:
+#         raise PreventUpdate
+
+# # clear-all
+# @app.callback(
+#     Output('clear-alll','n_clicks'),
+#     [
+#         Input('url','pathname')
+#     ]
+# )
+# def update_url_path_name(pathname):
+#     if pathname is not None:
+#         # print(f"PATH NAME {n_clicks}")
+#         return None
+#     else:
+#         raise PreventUpdate

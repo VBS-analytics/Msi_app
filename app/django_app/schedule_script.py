@@ -11,7 +11,7 @@ from pandas import DataFrame, read_sql
 from datetime import date, datetime
 
 def get_data_from_database(fil_name):
-    print("inside get_data_from_database")
+    # print("inside get_data_from_database")
     host=os.environ.get('DB_HOST')
     if host == 'windows':
         host = os.environ['DOCKER_HOST_IP']
@@ -21,14 +21,14 @@ def get_data_from_database(fil_name):
     db_user=os.environ.get('DB_USER')
     db_port=os.environ.get('DB_PORT')
     db_name=os.environ.get('DB_NAME')
-    print('env variables fetched')
+    # print('env variables fetched')
     
     db_connection_str = f"postgresql+psycopg2://{db_user}:{pwd}@{db_address}/{db_name}"
     db_connection = create_engine(db_connection_str)
 
     df1 = read_sql(f"select * from django_app_msifilters where filter_name='{fil_name}'",con=db_connection)
 
-    print(df1.shape)
+    # print(df1.shape)
 
     db_connection=db_connection.dispose()
     if df1.empty is False:
@@ -38,28 +38,28 @@ def get_data_from_database(fil_name):
 
 def get_download_data(ret_data,loc,file_name):
     if ret_data is not None:
-        print('first condition')
+        # print('first condition')
         col={}
         csv_string = None
-        print(ret_data['relationship_data']['table_order'])
-        print(ret_data['relationship_data']['table'])
+        # print(ret_data['relationship_data']['table_order'])
+        # print(ret_data['relationship_data']['table'])
         tbl = ret_data['relationship_data']['table']
         tbl_order = ret_data['relationship_data']['table_order']
         # print(tbl,flush=True)
         tbl_order=list(filter(None,tbl_order))
-        print(type(tbl))
+        # print(type(tbl))
 
         if tbl is not None and type(tbl) is str:
-            print("its str")
+            # print("its str")
             df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
 
         elif tbl is not None and type(tbl) is list:
-            print("its list")
+            # print("its list")
             df,table_rows_no,csv_string = get_table_from_sql_query(tbl,tbl_order)
             table_names = tbl
         else:
-            print("empty")
+            # print("empty")
             df=DataFrame()
             table_names = None
             table_rows_no = 0
@@ -85,7 +85,7 @@ def get_download_data(ret_data,loc,file_name):
 
                 df, csv_string = get_format_mapping(relationship_data,d,sql_qry,col)
         else:
-            print('Second Condition')
+            # print('Second Condition')
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
                 
                 rel_tbl_drpdwn=list(filter(None,relationship_data['table_order']))
@@ -101,13 +101,13 @@ def get_download_data(ret_data,loc,file_name):
 
                     df, csv_string = get_format_mapping(relationship_data,d,None,col)
         
-        print(csv_string)
+        # print(csv_string)
         if csv_string is not None:
             get_downloaded_data_to_folder(csv_string,loc,file_name)
 
 
 if __name__ == '__main__':
-    print(sys.argv[1])
+    # print(sys.argv[1])
     # dir_path = os.path.dirname(os.path.realpath(__file__))
     # loc = os.path.join(os.path.join(dir_path,'media'),'django_app')
     loc = "/app/django_app/media/django_app"

@@ -4,7 +4,7 @@ from dash_core_components import Location, Loading
 from dash_html_components import Div,A, I, Br, H5, P, Img
 from dash_bootstrap_components import Row, Col, Collapse, NavbarToggler, Navbar,\
     NavbarBrand, Nav, NavItem, Modal, ModalHeader, ModalBody, ModalFooter, Card,\
-        CardBody, Button, DropdownMenu, DropdownMenuItem
+        CardBody, Button, DropdownMenu, DropdownMenuItem, Tooltip
 
 
 from .server import app
@@ -34,7 +34,10 @@ dropdown = DropdownMenu(
 
             # Div([],id='applied-filters-div'),
 
-            DropdownMenuItem('Clear All',className='fa fa-trash',id={'type':'applied-changes-menu','index':0}),
+            # DropdownMenuItem('Clear All',className='fa fa-trash',\
+            #     id="clear-all"),
+            DropdownMenuItem('none',className='fa fa-trash',\
+                id={'type':'applied-changes-menu','index':0},style={'display':'none'}),
                 # Button("Clear Fliters", color="success", className="mr-1",id="clear-filters"),
 
             # DropdownMenuItem([
@@ -74,6 +77,26 @@ app.layout = Loading(type='circle',children=[Div(children=[
                         Col(NavItem([A(I(className='fa fa-save'),id='run')])),
                         # Col(NavItem([A(I(className='fa fa-download'),id='download',download='file.xlsx',target="_blank")])),
                         Col(NavItem([A(I(className='fa fa-question'),id='help',href='/help',target="_blank")])),
+                        Tooltip(
+                            f"help",
+                            target='help',
+                            placement="top",
+                        ),
+                        Tooltip(
+                            f"Save changes",
+                            target='run',
+                            placement="top",
+                        ),
+                        Tooltip(
+                            f"view saved filters",
+                            target='saved-filters-btn',
+                            placement="top",
+                        ),
+                        Tooltip(
+                            f"scheduled outputs",
+                            target='scheduled-outputs',
+                            placement="top",
+                        ),
                     ],className="ml-auto flex-nowrap mt-3 mt-md-0",align="center"),
                 ], className="ml-auto", navbar=True),
                 id="navbar-collapse2",

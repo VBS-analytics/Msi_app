@@ -16,6 +16,7 @@ routes = {f"{app.config.url_base_pathname}{path}": layout for path, layout in pa
 @app.callback(Output('content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     """A multi-page Dash router"""
+    print(f"display_page {pathname}")
     if pathname is None:
         raise PreventUpdate("Ignoring first empty location callback")
     

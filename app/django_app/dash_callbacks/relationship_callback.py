@@ -6,12 +6,12 @@ from ..server import app
 from dash.dependencies import Output, Input, State, MATCH, ALL
 from dash import callback_context
 from dash_core_components import Dropdown, Store
-from dash_html_components import Div, H5, Br, I
+from dash_html_components import Div, H5, Br, I, A
 from dash_bootstrap_components import Col, Row, Modal, ModalHeader, ModalFooter,\
-    ModalBody, Button, DropdownMenuItem
+    ModalBody, Button, DropdownMenuItem, Tooltip, Toast, Alert
 import dash_html_components as dhc
 
-from ..global_functions import get_columns, get_join_main, get_main_sql_query
+from ..global_functions import get_columns, get_join_main, get_main_sql_query,get_table_names
 
 import json
 from .. models import MsiFilters
@@ -29,6 +29,8 @@ from crontab import CronTab
 
 from dash.exceptions import PreventUpdate
 from dash_extensions.snippets import send_bytes, send_file
+
+
 
 @app.callback(
     [
@@ -244,7 +246,7 @@ def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val)
 
 # Save applied changes to Database
 @app.callback(
-    Output('modal-sf-status','hidden'),
+    Output('modal-sf-status','is_open'),
     [
         Input('modal-sf-save','n_clicks'),
     ],
@@ -319,15 +321,15 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
             data = json.dumps(data)
             filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
             filter_data.save()
-            return False
+            return True
                 
         else:
             data = json.dumps(data)
             filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
             filter_data.save()
-            return False
+            return True
     else:
-        return True
+        return False
 
 
 # Retrive saved changes from database
@@ -375,7 +377,7 @@ def update_retrived_data(n_clicks,del_n_clicks,value,data):
 
         return None
     else:
-        return None
+        raise PreventUpdate
     
 # save modal open or close
 @app.callback(
@@ -475,8 +477,7 @@ def update_chngs_db(relationship_data,\
 @app.callback(
     Output('applied-changes-dropdown','children'),
     [
-        Input('relationship-data','data'),
-        
+        Input('relationship-data','data'),        
     ],
     [
         State('filters-data','data'),
@@ -486,8 +487,11 @@ def update_chngs_db(relationship_data,\
 
 )
 def update_applied_filters_menu(relation_data,filters_data,applied_changes,applied_id):
+    print(relation_data,flush=True)
+    print(filters_data,flush=True)
+    # print(fil_val,flush=True)
     rel_val = relation_data['table']
-    sel_val = filters_data['select_or_drop_columns']
+    add_val = filters_data['add_new_col']
     fil_val = filters_data['filters']
 
     # print(rel_val,flush=True)
@@ -499,9 +503,9 @@ def update_applied_filters_menu(relation_data,filters_data,applied_changes,appli
             i['props']['children'].startswith('Table Relation')\
             else False for indx,i in enumerate(applied_changes)]
     
-    select_col_menu = [True if type(i['props']['id']) == dict and \
+    add_col_menu = [True if type(i['props']['id']) == dict and \
             i['props']['children'] is not None and\
-            i['props']['children'].startswith('Select/Drop')\
+            i['props']['children'].startswith('New column added')\
             else False for indx,i in enumerate(applied_changes)]
 
     filters_menu = [True if type(i['props']['id']) == dict and \
@@ -519,20 +523,21 @@ def update_applied_filters_menu(relation_data,filters_data,applied_changes,appli
         [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
             if type(i['props']['id']) == dict and \
             i['props']['children'] is not None and\
-            i['props']['children'].startswith(('Table Relation','Select/Drop','Filters'))]
+            i['props']['children'].startswith(('Table Relation','New column added','Filters'))]
     
-    if sel_val is not None and sel_val != {} and any(select_col_menu) is False:
-        sel_id = [i['index'] for i in applied_id]
+    if add_val is not None and add_val != {} and any(add_col_menu) is False:
+        add_id = [i['index'] for i in applied_id]
            
-        sel = DropdownMenuItem(f"Select/Drop Columns  X"\
-            ,id={'type':'applied-changes-menu','index':max(sel_id)+1})
+        add_col = DropdownMenuItem(f"New column added  X"\
+            ,id={'type':'applied-changes-menu','index':max(add_id)+1})
         
-        applied_changes.append(sel)
-    if (sel_val is None or sel_val == {}) and any(select_col_menu) is True:
+        applied_changes.append(add_col)
+
+    if (add_val is None or add_val == {}) and any(add_col_menu) is True:
         [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
             if type(i['props']['id']) == dict and \
             i['props']['children'] is not None and\
-            i['props']['children'].startswith('Select/Drop')]
+            i['props']['children'].startswith('New column added')]
     
     if fil_val is not None and fil_val != {} and any(filters_menu) is False:
         fil_id = [i['index'] for i in applied_id]
@@ -554,12 +559,17 @@ def update_applied_filters_menu(relation_data,filters_data,applied_changes,appli
 @app.callback(
     Output({'type':'relationship-table-dropdown','index':0}, 'options'),
     [
-        Input('db-table-names','data'),
+        # Input('db-table-names','data'),
+        Input('content', 'children')
     ]
 )
 def update_db_table_names(data):
-    x=[{'label':i,'value':i} for i in data]
-    return x
+    if data is not None and data != []:
+        print("COntent-children")
+        tb = get_table_names()
+        x=[{'label':i,'value':i} for i in tb]
+        # print(f"Table Names {x}")
+        return x
     
 
 # add new table dropdown
@@ -616,14 +626,16 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
                                 Col(Dropdown(id={'type':'left-table-join-modal','index':component_id})),
                                 Col(Dropdown(id={'type':'right-table-join-modal','index':component_id}))
                             ]),
-                            Row(
-                                Col(
-                                    H5(id={'type':'join-status','index':component_id})
-                                )
-                            )
+                            # Row(
+                            #     Col(
+                            #         H5(id={'type':'join-status','index':component_id})
+                            #     )
+                            # )
+                            Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':component_id}))
                         ])
                     ]),
                     ModalFooter([
+                        # Toast(id={"type":'join-status','index':component_id}),
                         Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto'),
                         Button("Close",id={'type':'close-join-modal','index':component_id},className='ml-auto'),
                     ])
@@ -647,9 +659,8 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
                     },
                     'type':'A',
                     "namespace":'dash_html_components'
-                },
-                    
-                'width': 1},
+                },  
+                "width":1},
                 'type': 'Col',
                 'namespace': 'dash_bootstrap_components'}
             )
@@ -668,10 +679,10 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
 
             childs.append(
                 Col(
-                    dhc.Button(
+                    A(
                         I(className='fa fa-times'),
                         id={'type':'relationship-table-close','index':component_id},
-                    )
+                    ),
                 )
             )
 
@@ -709,17 +720,39 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
 
     [
         Input({'type':'relationship-table-dropdown','index':ALL},'value'),
-        Input({'type':'relationship-sql-joins','index':ALL},'children')
+        Input({'type':'relationship-sql-joins','index':ALL},'children'),
     ],
+    [
+        State({'type':'relationship-table-dropdown','index':ALL},'options')
+    ]
 )
-def update_add_button_status(values,childs):
-    
+def update_add_button_status(values,childs,options):
+    #print(f'VALUES OPTIONS... {options}')
     y=[i['props']['src'] for i in childs[1:]]
     if None not in values and app.get_asset_url('sql-join-icon.png') not in y:
         return False, False
     else:
         return True, True
 
+
+@app.callback(
+    Output('table-dropdown-alert','is_open'),
+    [
+        # Input({'type':'relationship-sql-joins','index':ALL},'n_clicks'),
+        Input({'type':'relationship-table-dropdown','index':ALL},'value'),
+    ],
+    [
+        State({'type':'relationship-table-dropdown','index':ALL},'options'),
+    ]
+
+)
+def update_table_dropdown_alert(value,options):
+    #print(f"values **** {options}")
+    if None not in value:
+        return False
+    else:
+        return True
+    
 
 # load sql join table column names and modal open
 @app.callback(
@@ -733,6 +766,7 @@ def update_add_button_status(values,childs):
     [
         Input({'type':'relationship-sql-joins','index':MATCH},'n_clicks'),
         Input({'type':'close-join-modal','index':MATCH},'n_clicks'),
+        Input({'type':'join-status','index':MATCH},'is_open'),
     ],
     [
         State({'type':'relationship-table-dropdown','index':ALL},'value'),
@@ -741,9 +775,11 @@ def update_add_button_status(values,childs):
         State({'type':'sql-joins-query','index':ALL},'data'),
     ]
 )
-def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
+def update_join_modal(n_clicks,close_n_clicks,is_open,value,id_1,id_2,sql_qry):
+    # print(id_2)
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    
     if triggred_compo.rfind('relationship-sql-joins') > -1 and n_clicks is not None and None not in value:
         index_no=id_2['index']
         index_no=[i for i,v in enumerate(id_1) if v['index'] == index_no][0]
@@ -761,8 +797,10 @@ def update_join_modal(n_clicks,close_n_clicks,value,id_1,id_2,sql_qry):
         return True,left_opt,right_opt,left_name,right_name
     elif triggred_compo.rfind('close-join-modal') > -1 and close_n_clicks is not None:
         return False, [], [], 'None', 'None'
+    elif triggred_compo.rfind('join-status') > -1 and is_open is False:
+        return False, [], [], 'None', 'None'
     else:
-        return False,[],[],'None','None'
+        raise PreventUpdate
 
 # update the join and relationship to main-sql-query memory
 @app.callback(
@@ -780,7 +818,7 @@ def update_main_sql_query(data,rel_values,ids):
     
     if sql_qry != []:
         rel_values=list(filter(None,rel_values))
-        print(f"RELATION SHIP {rel_values}")
+        #print(f"RELATION SHIP {rel_values}")
 
 
         # print(f"IDS {ids}")
@@ -800,7 +838,7 @@ def update_main_sql_query(data,rel_values,ids):
     [
         Output({'type':'sql-joins-query','index':MATCH},'data'),
         Output({'type':'relationship-sql-joins','index':MATCH},'children'),
-        Output({'type':'join-status','index':MATCH},'children'),
+        Output({'type':'join-status','index':MATCH},'is_open'),
     ],
     [
         Input({'type':'apply-join-modal','index':MATCH},'n_clicks')
@@ -815,7 +853,7 @@ def update_main_sql_query(data,rel_values,ids):
 
         State({'type':'sql-joins-query','index':ALL},'data'),
         State({'type':'relationship-sql-joins','index':MATCH},'children'),
-        State({'type':'join-status','index':MATCH},'children'),
+        State({'type':'join-status','index':MATCH},'is_open'),
         State({'type':'relationship-sql-joins','index':MATCH},'id'),
 
     ]
@@ -848,6 +886,9 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
         data,col_list = get_join_main(d,sql_qry)
         d['col_list']=col_list
 
+        join_open = None
+        # join_icon = None
+
         y = app.get_asset_url('sql-join-icon.png')
         if data != 'Error':
             if join_value == 'INNER':
@@ -858,14 +899,19 @@ def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
                 y=app.get_asset_url('sql-join-right-icon.png')
             elif join_value == 'CROSS':
                 y=app.get_asset_url('sql-join-outer-icon.png')
+            join_open = False
+            # join_icon = "success"
         elif data == 'Error':
             y = app.get_asset_url('sql-join-icon.png')
+            join_open = True
+            # join_icon = "danger"
         
         rel_icon={'props':{'src':y},
                             'type':'Img',
                             'namespace':'dash_html_components'}
+            
     
-        return d, rel_icon, data
+        return d, rel_icon, join_open
     else:
         sql_q = None
         compo_id  = id_rel['index']

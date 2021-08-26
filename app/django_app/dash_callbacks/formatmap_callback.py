@@ -1,6 +1,6 @@
 import sys
 from ..server import app, server
-from ..global_functions import get_downloaded_data
+from ..global_functions import get_downloaded_data, get_bool_on_col
 
 from dash.dependencies import Output, Input, State, ALL
 from dash import callback_context
@@ -12,6 +12,8 @@ from dash import callback_context
 from pandas import read_csv, read_excel
 import io
 import base64
+
+from dash.exceptions import PreventUpdate
 
 # download data from format table
 @app.callback(
@@ -35,26 +37,24 @@ def update_download_link(n_clicks,data):
 @app.callback(
     [
         Output('column-names-row','children'),
-        Output('preview-table-format-button','disabled'),
         Output('upload-file-columns-data','data'),
     ],
     [
         Input('file_upload','contents'),
-        Input('retrived-data','data'),
+        Input('relationship-data','data'),
     ],
     [
+        State('retrived-data','data'),
         State('file_upload', 'filename'),
-        State('relationship-data','data'),
 
         State('column-names-row','children'),
-        State('preview-table-format-button','disabled'),
         State('upload-file-columns-data','data'),
         State('transformations-table-column-data','data'),
         
     ]
 )
-def update_file_upload_columns(contents,ret_data,filename,relationship_data, \
-    childs,disabled,upload_data,trans_columns):
+def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
+    childs,upload_data,trans_columns):
 
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -99,20 +99,72 @@ def update_file_upload_columns(contents,ret_data,filename,relationship_data, \
         else:
             but_status = True
 
-        return components, but_status, df.columns
+        return components, df.columns
 
-    elif triggred_compo == 'retrived-data' and ret_data is not None:
+    elif triggred_compo == 'relationship-data' and relationship_data is not None and \
+        relationship_data['saved_data'] is True and ret_data is not None:
         but_status = True
         if ret_data['format_rows'] != [] and ret_data['format_rows'] is not None:
             but_status = False
         else:
             but_status = True
+        return ret_data['format_rows'],ret_data['upload_file_columns_data']
 
+    elif triggred_compo == 'relationship-data' and relationship_data is not None and \
+        relationship_data['table']!=[] and upload_data is not None and upload_data != []:
+            components = []
+            for j,k in enumerate(upload_data):
+                components.append(Row([
+                    Col(Label(k),width=3),
 
-        return ret_data['format_rows'],but_status,ret_data['upload_file_columns_data']
+                    Col(Dropdown(
+                        id={
+                            'type': 'filter-dropdown',
+                            'index': j
+                        },
+                        options=[{'label':i,'value':i} for i in trans_columns.keys()],
+                        value=None,
+                    ),width=3),
+                ]))
+                components.append(Br())
+            
+            but_status = True
+            if components != []:
+                but_status = False
+            else:
+                but_status = True
 
+            return components, upload_data
     else:
-        return childs, disabled, upload_data
+        return [], None
+
+
+# disable preview button
+@app.callback(
+    [
+        Output('preview-table-format-button','disabled'),
+        Output({'type': 'filter-dropdown', 'index': ALL}, 'style'),
+    ],
+    [
+        Input({'type': 'filter-dropdown', 'index': ALL}, 'value')
+    ],
+    [
+        State('download_data','data'), # stores all relations, filters and format mapping data
+        State({'type': 'filter-dropdown', 'index': ALL}, 'style')
+    ]
+)
+def disable_preview(values,download_data,fil_drop_style):
+    if all(values) and values !=[]:
+        stat,err_list,err_loc=get_bool_on_col(download_data,values)
+        if stat is False and err_list != [] and err_loc != []:
+            for i in err_loc:
+                fil_drop_style[i]={'border-color':'red'}
+            
+            return True, fil_drop_style
+        else:
+            return False, fil_drop_style 
+    else:
+        return True, fil_drop_style
 
 
 # stores the mapped data to memory.
@@ -128,7 +180,10 @@ def update_file_upload_columns(contents,ret_data,filename,relationship_data, \
     ]
 )
 def display_output(n_clicks,values,data):
-    if data != []:
-        d={}
-        [d.update({i:j}) for i,j in zip(data,values)]
-        return d
+    if n_clicks is not None:
+        if data != []:
+            d={}
+            [d.update({i:j}) for i,j in zip(data,values)]
+            return d
+    else:
+        raise PreventUpdate

@@ -125,9 +125,15 @@ def index():
                 Store(id='filters-data',data=dict(
                     select_or_drop_columns=dict(),
                     filters=dict(),
+                    add_new_col=dict(),
                     index_k=None,
                     )
                 ),
+                Store(id="add-new-col",data=dict(
+                    add_col_names=[],
+                    add_col_qry=None
+
+                )),
                 Store(id='format-map-data',data={}),
                 Store(id='upload-file-columns-data',data=[]),
                 Store(id='transformations-table-column-data',data={}),

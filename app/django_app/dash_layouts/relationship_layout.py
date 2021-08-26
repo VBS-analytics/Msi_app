@@ -2,7 +2,7 @@
 from dash_core_components import Dropdown, Input, RadioItems, Store,Checklist
 from dash_html_components import Br, Div, Label, H5, A, Img, I
 from dash_bootstrap_components import Modal, ModalHeader, ModalFooter, ModalBody, \
-    Button, Row, Col
+    Button, Row, Col, Tooltip, Toast,Alert
 import dash_html_components as dhc
 
 from dash_table import DataTable
@@ -204,7 +204,9 @@ def relationship_tab():
                             ])
                         ],id='schedule-body',style={"display":"none"}),
 
-                        Div(Label("Saved Successfully!!",id='modal-sf-status',hidden=True)),
+                        # Div(Label("Saved Successfully!!",id='modal-sf-status',hidden=True)),
+                        Div(Alert("Saved Successfully!!",color='success',is_open=False,id='modal-sf-status'))
+
 
                     ],id='modal-sf-body'),
 
@@ -218,23 +220,31 @@ def relationship_tab():
             Div(
                 Row([
                     Col([
-                        Button("Add Table", color="primary",id='add-table-button', className="mr-1",size="sm",disabled=True),
+                        Button("Add Table", id='add-table-button',color="primary",\
+                            outline=True, className="mr-1",disabled=True),
                     ],width={"size": 3}),
 
                     Col([    
-                        Button("Run", color="primary",id='preview-table-button', className="mr-1",size="sm",disabled=True),
+                        Button("Run", id='preview-table-button',color="primary",\
+                            outline=True, className="mr-1",disabled=True),
                     ],width={"size": 3, "offset": 1}),
                 ])
             ),
             
             Br(),
                         
+            Div(Row(Col(Alert("Please fill in all dropdowns!",id="table-dropdown-alert",color="danger",is_open=False),width=4))),
             Div([
                 Row([
                     Col(
                         Dropdown(
                             id={'type':'relationship-table-dropdown','index':0},
                             value=None,
+                            # style={'border-color':'red',
+                            #     'box-shadow':'inset 0 1px 1px rgba(0,0,0,0.075),\
+                            #                 0 0 0 3px rgba(0,126,255,0.1);',
+                            #     'background':'#fff;'
+                            # },
                             # style={'z-index':'999'},
                         )
                     ,width=3),
@@ -272,15 +282,17 @@ def relationship_tab():
                                         Col(Dropdown(id={'type':'left-table-join-modal','index':0})),
                                         Col(Dropdown(id={'type':'right-table-join-modal','index':0}))
                                     ]),
-                                    Row(
-                                        Col(
-                                            H5(id={'type':'join-status','index':0})
-                                        )
-                                    )
+                                    # Row(
+                                    #     Col(
+                                    #         H5(id={'type':'join-status','index':0})
+                                    #     )
+                                    # )
 
-                                ])
+                                ]),
+                                Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':0}))
                             ]),
                             ModalFooter([
+                                # Toast(id={"type":'join-status','index':0}),
                                 Button("Apply",id={'type':'apply-join-modal','index':0},className='ml-auto'),
                                 Button("Close",id={'type':'close-join-modal','index':0},className='ml-auto'),
                             ])
@@ -288,7 +300,7 @@ def relationship_tab():
                     ),
 
                     Col(
-                        dhc.Button(
+                        A(
                             I(className='fa fa-times'),
                             id={'type':'relationship-table-close','index':0},
                         )
