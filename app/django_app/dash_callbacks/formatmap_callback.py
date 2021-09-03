@@ -50,11 +50,12 @@ def update_download_link(n_clicks,data):
         State('column-names-row','children'),
         State('upload-file-columns-data','data'),
         State('transformations-table-column-data','data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         
     ]
 )
 def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
-    childs,upload_data,trans_columns):
+    childs,upload_data,trans_columns,filter_dropdown_vals):
 
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -114,6 +115,8 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
         relationship_data['table']!=[] and upload_data is not None and upload_data != []:
             components = []
             for j,k in enumerate(upload_data):
+                val =filter_dropdown_vals[j] if filter_dropdown_vals[j] in \
+                    list(trans_columns.keys()) else None
                 components.append(Row([
                     Col(Label(k),width=3),
 
@@ -123,7 +126,7 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
                             'index': j
                         },
                         options=[{'label':i,'value':i} for i in trans_columns.keys()],
-                        value=None,
+                        value=val,
                     ),width=3),
                 ]))
                 components.append(Br())
@@ -141,30 +144,26 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
 
 # disable preview button
 @app.callback(
-    [
-        Output('preview-table-format-button','disabled'),
-        Output({'type': 'filter-dropdown', 'index': ALL}, 'style'),
-    ],
+    Output('preview-table-format-button','disabled'),
     [
         Input({'type': 'filter-dropdown', 'index': ALL}, 'value')
     ],
     [
         State('download_data','data'), # stores all relations, filters and format mapping data
-        State({'type': 'filter-dropdown', 'index': ALL}, 'style')
     ]
 )
-def disable_preview(values,download_data,fil_drop_style):
+def disable_preview(values,download_data):
     if all(values) and values !=[]:
         stat,err_list,err_loc=get_bool_on_col(download_data,values)
         if stat is False and err_list != [] and err_loc != []:
-            for i in err_loc:
-                fil_drop_style[i]={'border-color':'red'}
+            # for i in err_loc:
+            #     fil_drop_style[i]={'border-color':'red'}
             
-            return True, fil_drop_style
+            return True
         else:
-            return False, fil_drop_style 
+            return False
     else:
-        return True, fil_drop_style
+        return True
 
 
 # stores the mapped data to memory.

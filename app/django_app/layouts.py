@@ -132,8 +132,10 @@ def index():
                 Store(id="add-new-col",data=dict(
                     add_col_names=[],
                     add_col_qry=None
-
                 )),
+                Store(id="filters-modal-status",data=None),
+                Store(id="add-col-modal-status",data=None),
+
                 Store(id='format-map-data',data={}),
                 Store(id='upload-file-columns-data',data=[]),
                 Store(id='transformations-table-column-data',data={}),
@@ -166,6 +168,8 @@ def index():
                         'format_rows':[],
                         'sel_val':None,
                         'sel_col':None,
+                        'add_new_col_rows':{},
+                        'realtime_rows':{},
                     }
                 ),
 

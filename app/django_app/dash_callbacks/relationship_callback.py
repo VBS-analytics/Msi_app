@@ -1,3 +1,4 @@
+from builtins import str
 from numpy.lib.npyio import save
 from numpy.lib.twodim_base import tri
 from pandas.io import sql
@@ -319,15 +320,30 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
                     cron.write()
 
             data = json.dumps(data)
-            filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
-            filter_data.save()
-            return True
+            
+            if MsiFilters.objects.filter(filter_name = fil_name).exists():
+                a = MsiFilters.objects.get(filter_name = fil_name)
+                # a.filter_name = fil_name
+                a.fiter_data = data
+                a.save()
+                return True
+            else:
+                filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                filter_data.save()
+                return True
                 
         else:
             data = json.dumps(data)
-            filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
-            filter_data.save()
-            return True
+            if MsiFilters.objects.filter(filter_name = fil_name).exists():
+                a = MsiFilters.objects.get(filter_name = fil_name)
+                # a.filter_name = fil_name
+                a.fiter_data = data
+                a.save()
+                return True
+            else:
+                filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                filter_data.save()
+                return True
     else:
         return False
 
@@ -423,14 +439,17 @@ def sf_modal_open(n_clicks,close_n_clicks,is_open):
         State('save-changes','data'),
         State('filters-data','data'), 
         State('select-drop-select-drop','value'),
-        State('select-drop-col-names','value')
+        State('select-drop-col-names','value'),
+        State('add-new-col-modal-body','children'),
+        State('realtime-total-records','children')
     ],
 )
 def update_chngs_db(relationship_data,\
     format_map_data,upload_file_columns_data,format_row,tables_row,filter_rows,\
         transformations_table_column_data,\
         transformations_filters_condi,save_changes_data,filters_data,\
-        sel_drp_val,sel_drp_col_val):
+        sel_drp_val,sel_drp_col_val,add_new_col_body,realtime_rows):
+
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -458,6 +477,13 @@ def update_chngs_db(relationship_data,\
 
         save_changes_data['sel_val'] = sel_drp_val
         save_changes_data['sel_col'] = sel_drp_col_val
+
+        add_new_col_body = str(add_new_col_body)
+        add_new_col_body=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",add_new_col_body)
+        add_new_col_body=ast.literal_eval(str(add_new_col_body))
+        save_changes_data['add_new_col_rows'] = add_new_col_body
+
+        save_changes_data['realtime_rows']=realtime_rows
         
         # print(f"\n\n{save_changes_data}",flush=True)
         return save_changes_data
@@ -487,8 +513,8 @@ def update_chngs_db(relationship_data,\
 
 )
 def update_applied_filters_menu(relation_data,filters_data,applied_changes,applied_id):
-    print(relation_data,flush=True)
-    print(filters_data,flush=True)
+    # print(relation_data,flush=True)
+    # print(filters_data,flush=True)
     # print(fil_val,flush=True)
     rel_val = relation_data['table']
     add_val = filters_data['add_new_col']
@@ -565,12 +591,28 @@ def update_applied_filters_menu(relation_data,filters_data,applied_changes,appli
 )
 def update_db_table_names(data):
     if data is not None and data != []:
-        print("COntent-children")
+        # print("COntent-children")
         tb = get_table_names()
         x=[{'label':i,'value':i} for i in tb]
         # print(f"Table Names {x}")
         return x
     
+# add new col
+@app.callback(
+    Output('add-new-col-modal-body','children'),
+    [
+        Input('retrived-data','data'),
+    ],
+    [
+        State('add-new-col-modal-body','children'),
+    ],
+)
+def update_add_new_col_row(data,add_new_col_child):
+    if data is not None:
+        return data['add_new_col_rows']
+    else:
+        return add_new_col_child
+
 
 # add new table dropdown
 @app.callback(

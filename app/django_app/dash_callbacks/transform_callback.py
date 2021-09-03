@@ -26,6 +26,8 @@ import sys
 from dash.exceptions import PreventUpdate
 
 from datetime import date
+import re
+import ast
 
 
 def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
@@ -162,6 +164,34 @@ def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
     else:
         return None,None,None,None
 
+# add condition row
+def get_condition_rows(columns,indx):
+    return Row([
+        Col(
+            FormGroup([
+                Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
+                Dropdown(
+                    id={'type':'filters-column-names','index':indx},
+                    options=[{'label':i,'value':i} for i in columns.keys()],
+                    value=None
+                )
+            ])
+        ,width=4),
+
+        Col(
+            FormGroup([
+                Label(Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
+                Dropdown(
+                    id={'type':'filters-conditions','index':indx}
+                )
+            ])
+        ,width=3),
+
+        Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
+
+        Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
+
+    ],id={'type':'condition-rows','index':indx})
 
 # remove added new column
 @app.callback(
@@ -185,21 +215,14 @@ def update_add_new_col_apply(col_name_val, col_input_val):
     [
         State({"type":"add-new-col-name","index":ALL},'value'),
         State({"type":'add-col-value-input',"index":ALL},'value'),
+        State('filters-data','data'), # stores all applied filters
     ]
 )
-def update_add_new_col_values(n_clicks,col_name_val,col_input_val):
+def update_add_new_col_values(n_clicks,col_name_val,col_input_val,filters_data):
     if n_clicks is not None:
         if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
             qry_str = ""
             for col_name, col_val in zip(col_name_val,col_input_val):
-                # if radio_val[0] == "single value":
-                    
-                # if qry_str == "":
-                #     qry_str = qry_str + '"' + col_val + '" AS ' + col_name
-                # else:
-                #     qry_str = qry_str + ', "' + col_val + '" AS ' + col_name
-                    
-                # elif radio_val[0] == "conditional value":
                 if qry_str == "":
                     qry_str = qry_str + str(col_val) + ' AS ' + str(col_name)
                 else:
@@ -273,34 +296,6 @@ def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
     else:
         raise PreventUpdate
 
-# add condition row
-def get_condition_rows(columns,indx):
-    return Row([
-        Col(
-            FormGroup([
-                Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
-                Dropdown(
-                    id={'type':'filters-column-names','index':indx},
-                    options=[{'label':i,'value':i} for i in columns.keys()],
-                    value=None
-                )
-            ])
-        ,width=4),
-
-        Col(
-            FormGroup([
-                Label(Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
-                Dropdown(
-                    id={'type':'filters-conditions','index':indx}
-                )
-            ])
-        ,width=3),
-
-        Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
-
-        Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
-
-    ],id={'type':'condition-rows','index':indx})
     # return Row([
     #             Col(
     #                 Dropdown(
@@ -366,17 +361,23 @@ def get_condition_rows(columns,indx):
         Input('preview-table-button','n_clicks'),
         Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
         Input("filters-clear-all","n_clicks"),
+        # Input('add-new-col-modal-apply','n_clicks'),
+        Input('filters-data','data'),
     ],
     [
         State('filters-div','children'),
         State({'type':'applied-changes-menu','index':ALL},'children'),
+        # State('filters-data','data'),
     ],
 )
-def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,apply_menu_child):
+def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
+    filters_data,childs,apply_menu_child):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # print(f"FILTERS DIV {triggred_compo}",flush=True)
+    print(f"FILTERS DIV {triggred_compo}",flush=True)
+    print(f"FILTERS DIV {len(childs[2]['props']['children'])}",flush=True)
+    print(f"FILTERS_DIV {filters_data['filters']}")
 
     empty_div = [
         FormGroup([
@@ -469,8 +470,54 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,appl
             raise PreventUpdate
     elif triggred_compo == 'filters-clear-all' and fil_clear_n_clicks is not None:
         return empty_div
+    elif triggred_compo == "filters-data" and filters_data['filters']!={}:
+        
+        d= dict(
+            indexs = [],
+            location = []
+        )
+        print(f"INSIDE FILTERS_DIV")
+        for ix,i in enumerate(childs[2]['props']['children']):
+            if re.search('\'id\': \{\'type\':\ \'condition\-rows\',\ \'index\':\ ',str(i)) is not None:
+                d['location'].append(ix)
+                s=re.findall('\'id\': \{\'type\':\ \'condition\-rows\',\ \'index\':\ \d*}',str(i))[0]
+                d['indexs'].append(re.search('\d+',s).group())
+                
+            elif re.search('\'id\': \{\'type\':\ \'filters\-logic\',\ \'index\':\ ',str(i)) is not None:
+                d['location'].append(ix)
+                s=re.findall('\'id\': \{\'type\':\ \'filters\-logic\',\ \'index\':\ \d*}',str(i))[0]
+                d['indexs'].append(re.search('\d+',s).group())
+        
+        d=DataFrame(d)
+        k=list(filters_data["filters"].keys())[0]
+
+        remov_list = []
+        # for i in filters_data['filters'][k]['index']:
+        #     if str(i) not in d['indexs'].to_list():
+        #         remov_list.append(d[d['indexs']==str(i)]['location'].to_list())
+
+        for i in set(d['indexs'].to_list()):
+            if int(i) not in filters_data['filters'][k]['index']:
+                remov_list.append(d[d['indexs']==str(i)]['location'].to_list())
+        
+        print(f"INSIDE FILTERS_DIV {remov_list}")        
+        if remov_list != []:
+            flatten_list = list(chain.from_iterable(remov_list))
+            flatten_list = sorted(flatten_list, reverse=True)
+            for ix in flatten_list:
+                if ix < len(childs[2]['props']['children']):
+                    childs[2]['props']['children'].pop(ix)
+            
+            childs=str(childs)
+            childs=re.sub("'n_clicks': [\d|None]*","'n_clicks': None",childs)
+            childs=ast.literal_eval(str(childs))
+            print(f"FILTERS_DIV {len(childs[2]['props']['children'])}")
+            return childs
+        else:
+            raise PreventUpdate
     else:
         return childs
+        # raise PreventUpdate
 
 # retrived status
 @app.callback(
@@ -480,7 +527,7 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,childs,appl
         Input('preview-table-button','n_clicks'),
         Input('filters-apply','n_clicks'),
         Input('select-drop-apply','n_clicks'),
-        Input('add-new-col','n_clicks'),
+        Input('add-new-col','data'),
     ],
     [
         State('filters-retrived-status','data')
@@ -578,17 +625,21 @@ def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
         Output({'type':'filters-logic','index':MATCH},'children')
     ],
     [
-        Input({'type':'logic-close','index':MATCH},'n_clicks')
+        Input({'type':'logic-close','index':MATCH},'n_clicks'),
     ],
     [
         State({'type':'logic-close','index':MATCH},'id'),
         State({'type':'condition-rows','index':MATCH},'children'),
-        State({'type':'filters-logic','index':MATCH},'children')
+        State({'type':'filters-logic','index':MATCH},'children'),
     ]
 )
 def close_condition(n_clciks,id,childs,fil_childs):
-    if n_clciks is not None:
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo.rfind('logic-close') > -1 and n_clciks is not None:
         return None, None
+    
     else:
         raise PreventUpdate
 
@@ -971,11 +1022,11 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
             
             if text_area is True:
                 chk.append(trans_txt)
-            elif multi_drp is True:
+            if multi_drp is True:
                 chk.append(trans_multi_txt)
-            elif single_dt is True:
+            if single_dt is True:
                 chk.append(trans_dt_single)
-            elif range_dt is True:
+            if range_dt is True:
                 chk.append(trans_dt_start)
                 chk.append(trans_dt_end)
             
@@ -1006,7 +1057,9 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
                 else:
                     rtt2=True
 
-            
+            # print(chk)
+            # print(chk2)
+
             if rt is True and rtt is False and rt2 is False and rtt2 is False:
                 return False
             elif rt is False and rtt is False and rt2 is True and rtt2 is False:
@@ -1023,6 +1076,7 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
     Output('realtime-total-records','children'),
     [
         Input('filters-apply','disabled'),
+        Input('retrived-data','data'),
     ],
     [
         State('filters-data','data'),
@@ -1053,26 +1107,27 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
         State({'type':'logic-dropdown','index':ALL},'value'),
     ]
 )
-def get_real_time_count(disabled,filters_data,fil_col_id,fil_condi_id,trans_text_id,\
+def get_real_time_count(disabled,ret_data,filters_data,fil_col_id,fil_condi_id,trans_text_id,\
     trans_multi_id,trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,\
     trans_use_curr_id,logic_val_id,relationship_data,fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
     trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
         trans_days_single,trans_current_date,logic_dropdown):
 
 
-    
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if disabled is False:
-        print(f"filters data {filters_data}")
-        print(f"current date {trans_current_date}")
-        print(f"trans input {trans_input}")
-        print(f"trans single {trans_days_single}")
-        print(f"trans days single {trans_days_single}")
-        print(f"filter condi {fil_condi}")
-        print(f"logic dropdown {logic_dropdown}")
-        print(f"relationship {relationship_data}")
-        print(f"fil col {fil_col_names}")
-        print(f"Multi Text {trans_multi_txt}")
+    if triggred_compo == "filters-apply" and disabled is False:
+        # print(f"filters data {filters_data}")
+        # print(f"current date {trans_current_date}")
+        # print(f"trans input {trans_input}")
+        # print(f"trans single {trans_days_single}")
+        # print(f"trans days single {trans_days_single}")
+        # print(f"filter condi {fil_condi}")
+        # print(f"logic dropdown {logic_dropdown}")
+        # print(f"relationship {relationship_data}")
+        # print(f"fil col {fil_col_names}")
+        # print(f"Multi Text {trans_multi_txt}")
             # ,logic_val_id,fil_col_names,fil_sel_drop,
             # relationship_data
         def local_func_get_rows():
@@ -1089,6 +1144,8 @@ def get_real_time_count(disabled,filters_data,fil_col_id,fil_condi_id,trans_text
 
         no_of_rows = local_func_get_rows()
         return no_of_rows
+    elif triggred_compo == "retrived-data":
+        return ret_data['realtime_rows']
     else:
         return None
 
@@ -1143,15 +1200,21 @@ def update_transformation_modal(value,data,trans_column_data):
     [
         Input("add-col-close", "n_clicks"),
         Input('filters-close','n_clicks'),
+        Input('filters-modal-status','data'),
+        Input('add-col-modal-status','data'),
     ]
 )
-def update_trans_value(n_clicks_add,n_clicks_fil):
+def update_trans_value(n_clicks_add,n_clicks_fil,filters_status_data,add_col_status_data):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if triggred_compo == "add-col-close" and n_clicks_add is not None:
         return []
     elif triggred_compo == "filters-close" and n_clicks_fil is not None:
+        return []
+    elif triggred_compo == "filters-modal-status" and filters_status_data is True:
+        return []
+    elif triggred_compo == "add-col-modal-status" and add_col_status_data is True:
         return []
     # elif triggred_compo == "add-new-col-modal" and add_col_is_open is False:
     #     return []
@@ -1169,6 +1232,8 @@ def update_trans_value(n_clicks_add,n_clicks_fil):
         Input('transformations-dropdown','value'),
         Input("add-col-close", "n_clicks"),
         Input('filters-close','n_clicks'),
+        Input('filters-modal-status','data'),
+        Input('add-col-modal-status','data'),
     ],
     [
         State("add-new-col-modal", "is_open"),
@@ -1176,15 +1241,19 @@ def update_trans_value(n_clicks_add,n_clicks_fil):
     ],
 )
 def transformation_modal_expand(trans_drop_value, add_col_close,\
-    fil_close,add_col_is_open,fil_is_open):
+    fil_close,fil_status_data,add_col_status_data,add_col_is_open,fil_is_open):
 
     if trans_drop_value is not None and trans_drop_value == 'Add new column':
         if add_col_close:
+            return not add_col_is_open, False
+        elif add_col_status_data is True:
             return not add_col_is_open, False
         return not add_col_is_open, False
 
     elif trans_drop_value is not None and trans_drop_value == 'Filter rows':
         if fil_close:
+            return False, not fil_is_open
+        elif fil_status_data is True:
             return False, not fil_is_open
         return False, not fil_is_open
     else:
@@ -1214,6 +1283,9 @@ def transformation_modal_expand(trans_drop_value, add_col_close,\
 
         Output('filters-data','data'), # stores all applied filters
         Output('table-rows-save','data'),
+
+        Output('filters-modal-status','data'),
+        Output('add-col-modal-status','data'),
     ],
     [
         Input('preview-table-button','n_clicks'),
@@ -1305,7 +1377,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     
 
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    #print(f"##### {triggred_compo}",flush=True)
+    print(f"##### {triggred_compo}",flush=True)
     # print(f"##### {add_col_data}",flush=True)
 
 
@@ -1326,7 +1398,28 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     if triggred_compo == "add-new-col" and  add_col_data is not None and \
         add_col_data['add_col_qry'] != "" and add_col_data['add_col_qry'] is not None and\
         relationship_data['table']!=[]:
-        # print(add_col_data,flush=True)
+        
+        
+        k_f_id = None
+        if filters_data['filters'] != {}:
+            idx = list(filters_data['filters'].keys())[0]
+            cols_remove=[ix for ix,c in enumerate(filters_data['filters'][idx]['columns']) \
+                if c not in relationship_data['columns'] and c not in add_col_data['add_col_names']]
+            
+            # removing the calulated column which are no more in use.
+            cols_remove = sorted(cols_remove, reverse=True)
+            for ix in cols_remove:
+                if ix < len(filters_data['filters'][idx]['columns']):
+                    filters_data['filters'][idx]['index'].pop(ix)
+                    filters_data['filters'][idx]['columns'].pop(ix)
+                    filters_data['filters'][idx]['condition'].pop(ix)
+                    filters_data['filters'][idx]['values'].pop(ix)
+                    filters_data['filters'][idx]['logic'].pop(ix)
+            
+            if filters_data['filters'][idx]['index'] == []:
+                filters_data['filters'].pop(str(idx))
+                k_f_id = int(idx)
+
         k = None
         if index_k != 0 and filters_data['add_new_col'] != {}:
             check_val = True if index_k in filters_data['add_new_col'].keys() else False
@@ -1338,6 +1431,9 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             else:
                 filters_data['add_new_col'].pop(str(index_k))
                 k = int(index_k)
+        
+        if k is not None and k_f_id is not None and k_f_id < k:
+            k = k_f_id
 
         i_k = None
         if k is not None and int(k) < filters_data['index_k']:
@@ -1356,7 +1452,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         filters_data['index_k']=k if i_k is None else i_k
 
         relationship_data['saved_data']=False
-        
+        # print(f"UPDATE_TABLE_ADD_COL {filters_data}")
         if filters_data['index_k'] is not None:
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
             # df = df.fillna('None')
@@ -1376,11 +1472,11 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                trans_col, sql_qry,csv_string,filters_data,table_row
+                trans_col, sql_qry,csv_string,filters_data,table_row,None,True
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                csv_string,filters_data,table_row
+                csv_string,filters_data,table_row,None,False
 
     elif triggred_compo == 'select-drop-apply':
         if sel_drp_val is not None:
@@ -1436,11 +1532,11 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                 return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                     table_data_fil, table_columns_fil,relationship_data,rows,\
-                    trans_col, sql_qry,csv_string,filters_data,table_row
+                    trans_col, sql_qry,csv_string,filters_data,table_row,None,None
             else:
                 return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                     table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                    csv_string,filters_data,table_row
+                    csv_string,filters_data,table_row,None,None
     
     elif triggred_compo == 'filters-apply':
         # keys = list(filters_data['filters'].keys())
@@ -1586,11 +1682,11 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                trans_col, sql_qry,csv_string,filters_data,table_row
+                trans_col, sql_qry,csv_string,filters_data,table_row,True,None
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                csv_string,filters_data,table_row
+                csv_string,filters_data,table_row,False,None
 
 
     elif triggred_compo == 'preview-table-button':
@@ -1647,7 +1743,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             
         return table_data_rel, table_columns_rel,table_data_format, table_columns_format,\
             table_data_fil, table_columns_fil,relationship_data, table_rows_no,\
-            trans_col,None,csv_string,fil_data,table_row
+            trans_col,None,csv_string,fil_data,table_row,None,None
     
 
     elif triggred_compo == 'retrived-data' and ret_data is not None:
@@ -1720,15 +1816,15 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                     return table_data_rel,table_columns_rel,table_data_format,\
                         table_columns_format, table_data_fil, table_columns_fil,\
-                        relationship_data,rows,trans_col,sql_qry,csv_string,filters_data,table_row
+                        relationship_data,rows,trans_col,sql_qry,csv_string,filters_data,table_row,None,None
                 else:
                     return table_data_rel,table_columns_rel,table_data, table_columns,\
                         table_data_fil, table_columns_fil,\
-                        relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row
+                        relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row,None,None
             else:
                 return table_data_rel,table_columns_rel,table_data, table_columns,\
                     table_data_fil, table_columns_fil,\
-                    relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row
+                    relationship_data,rows,trans_col, sql_qry,csv_string,filters_data,table_row,None,None
 
         else:
             # print('Second Condition',flush=True)
@@ -1778,15 +1874,15 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                         return table_data_rel,table_columns_rel,table_data_format,\
                             table_columns_format, table_data_fil, table_columns_fil,\
-                            relationship_data,rows,trans_col,trans_fil_condi,csv_string,filters_data,table_row
+                            relationship_data,rows,trans_col,trans_fil_condi,csv_string,filters_data,table_row,None,None
                     else:
                         return table_data_rel,table_columns_rel,table_data, table_columns,\
                             table_data_fil, table_columns_fil,\
-                            relationship_data,rows,trans_col, trans_fil_condi,csv_string,filters_data,table_row
+                            relationship_data,rows,trans_col, trans_fil_condi,csv_string,filters_data,table_row,None,None
 
             return table_data_rel,table_columns_rel,table_data_format,\
                 table_columns_format,table_data_fil, table_columns_fil,\
-                relationship_data,rows,trans_col,trans_fil_condi,csv_string,filters_data,table_row
+                relationship_data,rows,trans_col,trans_fil_condi,csv_string,filters_data,table_row,None,None
     
     elif triggred_compo == 'format-map-data':
         d = {'column_names':[]}
@@ -1800,7 +1896,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
             df, csv_string = get_format_mapping(relationship_data,d,trans_fil_condi,col)
 
-            
+            # print(format_data)
+            # print(df.columns)
             # df = df.fillna('None')
             if df is not None:
                 z={}
@@ -1814,20 +1911,19 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 # print(f"\n{df.columns}",flush=True)
                 # print(f"\n{}",flush=True)
 
-                print(f" adas asd {z}")
                 df = DataFrame(z)
                 table_data_format=df.to_dict('records')
                 table_columns_format=[{"name": c, "id": c} for c in df.columns]
                 #print(f"format map {df.columns}")
                 return rel_tbl_data,rel_tbl_col,table_data_format,table_columns_format,\
                     data,columns, relationship_data,rows,trans_col,trans_fil_condi,\
-                    csv_string,filters_data,table_row
+                    csv_string,filters_data,table_row,None,None
             else:
                return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\
-                   rows,trans_column_data,trans_fil_condi,csv_string,filters_data,table_row
+                   rows,trans_column_data,trans_fil_condi,csv_string,filters_data,table_row,None,None
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\
-                rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row
+                rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row,None,None
     
     elif triggred_compo.rfind('applied-changes-menu') > -1:
         # print(f"{apply_menu_child}",flush=True)
@@ -1845,7 +1941,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                                     add_new_col=dict(),
                                     index_k=None,
                                 )
-                        return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
+                        return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[],None,None
 
                     elif apply_menu_child[idx].startswith('Select/Drop'):
                         indx = filters_data['index_k']
@@ -1887,11 +1983,11 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                                trans_col, sql_qry,csv_string,filters_data,table_row
+                                trans_col, sql_qry,csv_string,filters_data,table_row,None,None
                         else:
                             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                            csv_string,filters_data,table_row
+                            csv_string,filters_data,table_row,None,None
 
                     elif apply_menu_child[idx].startswith('Filters'):
                         indx = filters_data['index_k']
@@ -1937,11 +2033,11 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                                trans_col, sql_qry,csv_string,filters_data,table_row
+                                trans_col, sql_qry,csv_string,filters_data,table_row,None,None
                         else:
                             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                            csv_string,filters_data,table_row
+                            csv_string,filters_data,table_row,None,None
 
                     elif apply_menu_child[idx].startswith('New column added'):
                         indx = filters_data['index_k']
@@ -1987,20 +2083,20 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
                             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                                trans_col, sql_qry,csv_string,filters_data,table_row
+                                trans_col, sql_qry,csv_string,filters_data,table_row,None,None
                         else:
                             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                            csv_string,filters_data,table_row
+                            csv_string,filters_data,table_row,None,None
 
                     else:
                         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                            csv_string,filters_data,table_row
+                            csv_string,filters_data,table_row,None,None
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-                csv_string,filters_data,table_row
+                csv_string,filters_data,table_row,None,None
             # raise PreventUpdate
     
     elif triggred_compo == "filters-clear-all" and \
@@ -2050,16 +2146,14 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                 table_data_fil, table_columns_fil,relationship_data,rows,\
-                trans_col, sql_qry,csv_string,filters_data,table_row
+                trans_col, sql_qry,csv_string,filters_data,table_row,None,None
         else:
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
-            csv_string,filters_data,table_row
-
-
+            csv_string,filters_data,table_row,None,None
     else:
         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\
-            rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row
+            rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row,None,None
 
 
 # # clear-all

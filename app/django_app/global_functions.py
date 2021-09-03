@@ -436,7 +436,7 @@ def check_new_col_present(fil_dict,add_new_col):
         else:
             return False
 def get_filtered_data(fil_dict,table_order,add_new_col):
-    print(f"GET_FILTERED_DATA {fil_dict}")
+    # print(f"GET_FILTERED_DATA {fil_dict}")
     pds_list = []
        
     add_new_column_present = check_new_col_present(fil_dict,add_new_col)
@@ -757,8 +757,8 @@ def get_column_values(relationship,add_new_col,column_name):
 
 def get_transformations(relationship_data,filters_data,col):
     
-    print(f"filters data {filters_data}")
-    print(f"relationship {relationship_data}")
+    # print(f"filters data {filters_data}")
+    # print(f"relationship {relationship_data}")
 
     
     # print(filters_data['filters'].keys())
@@ -804,7 +804,7 @@ def get_transformations(relationship_data,filters_data,col):
             fil_sele = True
             SQL_QRY.append(condi)
 
-    print(SQL_QRY,flush=True)
+    # print(SQL_QRY,flush=True)
         
     condi=None
     columns_select = []
@@ -825,7 +825,10 @@ def get_transformations(relationship_data,filters_data,col):
         '''
         #head_code
         table_name_copy = re.sub('(\w+\.\w+)(?= AS)\ AS\ ','',table_name)
-        table_name_copy = re.sub('FROM.*',","+",".join(["new_table."+str(x) for x in sel_col_list])+" FROM",table_name_copy)
+        if table_name_copy.find('*') < 0:
+            table_name_copy = re.sub('FROM.*',","+",".join(["new_table."+str(x) for x in sel_col_list])+" FROM",table_name_copy)
+        else:
+            table_name_copy = re.sub('FROM.*',"FROM",table_name_copy)
         # table_name_copy = table_name_copy.replace("FROM",)
 
         #(SELECT main_join_code)
@@ -851,7 +854,7 @@ def get_transformations(relationship_data,filters_data,col):
         filter_query = table_name.replace(';',condi+';')
     else:
         filter_query = table_name
-    print(f"MAIN ma {filter_query}",flush=True)
+    # print(f"MAIN ma {filter_query}",flush=True)
     
     # creating conditional columns.
     # if columns_select != []:
@@ -971,7 +974,7 @@ def get_format_mapping(relation_data,format_data,fil_condi,col):
         else:
             main_query = table_name
             # columns_select=[]
-        
+        # print(f"GLOBAL FUNC {main_query}")
         main_query=main_query.replace(';',' LIMIT 5;')
         try:
             df1 = read_sql(main_query, con=db_connection)
