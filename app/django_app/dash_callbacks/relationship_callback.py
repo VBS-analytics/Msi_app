@@ -5,12 +5,12 @@ from pandas.io import sql
 from flask_caching import Cache
 from ..server import app
 from dash.dependencies import Output, Input, State, MATCH, ALL
-from dash import callback_context
-from dash_core_components import Dropdown, Store
-from dash_html_components import Div, H5, Br, I, A
+from dash import callback_context,dcc,html
+# from dash_core_components import Dropdown, Store
+# from dash_html_components import Div, H5, Br, I, A
 from dash_bootstrap_components import Col, Row, Modal, ModalHeader, ModalFooter,\
     ModalBody, Button, DropdownMenuItem, Tooltip, Toast, Alert
-import dash_html_components as dhc
+# import dash_html_components as dhc
 
 from ..global_functions import get_columns, get_join_main, get_main_sql_query,get_table_names
 
@@ -247,9 +247,14 @@ def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val)
 
 # Save applied changes to Database
 @app.callback(
-    Output('modal-sf-status','is_open'),
+    [
+        Output('modal-sf-status','is_open'),
+        Output('fil-name-exists-modal','is_open')
+    ],
     [
         Input('modal-sf-save','n_clicks'),
+        Input('fil-name-exists-save','n_clicks'),
+        Input('run','n_clicks'),
     ],
     [
         State('save-changes','data'),
@@ -276,11 +281,16 @@ def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val)
         State('sch-auto-del-input','value'),
     ]
 )
-def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
+def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist_value,sch_radio_value,\
     sch_hly_val,sch_dly_hr_val,sch_dly_min_val,sch_wly_wk_val,\
     sch_wly_hr_val,sch_wly_min_val,sch_mly_mon_val,sch_mly_dt_val,\
     sch_mly_hr_val,sch_mly_min_val,sch_email_val,sch_auto_del_val):
-    if n_clicks is not None and fil_name is not None:
+
+    ctx = callback_context
+    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggred_compo == 'modal-sf-save' and n_clicks is not None \
+        and fil_name is not None:
         if cklist_value != []:
             sch_str=""
             if 'hourly' in sch_radio_value:
@@ -300,7 +310,84 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
 
             schedule_script_loc = os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'schedule_script.py')
 
+            # fil_name = fil_name + '_' + now
+
+            job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
+            # job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name}',comment=str(fil_name))
             
+            # for j in cron:
+            #     print(sch_str,flush=True)
+            #     print(j,flush=True)
+
+            data = json.dumps(data)
+            
+            if MsiFilters.objects.filter(filter_name = fil_name).exists():
+                # try:
+                #     dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
+                #     cron = CronTab(user=True)
+                #     cron.remove_all(comment=str(fil_name))
+                #     cron.write()
+                #     if sch_str != "":
+                #         job.setall(sch_str)
+                #         cron.write()
+                #         if sch_auto_del_val is not None:
+                #             job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
+                #             job2.setall('0 0 * * *')
+                #             cron.write()
+                #     filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                #     filter_data.save()
+                # except:
+                #     dat=None
+                return False,True
+            else:
+                if sch_str != "":
+                    job.setall(sch_str)
+                    cron.write()
+                    if sch_auto_del_val is not None:
+                        job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
+                        job2.setall('0 0 * * *')
+                        cron.write()
+                filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                filter_data.save()
+                return True,False
+        else:
+            data = json.dumps(data)
+            if MsiFilters.objects.filter(filter_name = fil_name).exists():
+                # try:
+                #     dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
+                #     cron = CronTab(user=True)
+                #     cron.remove_all(comment=str(fil_name))
+                #     cron.write()
+                #     filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                #     filter_data.save()
+                # except:
+                #     dat=None
+                return False,True
+            else:
+                filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                filter_data.save()
+                return True,False
+
+    elif triggred_compo == 'fil-name-exists-save' and fil_exists_n_clicks is not None \
+        and fil_name is not None:
+        if cklist_value != []:
+            sch_str=""
+            if 'hourly' in sch_radio_value:
+                sch_str=f'{sch_hly_val} * * * *'
+            elif 'daily' in sch_radio_value:
+                sch_str=f'{sch_dly_min_val} {sch_dly_hr_val} * * *'
+            elif 'weekly' in sch_radio_value:
+                sch_str=f"{sch_wly_min_val} {sch_wly_hr_val} * * {','.join(sch_wly_wk_val)}"
+            elif 'monthly' in sch_radio_value:
+                sch_str=f"{sch_mly_min_val} {sch_mly_hr_val} {sch_mly_dt_val} {','.join(sch_mly_mon_val)} *"
+            
+            cron = CronTab(user='root')
+
+            local = os.path.join(settings.BASE_DIR,'django_app')
+
+            # log_file = os.path.join(local,'test.out')
+
+            schedule_script_loc = os.path.join(os.path.join(settings.BASE_DIR,'django_app'),'schedule_script.py')
 
             # fil_name = fil_name + '_' + now
 
@@ -311,41 +398,60 @@ def save_to_db(n_clicks,data,fil_name,cklist_value,sch_radio_value,\
             #     print(sch_str,flush=True)
             #     print(j,flush=True)
 
-            if sch_str != "":
-                job.setall(sch_str)
-                cron.write()
-                if sch_auto_del_val is not None:
-                    job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
-                    job2.setall('0 0 * * *')
-                    cron.write()
-
             data = json.dumps(data)
             
             if MsiFilters.objects.filter(filter_name = fil_name).exists():
-                a = MsiFilters.objects.get(filter_name = fil_name)
-                # a.filter_name = fil_name
-                a.fiter_data = data
-                a.save()
-                return True
+                try:
+                    dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
+                    cron = CronTab(user=True)
+                    cron.remove_all(comment=str(fil_name))
+                    cron.write()
+                    if sch_str != "":
+                        job.setall(sch_str)
+                        cron.write()
+                        if sch_auto_del_val is not None:
+                            job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
+                            job2.setall('0 0 * * *')
+                            cron.write()
+                    filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                    filter_data.save()
+                except:
+                    dat=None
+                return True,False
             else:
+                if sch_str != "":
+                    job.setall(sch_str)
+                    cron.write()
+                    if sch_auto_del_val is not None:
+                        job2 = cron.new(command=f'/usr/bin/find /app/django_app/media/django_app -type f -name "{fil_name}*.xlsx" -mtime +{int(sch_auto_del_val)} -exec rm -f {{}} \;',comment=str(fil_name))
+                        job2.setall('0 0 * * *')
+                        cron.write()
                 filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
                 filter_data.save()
-                return True
+                return True,False
                 
         else:
             data = json.dumps(data)
             if MsiFilters.objects.filter(filter_name = fil_name).exists():
-                a = MsiFilters.objects.get(filter_name = fil_name)
-                # a.filter_name = fil_name
-                a.fiter_data = data
-                a.save()
-                return True
+                try:
+                    dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
+                    cron = CronTab(user=True)
+                    cron.remove_all(comment=str(fil_name))
+                    cron.write()
+                    filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
+                    filter_data.save()
+                except:
+                    dat=None
+                return True,False
             else:
                 filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
                 filter_data.save()
-                return True
+                return True,False
+
+    elif triggred_compo == 'run' and save_but_clicks is not None:
+        return False,False
     else:
-        return False
+        return False,False
 
 
 # Retrive saved changes from database
@@ -459,6 +565,7 @@ def update_chngs_db(relationship_data,\
     if triggred_compo == 'relationship-data':
         # print(f"\n{type(relationship_data)}",flush=True)
         # print(f"\n{tables_row}",flush=True)
+        filters_data['status']=None
         save_changes_data['relationship_data']=relationship_data
         save_changes_data['filters_data']=filters_data
         save_changes_data['transformations_table_column_data']=transformations_table_column_data
@@ -484,6 +591,8 @@ def update_chngs_db(relationship_data,\
         save_changes_data['add_new_col_rows'] = add_new_col_body
 
         save_changes_data['realtime_rows']=realtime_rows
+
+        # print(add_new_col_body)
         
         # print(f"\n\n{save_changes_data}",flush=True)
         return save_changes_data
@@ -497,7 +606,7 @@ def update_chngs_db(relationship_data,\
         save_changes_data['upload_file_columns_data']=upload_file_columns_data
         return save_changes_data
     else:
-        return save_changes_data
+        raise PreventUpdate
 
 # showing the changes made in a dropdown menu in Top right.
 @app.callback(
@@ -654,26 +763,26 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
             childs=ast.literal_eval(str(childs))
 
             mod = Modal([
-                    ModalHeader(H5('Join on')),
+                    ModalHeader(html.H5('Join on')),
                     ModalBody([
-                        Div([
-                            Row(Col(Dropdown(id={'type':'sql-join-modal','index':component_id},\
+                        html.Div([
+                            Row(Col(dcc.Dropdown(id={'type':'sql-join-modal','index':component_id},\
                                 options=[{'label':i,'value':i} for i in ['LEFT', 'RIGHT', 'CROSS', 'INNER']]))),
-                            Br(),
+                            html.Br(),
                             Row([
-                                Col(H5(id={'type':'left-table-name','index':component_id})),
-                                Col(H5(id={'type':'right-table-name','index':component_id}))
+                                Col(html.H5(id={'type':'left-table-name','index':component_id})),
+                                Col(html.H5(id={'type':'right-table-name','index':component_id}))
                             ]),
                             Row([
-                                Col(Dropdown(id={'type':'left-table-join-modal','index':component_id})),
-                                Col(Dropdown(id={'type':'right-table-join-modal','index':component_id}))
+                                Col(dcc.Dropdown(id={'type':'left-table-join-modal','index':component_id})),
+                                Col(dcc.Dropdown(id={'type':'right-table-join-modal','index':component_id}))
                             ]),
                             # Row(
                             #     Col(
                             #         H5(id={'type':'join-status','index':component_id})
                             #     )
                             # )
-                            Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':component_id}))
+                            html.Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':component_id}))
                         ])
                     ]),
                     ModalFooter([
@@ -681,9 +790,9 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
                         Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto'),
                         Button("Close",id={'type':'close-join-modal','index':component_id},className='ml-auto'),
                     ])
-                ],id={'type':'join-modal','index':component_id},centered=True,size='lg')
+                ],id={'type':'join-modal','index':component_id},centered=True,size='lg',backdrop="static")
             
-            store = Store(id={'type':'sql-joins-query','index':component_id},data=None)
+            store = dcc.Store(id={'type':'sql-joins-query','index':component_id},data=None)
 
             childs.append(store)
 
@@ -721,8 +830,8 @@ def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs)
 
             childs.append(
                 Col(
-                    A(
-                        I(className='fa fa-times'),
+                    html.A(
+                        html.I(className='fa fa-times'),
                         id={'type':'relationship-table-close','index':component_id},
                     ),
                 )

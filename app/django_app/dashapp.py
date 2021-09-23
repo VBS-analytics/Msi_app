@@ -1,18 +1,18 @@
 import os
 from dash.dependencies import Output, Input
-from dash_core_components import Location, Loading
-from dash_html_components import Div,A, I, Br, H5, P, Img
+# from dash_core_components import Location, Loading
+# from dash_html_components import Div,A, I, Br, H5, P, Img
 from dash_bootstrap_components import Row, Col, Collapse, NavbarToggler, Navbar,\
     NavbarBrand, Nav, NavItem, Modal, ModalHeader, ModalBody, ModalFooter, Card,\
         CardBody, Button, DropdownMenu, DropdownMenuItem, Tooltip
-
+from dash import dcc, html
 
 from .server import app
 from . import router
 
 # callbacks could go here, or in another callback.py file with this at the top:
 # from .server import app
-bolt = I(className="fa fa-bolt")
+bolt = html.I(className="fa fa-bolt")
 dropdown = DropdownMenu(
         children=[
             # Div([
@@ -55,14 +55,14 @@ dropdown = DropdownMenu(
         direction="left")
 
 
-app.layout = Loading(type='circle',children=[Div(children=[
-    Div(id="output-clientside"),
+app.layout = dcc.Loading(type='circle',children=[html.Div(children=[
+    html.Div(id="output-clientside"),
     
     Navbar([
             Row([
                 #height="40px",width='100px'
-                Col(NavbarBrand([Img(src=app.get_asset_url('Valuestream-Logo.png'), style={"height": "40px","width": "auto","margin-bottom": "25px"})])),
-                Col(NavbarBrand(H5("MIS Report Generator (beta)"),className="ml-2")),
+                Col(NavbarBrand([html.Img(src=app.get_asset_url('Valuestream-Logo.png'), style={"height": "40px","width": "auto","margin-bottom": "25px"})])),
+                Col(NavbarBrand(html.H5("MIS Report Generator (beta)"),className="ml-2")),
             ],align="center",no_gutters=True),
             NavbarToggler(id="navbar-toggler2"),
             Collapse(
@@ -72,11 +72,11 @@ app.layout = Loading(type='circle',children=[Div(children=[
                     ]),
                  
                     Row([
-                        Col(NavItem(A(I(className="fa fa-clock-o"),id='scheduled-outputs'))),
-                        Col(NavItem(A(I(className="fa fa-filter",style={"font-size":"15px"}),id='saved-filters-btn'))),
-                        Col(NavItem([A(I(className='fa fa-save'),id='run')])),
+                        Col(NavItem(html.A(html.I(className="fa fa-clock-o"),id='scheduled-outputs'))),
+                        Col(NavItem(html.A(html.I(className="fa fa-filter",style={"font-size":"15px"}),id='saved-filters-btn'))),
+                        Col(NavItem([html.A(html.I(className='fa fa-save'),id='run')])),
                         # Col(NavItem([A(I(className='fa fa-download'),id='download',download='file.xlsx',target="_blank")])),
-                        Col(NavItem([A(I(className='fa fa-question'),id='help',href='/help',target="_blank")])),
+                        Col(NavItem([html.A(html.I(className='fa fa-question'),id='help',href='/help',target="_blank")])),
                         Tooltip(
                             f"help",
                             target='help',
@@ -122,12 +122,13 @@ app.layout = Loading(type='circle',children=[Div(children=[
         scrollable=True,
         centered=True,
         size="lg",
+        backdrop="static"
     ),
-    Br(),
-    Location(id='url', refresh=False),
+    html.Br(),
+    dcc.Location(id='url', refresh=False),
 
     
     
     # Br(),
-    Div(id='content',style={"display": "flex", "flex-direction": "column"}),
+    html.Div(id='content',style={"display": "flex", "flex-direction": "column"}),
 ],id="mainContainer",style={"display": "flex", "flex-direction": "column"})])

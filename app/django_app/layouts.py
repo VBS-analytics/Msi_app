@@ -1,9 +1,10 @@
-from dash_core_components import Store
+# from dash_core_components import Store
 from dash_bootstrap_components import Tabs, Tab
 from .global_functions import get_table_names
 
 import dash_bootstrap_components as dbc
-import dash_html_components as html
+# import dash_html_components as html
+from dash import html, dcc
 from .server import app
 
 def get_help_page():
@@ -120,41 +121,42 @@ def index():
     if session_id is not None:
         db_table_names = get_table_names()
         return [            
-                Store(id='db-table-names',data=db_table_names),
-                Store(id='relationship-data',data=dict(table=[],columns=None,saved_data=False,table_order=[])),
-                Store(id='filters-data',data=dict(
+                dcc.Store(id='db-table-names',data=db_table_names),
+                dcc.Store(id='relationship-data',data=dict(table=[],columns=None,saved_data=False,table_order=[])),
+                dcc.Store(id='filters-data',data=dict(
                     select_or_drop_columns=dict(),
                     filters=dict(),
                     add_new_col=dict(),
                     index_k=None,
+                    status=None
                     )
                 ),
-                Store(id="add-new-col",data=dict(
+                dcc.Store(id="add-new-col",data=dict(
                     add_col_names=[],
                     add_col_qry=None
                 )),
-                Store(id="filters-modal-status",data=None),
-                Store(id="add-col-modal-status",data=None),
+                dcc.Store(id="filters-modal-status",data=None),
+                dcc.Store(id="add-col-modal-status",data=None),
 
-                Store(id='format-map-data',data={}),
-                Store(id='upload-file-columns-data',data=[]),
-                Store(id='transformations-table-column-data',data={}),
+                dcc.Store(id='format-map-data',data={}),
+                dcc.Store(id='upload-file-columns-data',data=[]),
+                dcc.Store(id='transformations-table-column-data',data={}),
                 # Store(id='transformations-table-sql-query',data=None),
-                Store(id='transformations-filters-condi',data=None),
+                dcc.Store(id='transformations-filters-condi',data=None),
                 # Store(id='relationship-table-sql-query',data=None),
                 # Store(id='filters-text-area',data=[]),
-                Store(id='retrived-data',data=None),
-                Store(id='index_k',data=None),
+                dcc.Store(id='retrived-data',data=None),
+                dcc.Store(id='index_k',data=None),
                 # Store(id={'type':'saved_status','index':1},data=False),
                 # {'type':'filters-text-drpdwn','index':0},width=4
-                Store(id='total-rows',data=None),
-                Store(id='relation-rows',data=None),
-                Store(id='transformations-rows',data=None),
-                Store(id='filter-condi-index',data=None),
-                Store(id='table-rows-save',data={}),
-                Store(id='main-sql-query',data=None),
+                dcc.Store(id='total-rows',data=None),
+                dcc.Store(id='relation-rows',data=None),
+                dcc.Store(id='transformations-rows',data=None),
+                dcc.Store(id='filter-condi-index',data=None),
+                dcc.Store(id='table-rows-save',data={}),
+                dcc.Store(id='main-sql-query',data=None),
 
-                Store(
+                dcc.Store(
                     id='save-changes',
                     data={
                         'relationship_data':{},
@@ -173,9 +175,11 @@ def index():
                     }
                 ),
 
-                Store(id='download_data',data=None),
-                Store(id='session-id',data=session_id),
-                Store(id='filters-retrived-status',data=None),
+                dcc.Store(id='download_data',data=None),
+                dcc.Store(id='session-id',data=session_id),
+                dcc.Store(id='filters-retrived-status',data=None),
+                # Store(id='filter-trash-trigger',data=None),
+                # Store(id='filters-rows-trash',data=None),
 
                 html.Div([
                     dbc.Row([

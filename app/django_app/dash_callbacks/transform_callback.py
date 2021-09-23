@@ -1,16 +1,16 @@
-from numpy.core.multiarray import empty_like
+from numpy.core.numeric import outer
 from ..server import app, server
 from dash.dependencies import Output, Input, State, ALL, MATCH
-from dash import callback_context
-from dash_core_components import Dropdown, Textarea, DatePickerRange, DatePickerSingle,\
-    Checklist, RadioItems
-from dash_core_components import Input as TextInput
-from dash_html_components import H6, Br, Div, I, Hr, A, Strong
+from dash import callback_context,dcc,html
+# from dash_core_components import Dropdown, Textarea, DatePickerRange, DatePickerSingle,\
+#     Checklist, RadioItems, Store
+# from dash_core_components import Input as TextInput
+# from dash_html_components import H6, Br, Div, I, Hr, A, Strong
 from dash_bootstrap_components import Col, Row, Button, Form, FormGroup,FormText,\
     Label
 
 
-import dash_html_components as dhc
+# import dash_html_components as dhc
 
 
 from ..global_functions import get_transformations,\
@@ -28,7 +28,7 @@ from dash.exceptions import PreventUpdate
 from datetime import date
 import re
 import ast
-
+from numpy import array
 
 def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
     trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,trans_use_curr_id,
@@ -166,11 +166,13 @@ def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
 
 # add condition row
 def get_condition_rows(columns,indx):
+    # print(f"get condition rows {type(indx)}")
+    # print(f"get condition row {indx}")
     return Row([
         Col(
             FormGroup([
-                Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
-                Dropdown(
+                Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
+                dcc.Dropdown(
                     id={'type':'filters-column-names','index':indx},
                     options=[{'label':i,'value':i} for i in columns.keys()],
                     value=None
@@ -180,8 +182,8 @@ def get_condition_rows(columns,indx):
 
         Col(
             FormGroup([
-                Label(Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
-                Dropdown(
+                Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
+                dcc.Dropdown(
                     id={'type':'filters-conditions','index':indx}
                 )
             ])
@@ -189,7 +191,8 @@ def get_condition_rows(columns,indx):
 
         Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
 
-        Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
+        Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
+        # Store(id={'type':'filters-rows-trash','index':indx},data=None)
 
     ],id={'type':'condition-rows','index':indx})
 
@@ -252,33 +255,41 @@ def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if triggred_compo == "add-col-new-col-but" and n_clicks is not None:
-        indx = n_clicks+1
+        indx=[int(i['index']) for i in add_col_remove_id]
+        if indx != []:
+            indx=array(indx).max()
+        else:
+            indx=0
+
+        indx = int(indx+1)
         
         grp_1 = FormGroup([
-                    Col(A(I(className="fa fa-trash"),id={'type':'add-col-remove','index':indx}),className="text-right"),
-                    dhc.Label("Enter column name"),
-                    TextInput(id={"type":"add-new-col-name","index":indx},type="text",minLength=5,required=True),
+                    Col(html.A(html.I(className="fa fa-trash"),id={'type':'add-col-remove','index':indx}),className="text-right"),
+                    html.Label("Enter column name"),
+                    dcc.Input(id={"type":"add-new-col-name","index":indx},type="text",minLength=5,required=True),
                     FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
                 ],id={"type":'add-col-grp-1','index':indx})
         
         grp_2 = FormGroup([
-                    dhc.Label("Assign value to new column"),
+                    html.Label("Assign value to new column"),
                     # RadioItems(
                     #         options=[{'label':i,'value':i} for i in zip(["single value","conditional value"])],
                     #         id={"type":"add-col-value-radio","index":indx},
                     # ),
-                    TextInput(id={"type":'add-col-value-input',"index":indx},type='text',required=True),
+                    dcc.Input(id={"type":'add-col-value-input',"index":indx},type='text',required=True),
                 ],id={"type":'add-col-grp-2','index':indx})
         
         
         # childs.append(trash_but)
         childs.append(grp_1)
         childs.append(grp_2)
-        childs.append(Hr(id={"type":'add-col-hr-3','index':indx}))
+        childs.append(html.Hr(id={"type":'add-col-hr-3','index':indx}))
         return childs
 
     elif triggred_compo.rfind('add-col-remove') > -1:
         indx=None
+        print(f"add-col-remove n_clciks {trash_n_clicks}")
+        # print(f"add-col-remove id {trash_n_clicks}")
         if any(trash_n_clicks):
             indx = [idx for idx,i in enumerate(trash_n_clicks) if i is not None and i > 0]
             indx = add_col_remove_id[indx[0]]
@@ -289,6 +300,7 @@ def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
 
         if indx is not None:
             for idx,i in enumerate(childs):
+                print(f"add-col-remove childs {i['props']['id']}")
                 if i['props']['id']['index'] == int(indx):
                     childs_copy.remove(i)
             return childs_copy
@@ -296,62 +308,6 @@ def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
     else:
         raise PreventUpdate
 
-    # return Row([
-    #             Col(
-    #                 Dropdown(
-    #                     id={'type':'filters-column-names','index':indx},
-    #                     options=[{'label':i,'value':i} for i in columns.keys()],
-    #                     value=None
-    #                 )
-    #             ,width=4),
-
-    #             Col(
-    #                 Dropdown(id={'type':'filters-conditions','index':indx})
-    #             ,width=3),
-
-    #             Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
-    #         ],id={'type':'condition-rows','index':indx})
-
-# # generates the body for filter rows
-# def get_filter_rows(table_names,columns):
-#     col = columns
-#     return Div([
-#         Row(Col(H6('Select or drop rows'),width=3)),
-#         Row(
-#             Col(
-#                 Dropdown(
-#                     id='select_or_drop_rows_select_drop',
-#                     options=[{'label':i,'value':i} for i in ['Select','Drop']],
-#                     value=None
-#                 )
-#             ,width=3),
-#         ),
-#         Row(Col(H6('where'),width=3)),
-
-        
-#         Div([
-#             Row([
-                
-#                 Col(
-#                     Dropdown(
-#                         id={'type':'trans-column-names','index':0},
-#                         options=[{'label':i,'value':i} for i in columns.keys()],
-#                         value=None
-#                     )
-#                 ,width=4),
-
-#                 Col(
-#                     Dropdown(id={'type':'trans-conditions','index':0})
-#                 ,width=3),
-
-                
-#             ], id={'type':'condition-rows','index':0}),
-
-#         ],id='trans-conditional-div'),
-
-#         Row(Col(Button("add condition", size="sm",id='trans-add-condition'))),
-        
-#     ])
 
 # display the saved filters changes to front-end
 @app.callback(
@@ -359,31 +315,35 @@ def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
     [
         Input('retrived-data','data'),
         Input('preview-table-button','n_clicks'),
-        Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
-        Input("filters-clear-all","n_clicks"),
+        # Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
+        # Input("filters-clear-all","n_clicks"),
         # Input('add-new-col-modal-apply','n_clicks'),
         Input('filters-data','data'),
+        # Input('transformations-dropdown','value'),
+        # Input('filters-modal','is_open'),
     ],
     [
         State('filters-div','children'),
-        State({'type':'applied-changes-menu','index':ALL},'children'),
-        # State('filters-data','data'),
+        # State({'type':'applied-changes-menu','index':ALL},'children'),
+        State('filters-data','data'),
     ],
 )
-def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
-    filters_data,childs,apply_menu_child):
+def update_filter_div(data,n_clicks,\
+    filters_data,childs,fil_data):#apply_menu_child,filters-clear-all
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
     print(f"FILTERS DIV {triggred_compo}",flush=True)
-    print(f"FILTERS DIV {len(childs[2]['props']['children'])}",flush=True)
-    print(f"FILTERS_DIV {filters_data['filters']}")
+    print(f"FILTERS DATA {filters_data}",flush=True)
+    # print(f"FILTERS DIV {len(childs[2]['props']['children'])}",flush=True)
+    # print(f"FILTERS_DIV {filters_data['filters']}")
+    # print(f"FILTERS_DIVvvvv {fil_data['filters']}")
 
     empty_div = [
         FormGroup([
-            Col(A(I(className="fa fa-refresh"),id='filters-clear-all'),className="text-right"),
-            dhc.Label("Select or drop rows"),
-            Dropdown(
+            Col(html.A(html.I(className="fa fa-refresh"),id='filters-clear-all'),className="text-right"),
+            html.Label("Select or drop rows"),
+            dcc.Dropdown(
                     id='filters-select-drop',
                     options=[{'label':i,'value':i} for i in ['Select','Drop']],
                     value=None,
@@ -393,15 +353,15 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
         ]),
 
         FormGroup([
-            dhc.Label("Where,")
+            html.Label("Where,")
         ]),
 
-        Div([
+        html.Div([
             Row([
                 Col(
                     FormGroup([
-                        Label(Strong("Select column name"),html_for={'type':'filters-column-names','index':0}),
-                        Dropdown(
+                        Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':0}),
+                        dcc.Dropdown(
                             id={'type':'filters-column-names','index':0},
                             value=None
                         )
@@ -410,8 +370,8 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
 
                 Col(
                     FormGroup([
-                        Label(Strong("condition"),html_for={'type':'filters-conditions','index':0}),
-                        Dropdown(
+                        Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':0}),
+                        dcc.Dropdown(
                             id={'type':'filters-conditions','index':0}
                         )
                     ])
@@ -419,20 +379,21 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
 
                 Col([
                     FormGroup([
-                        dhc.Label(Strong("value")),
-                        Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
-                        Textarea(id={"type":'trans-text','index':0},style={'display':'none'}),
-                        TextInput(id={'type':'trans-input','index':0},style={'display':'none'}),
-                        DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
-                        DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
-                        DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
-                        Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
+                        html.Label(html.Strong("value")),
+                        dcc.Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
+                        dcc.Input(id={"type":'trans-text','index':0},style={'display':'none'},debounce=True),
+                        dcc.Input(id={'type':'trans-input','index':0},style={'display':'none'},debounce=True),
+                        dcc.DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
+                        dcc.DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
+                        dcc.DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
+                        dcc.Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
                     ])
                     
                 ],id={'type':'filters-text-drpdwn','index':0},width=4),
 
                 # Col(dhc.Button(id={'type':'logic-close','index':0},hidden=True))
-                Col(A(I(className="fa fa-trash-o"),id={'type':'logic-close','index':0}),className="text-right"),
+                Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':0}),className="text-right"),
+                # Store(id={'type':'filters-rows-trash','index':0},data=None)
             
             ],id={'type':'condition-rows','index':0}),
             Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
@@ -453,71 +414,1305 @@ def update_filter_div(data,n_clicks,menu_n_clicks,fil_clear_n_clicks,\
             return empty_div
         else:
             raise PreventUpdate
-    elif triggred_compo.rfind('applied-changes-menu') > -1:
-        # print(f"{apply_menu_child}",flush=True)
-        # print(f"{menu_n_clicks}",flush=True)
-        
+    # elif triggred_compo.rfind('applied-changes-menu') > -1 and any(menu_n_clicks):
+    #     if any(menu_n_clicks):
+    #         for idx,i in enumerate(menu_n_clicks):
+    #             if i is not None and i > 0:
+    #                 if apply_menu_child[idx].startswith('Filters'):
+    #                     return empty_div
+    #                 elif apply_menu_child[idx].startswith('New column added'):
+    #                     print(f"FILDIV {filters_data}")
+    #                     if filters_data['filters'] != {}:
+    #                         in_k=list(filters_data["filters"].keys())[0]
+    #                         fil_condition_rows = []
+    #                         for j,i in enumerate(filters_data['filters'][in_k]['index']): # inside index
 
-        if any(menu_n_clicks):
-            for idx,i in enumerate(menu_n_clicks):
-                if i is not None and i > 0:
-                    # print(f"{i}",flush=True)
-                    # print(f"{idx}",flush=True)
-                    if apply_menu_child[idx].startswith('Filters'):
-                        return empty_div
-            raise PreventUpdate
-        else:
-            raise PreventUpdate
-    elif triggred_compo == 'filters-clear-all' and fil_clear_n_clicks is not None:
-        return empty_div
-    elif triggred_compo == "filters-data" and filters_data['filters']!={}:
-        
-        d= dict(
-            indexs = [],
-            location = []
-        )
-        print(f"INSIDE FILTERS_DIV")
-        for ix,i in enumerate(childs[2]['props']['children']):
-            if re.search('\'id\': \{\'type\':\ \'condition\-rows\',\ \'index\':\ ',str(i)) is not None:
-                d['location'].append(ix)
-                s=re.findall('\'id\': \{\'type\':\ \'condition\-rows\',\ \'index\':\ \d*}',str(i))[0]
-                d['indexs'].append(re.search('\d+',s).group())
-                
-            elif re.search('\'id\': \{\'type\':\ \'filters\-logic\',\ \'index\':\ ',str(i)) is not None:
-                d['location'].append(ix)
-                s=re.findall('\'id\': \{\'type\':\ \'filters\-logic\',\ \'index\':\ \d*}',str(i))[0]
-                d['indexs'].append(re.search('\d+',s).group())
-        
-        d=DataFrame(d)
-        k=list(filters_data["filters"].keys())[0]
+    #                             form_grp = {
+    #                                 'props':{
+    #                                     'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
 
-        remov_list = []
-        # for i in filters_data['filters'][k]['index']:
-        #     if str(i) not in d['indexs'].to_list():
-        #         remov_list.append(d[d['indexs']==str(i)]['location'].to_list())
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{"type":'trans-multi-text','index':0},
+    #                                                 'style':{'display':'none'}
+    #                                             },
+    #                                             'type':'Dropdown',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
 
-        for i in set(d['indexs'].to_list()):
-            if int(i) not in filters_data['filters'][k]['index']:
-                remov_list.append(d[d['indexs']==str(i)]['location'].to_list())
-        
-        print(f"INSIDE FILTERS_DIV {remov_list}")        
-        if remov_list != []:
-            flatten_list = list(chain.from_iterable(remov_list))
-            flatten_list = sorted(flatten_list, reverse=True)
-            for ix in flatten_list:
-                if ix < len(childs[2]['props']['children']):
-                    childs[2]['props']['children'].pop(ix)
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{"type":'trans-text','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                                 'debounce':True
+    #                                             },
+    #                                             'type':'TextInput',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-input','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                                 'debounce':True
+    #                                             },
+    #                                             'type':'TextInput',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-date-range','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'DatePickerRange',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-date-single','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'DatePickerSingle',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-days-single','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'DatePickerSingle',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-use-current-date','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'Checklist',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+    #                                     ]
+    #                                 },
+    #                                 'type':'FormGroup',
+    #                                 'namespace': 'dash_bootstrap_components'
+    #                             }
+                                
+
+    #                             if type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+    #                                 filters_data['filters'][in_k]['values_vals'][j] in ['trans-multi-text']:
+                                    
+    #                                 form_grp = {
+    #                                     'props':{'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{"type":'trans-multi-text','index':i},
+    #                                                 'value':filters_data['filters'][in_k]['values'][j]
+    #                                             },
+    #                                             'type':'Dropdown',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'
+    #                                 }
+                                    
+    #                                 # form_grp=FormGroup([
+    #                                 #         dhc.Label(Strong("value")),
+    #                                 #         Dropdown(id={"type":'trans-multi-text','index':i},value=filters_data['filters'][in_k]['values'][i]),
+    #                                 #         ])
+                                            
+    #                             elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+    #                                 filters_data['filters'][in_k]['values_vals'][j] in ['trans-text']:
+                                    
+    #                                 form_grp={
+    #                                     'props':{"children":[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{"type":'trans-text','index':i},
+    #                                                 'debounce':True,
+    #                                                 'value':filters_data['filters'][in_k]['values'][j]
+    #                                             },
+    #                                             'type':'TextInput',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'
+    #                                 }
+                                    
+    #                                 # form_grp=FormGroup([
+    #                                 #         dhc.Label(Strong("value")),
+    #                                 #         TextInput(id={"type":'trans-text','index':i},\
+    #                                 #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+    #                                 #         ])
+                                
+    #                             elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+    #                                 filters_data['filters'][in_k]['values_vals'][j] in ['trans-input']:
+                                    
+    #                                 form_grp={
+    #                                     'props':{'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-input','index':i},
+    #                                                 'debounce':True,
+    #                                                 'value':filters_data['filters'][in_k]['values'][j]
+    #                                             },
+    #                                             'type':'TextInput',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'
+    #                                 }
+                                    
+    #                                 # form_grp=FormGroup([
+    #                                 #         dhc.Label(Strong("value")),
+    #                                 #         TextInput(id={"type":'trans-input','index':i},\
+    #                                 #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+    #                                 #         ])
+                                
+    #                             elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+    #                                 'trans-date-range' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                                    
+    #                                 form_grp={
+    #                                     'props':{'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-date-range','index':i},
+    #                                                 'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['min'],
+    #                                                 'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['max'],
+    #                                                 'start_date':filters_data['filters'][in_k]['values'][j][0],
+    #                                                 'end_date':filters_data['filters'][in_k]['values'][j][1],
+    #                                             },
+    #                                             'type':'DatePickerRange',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'                    
+    #                                 }
+
+    #                                 # form_grp=FormGroup([
+    #                                 #         dhc.Label(Strong("value")),
+    #                                 #         DatePickerRange(id={'type':'trans-date-range','index':i},
+    #                                 #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['min'],
+    #                                 #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['max'],
+    #                                 #             start_date=filters_data['filters'][in_k]['values'][i][0],
+    #                                 #             end_date=filters_data['filters'][in_k]['values'][i][1],
+    #                                 #         )
+    #                                 #     ])
+                                
+    #                             elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+    #                                 'trans-date-single' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                                    
+    #                                 form_grp={
+    #                                     'props':{'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-date-single','index':i},
+    #                                                 'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['min'],
+    #                                                 'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['max'],
+    #                                                 'date':filters_data['filters'][in_k]['values'][j],
+    #                                             },
+    #                                             'type':'DatePickerSingle',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'                                        
+    #                                 }
+                                    
+    #                                 # form_grp=FormGroup([
+    #                                 #         dhc.Label(Strong("value")),
+    #                                 #         DatePickerRange(id={'type':'trans-date-single','index':i},
+    #                                 #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['min'],
+    #                                 #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['max'],
+    #                                 #             date=filters_data['filters'][in_k]['values'][i],
+    #                                 #         )
+    #                                 #     ])
+
+    #                             elif type(filters_data['filters'][in_k]['values_vals'][j]) is list and \
+    #                                 filters_data['filters'][in_k]['values_vals'][j] != [] and \
+    #                                 all(t in filters_data['filters'][in_k]['values_vals'][j] for t in ['trans-input', 'trans-use-current-date', 'trans-days-single']):
+
+    #                                 ck=False
+    #                                 val = None
+    #                                 min_dt=None
+    #                                 max_dt=None
+
+    #                                 sig_dt={
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-days-single','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'DatePickerSingle',
+    #                                             'namespace': 'dash_core_components'
+    #                                         }
+    #                                 ck_val={
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-use-current-date','index':0},
+    #                                                 'style':{'display':'none'},
+    #                                             },
+    #                                             'type':'Checklist',
+    #                                             'namespace': 'dash_core_components'
+    #                                         }
+
+    #                                 # sig_dt=DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'})
+    #                                 # ck_val=Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'})
+    #                                 if type(filters_data['filters'][in_k]['values'][j][1]) is list:
+    #                                     ck=True
+    #                                     val=filters_data['filters'][in_k]['values'][j][1]
+    #                                     # ck_val=Checklist(
+    #                                     #     id={'type':'trans-use-current-date','index':i},
+    #                                     #     options=[
+    #                                     #         {'label': 'Use current sys date', 'value': 'Use'},
+    #                                     #     ],
+    #                                     #     value=val
+    #                                     # )
+    #                                     ck_val={
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-use-current-date','index':i},
+    #                                                 'options':[
+    #                                                     {'label': 'Use current sys date', 'value': 'Use'},
+    #                                                 ],
+    #                                                 'value':val
+    #                                             },
+    #                                             'type':'Checklist',
+    #                                             'namespace': 'dash_core_components'
+    #                                         }
+    #                                 else:
+    #                                     val=filters_data['filters'][in_k]['values'][j][1]
+    #                                     min_dt=filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['min']
+    #                                     max_dt=filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['max']
+    #                                     # sig_dt=DatePickerSingle(
+    #                                     #     id={'type':'trans-days-single','index':i},
+    #                                     #     placeholder='mm/dd/YYYY',
+    #                                     #     min_date_allowed=min_dt,
+    #                                     #     max_date_allowed=max_dt,
+    #                                     #     # initial_visible_month=date.today(),
+    #                                     #     date=val
+    #                                     # )
+    #                                     sig_dt={
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-days-single','index':i},
+    #                                                 'placeholder':'mm/dd/YYYY',
+    #                                                 'min_date_allowed':min_dt,
+    #                                                 'max_date_allowed':max_dt,
+    #                                                 # initial_visible_month=date.today(),
+    #                                                 'date':val
+    #                                             },
+    #                                             'type':'DatePickerSingle',
+    #                                             'namespace': 'dash_core_components'
+    #                                         }
+
+                                    
+    #                                 form_grp={
+    #                                     'props':{'children':[
+    #                                         {
+    #                                             'props':{'children':{
+    #                                                 'props':{'children':"value"},
+    #                                                 'type':'Strong',
+    #                                                 'namespace': 'dash_html_components'
+    #                                             }},
+    #                                             'type':'Label',
+    #                                             'namespace': 'dash_html_components'
+    #                                         },
+
+    #                                         {
+    #                                             'props':{
+    #                                                 'id':{'type':'trans-input','index':i},
+    #                                                 'debounce':True,
+    #                                                 'value':filters_data['filters'][in_k]['values'][j][0]
+    #                                             },
+    #                                             'type':'TextInput',
+    #                                             'namespace': 'dash_core_components'
+    #                                         },
+
+    #                                         sig_dt,
+    #                                         ck_val
+    #                                     ]},
+    #                                     'type':'FormGroup',
+    #                                     'namespace': 'dash_bootstrap_components'                    
+    #                                 }
+
+
+    #                                 # form_grp=FormGroup([
+    #                                 #     dhc.Label(Strong("value")),
+    #                                 #     TextInput(id={'type':'trans-input','index':i},persistence=True,\
+    #                                 #         value=filters_data['filters'][in_k]['values'][i][0],debounce=True),
+    #                                 #     sig_dt,
+    #                                 #     ck_val
+    #                                 # ]) 
+
+    #                             condi_row={
+    #                                 'props':{'children':[
+
+
+    #                                     {'props':{'children':{
+    #                                         'props':{'children':[
+    #                                                     {
+    #                                                         'props':{
+    #                                                             'children':{
+    #                                                                     'props':{'children':"Select column name"},
+    #                                                                     'type':'Strong',
+    #                                                                     'namespace': 'dash_html_components'
+    #                                                                 },
+    #                                                             'html_for':{'type':'filters-column-names','index':i}
+    #                                                         },
+    #                                                         'type':'Label',
+    #                                                         'namespace':'dash_bootstrap_components'
+    #                                                     },
+    #                                                     {
+    #                                                         'props':{
+    #                                                             'id':{'type':'filters-column-names','index':i},
+    #                                                             'value':filters_data['filters'][in_k]['columns'][j],
+    #                                                             'options':filters_data['filters'][in_k]['columns_drpdwn_vals'][j]
+    #                                                         },
+    #                                                         'type':'Dropdown',
+    #                                                         'namespace':'dash_core_components'
+    #                                                     }
+
+    #                                                 ]},
+    #                                             'type':'FormGroup',
+    #                                             'namespace': 'dash_bootstrap_components'                    
+    #                                             },'width':4},
+    #                                         'type':'Col',
+    #                                         'namespace': 'dash_bootstrap_components'
+    #                                     },
+
+    #                                     {
+    #                                         'props':{'children':{
+    #                                                 'props':{'children':[
+    #                                                     {
+    #                                                         'props':{
+    #                                                             'children':{
+    #                                                                     'props':{'children':"condition"},
+    #                                                                     'type':'Strong',
+    #                                                                     'namespace': 'dash_html_components'
+    #                                                                 },
+    #                                                             'html_for':{'type':'filters-conditions','index':i}
+    #                                                         },
+    #                                                         'type':'Label',
+    #                                                         'namespace':'dash_bootstrap_components'
+    #                                                     },
+
+    #                                                     {
+    #                                                         'props':{
+    #                                                             'id':{'type':'filters-conditions','index':i},
+    #                                                             'value':filters_data['filters'][in_k]['columns'][j],
+    #                                                             'options':filters_data['filters'][in_k]['condition_drpdwn_vals'][j]
+    #                                                         },
+    #                                                         'type':'Dropdown',
+    #                                                         'namespace':'dash_core_components'
+    #                                                     }
+                                                        
+    #                                                 ]},
+    #                                                 'type':'FormGroup',
+    #                                                 'namespace': 'dash_bootstrap_components'    
+    #                                         },'width':3},
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },
+
+    #                                     {
+    #                                         'props':{
+    #                                             'children':form_grp,
+    #                                             'id':{'type':'filters-text-drpdwn','index':i},
+    #                                             'width':4
+    #                                         },
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },
+
+    #                                     {
+    #                                         'props':{
+    #                                             'children':{
+    #                                                 'props':{
+    #                                                     'children':{
+    #                                                         'props':{'className':"fa fa-trash-o"},
+    #                                                         'type':'I',
+    #                                                         'namespace':'dash_html_components'
+    #                                                     },
+    #                                                     'id':{'type':'logic-close','index':i}
+    #                                                 },
+    #                                                 'type':'A',
+    #                                                 'namespace':'dash_html_components'
+    #                                             },
+                                                
+    #                                             'className':"text-right"
+    #                                         },
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },
+
+    #                                     # {
+
+    #                                     #     'props':{
+    #                                     #         'id':{'type':'filters-rows-trash','index':0},
+    #                                     #         'data':None
+    #                                     #     },
+    #                                     #     'type':'Store',
+    #                                     #     'namespace':'dash_core_components'
+    #                                     # },
+
+
+    #                                 ],'id':{'type':'condition-rows','index':i}},
+    #                                 'type':'Row',
+    #                                 'namespace': 'dash_bootstrap_components'
+    #                             }
+                                
+    #                             if filters_data['filters'][in_k]['logic'][j] is not None:
+    #                                 log_row={
+    #                                     'props':{'children':{
+    #                                         'props':{'children':{
+    #                                             'props':{
+    #                                                 'id':{'type':'logic-dropdown','index':i},
+    #                                                 'options':[{'label':v,'value':v} for v in ["And","Or"]],
+    #                                                 'value':filters_data['filters'][in_k]['logic'][j]
+    #                                             },
+    #                                             'type':'Dropdown',
+    #                                             'namespace':'dash_core_components'
+
+    #                                         },'width':3},
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },'id':{'type':'filters-logic','index':i}},
+    #                                     'type':'Row',
+    #                                     'namespace':'dash_bootstrap_components'
+    #                                 }
+
+    #                             else:
+    #                                 log_row = {
+    #                                     'props':{'children':{
+    #                                         'props':{'children':"This is Temp column and row"},
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },'id':{"type":"filters-logic","index":0},'style':{'display':'none'}},
+    #                                     'type':'Row',
+    #                                     'namespace':'dash_bootstarp_components'
+    #                                 }
+    #                                 # log_row=Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
+
+    #                             fil_condition_rows.append(condi_row)
+    #                             fil_condition_rows.append(log_row)
+
+    #                         # print(f"DFD {fil_condition_rows}")
+    #                         fil_div = [
+    #                             {
+    #                                 'props':{'children':[
+    #                                     {
+    #                                         'props':{'children':{
+    #                                             'props':{
+    #                                                 'children':{
+    #                                                     'props':{'className':"fa fa-refresh"},
+    #                                                     'type':'I',
+    #                                                     'namespace':'dash_html_components'
+    #                                                 },
+    #                                                 'id':'filters-clear-all'
+    #                                             },
+    #                                             'type':'A',
+    #                                             'namespace':'dash_html_components'
+    #                                         }},
+    #                                         'type':'Col',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },
+
+
+    #                                     {
+    #                                         'props':{'children':'Select or drop rows'},
+    #                                         'type':'Label',
+    #                                         'namespace':'dash_html_components'
+    #                                     },
+
+    #                                     {
+    #                                         'props':{
+    #                                             'id':'filters-select-drop',
+    #                                             'options':[{'label':v,'value':v} for v in ['Select','Drop']],
+    #                                             'value':filters_data['filters'][in_k]['select_drop'],
+    #                                             'style':{"width":"50%"}
+    #                                         },
+    #                                         'type':'Dropdown',
+    #                                         'namespace':'dash_core_components'
+    #                                     },
+
+
+    #                                     {
+    #                                         'props':{'children':
+    #                                             {
+    #                                                 'props':{'children':"Where"},
+    #                                                 'type':'Label',
+    #                                                 'namespace':'dash_html_components'
+    #                                             }
+    #                                         },
+    #                                         'type':'FormGroup',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     },
+
+
+    #                                     {
+    #                                         'props':{'children':fil_condition_rows,'id':'filters-conditional-div'},
+    #                                         'type':'Div',
+    #                                         'namespace':'dash_html_components'
+    #                                     },
+
+
+    #                                     {
+    #                                         'props':{'children':{
+    #                                             'props':{"children":{
+    #                                                 'props':{
+    #                                                     'children':'add condition',
+    #                                                     'size':'sm',
+    #                                                     'id':'filters-add-condition',
+    #                                                     'n_clicks':0
+    #                                                 },
+    #                                                 'type':'Button',
+    #                                                 'namespace':'dash_bootstrap_components'
+    #                                             }},
+    #                                             'type':'Col',
+    #                                             'namespace':'dash_bootstrap_components'
+    #                                         }},
+    #                                         'type':'Row',
+    #                                         'namespace':'dash_bootstrap_components'
+    #                                     }
+    #                                 ]},
+    #                                 'type':'FormGroup',
+    #                                 'namespace':'dash_bootstrap_components'
+    #                             },
+    #                         ]
+    #                         return fil_div
+    #                     else:
+    #                         return childs
+
+    #         return childs
+    #     else:
+    #         raise PreventUpdate
+    # elif triggred_compo == 'filters-clear-all' and fil_clear_n_clicks is not None:
+    #     return empty_div
+    elif triggred_compo == "filters-data" and filters_data['filters']!={} and filters_data['status'] is True:
+        # print(f"FILTERS_DIV {filters_data['filters']}")
+        in_k=list(filters_data["filters"].keys())[0]
+        fil_condition_rows = []
+        for j,i in enumerate(filters_data['filters'][in_k]['index']): # inside index
+
+            form_grp = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":'trans-multi-text','index':0},
+                                'style':{'display':'none'}
+                            },
+                            'type':'Dropdown',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":'trans-text','index':0},
+                                'style':{'display':'none'},
+                                'debounce':True
+                            },
+                            'type':'Input',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-input','index':0},
+                                'style':{'display':'none'},
+                                'debounce':True
+                            },
+                            'type':'Input',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-date-range','index':0},
+                                'style':{'display':'none'},
+                            },
+                            'type':'DatePickerRange',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-date-single','index':0},
+                                'style':{'display':'none'},
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-days-single','index':0},
+                                'style':{'display':'none'},
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-use-current-date','index':0},
+                                'style':{'display':'none'},
+                            },
+                            'type':'Checklist',
+                            'namespace': 'dash_core_components'
+                        },
+                    ]
+                },
+                'type':'FormGroup',
+                'namespace': 'dash_bootstrap_components'
+            }
             
-            childs=str(childs)
-            childs=re.sub("'n_clicks': [\d|None]*","'n_clicks': None",childs)
-            childs=ast.literal_eval(str(childs))
-            print(f"FILTERS_DIV {len(childs[2]['props']['children'])}")
-            return childs
-        else:
-            raise PreventUpdate
+
+            if type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+                'trans-multi-text' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                
+                form_grp = {
+                    'props':{'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":'trans-multi-text','index':i},
+                                'value':filters_data['filters'][in_k]['values'][j],
+                                'multi':True,
+                                'options':filters_data['filters'][in_k]['values_vals'][j]['trans-multi-text']
+                            },
+                            'type':'Dropdown',
+                            'namespace': 'dash_core_components'
+                        },
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'
+                }
+                
+                # form_grp=FormGroup([
+                #         dhc.Label(Strong("value")),
+                #         Dropdown(id={"type":'trans-multi-text','index':i},value=filters_data['filters'][in_k]['values'][i]),
+                #         ])
+                        
+            elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+                filters_data['filters'][in_k]['values_vals'][j] in ['trans-text']:
+                
+                form_grp={
+                    'props':{"children":[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":'trans-text','index':i},
+                                'debounce':True,
+                                'value':filters_data['filters'][in_k]['values'][j]
+                            },
+                            'type':'Input',
+                            'namespace': 'dash_core_components'
+                        },
+
+
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'
+                }
+                
+                # form_grp=FormGroup([
+                #         dhc.Label(Strong("value")),
+                #         TextInput(id={"type":'trans-text','index':i},\
+                #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+                #         ])
+            
+            elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+                filters_data['filters'][in_k]['values_vals'][j] in ['trans-input']:
+                
+                form_grp={
+                    'props':{'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-input','index':i},
+                                'debounce':True,
+                                'value':filters_data['filters'][in_k]['values'][j]
+                            },
+                            'type':'Input',
+                            'namespace': 'dash_core_components'
+                        },
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'
+                }
+                
+                # form_grp=FormGroup([
+                #         dhc.Label(Strong("value")),
+                #         TextInput(id={"type":'trans-input','index':i},\
+                #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+                #         ])
+            
+            elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+                'trans-date-range' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                
+                form_grp={
+                    'props':{'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-date-range','index':i},
+                                'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['min'],
+                                'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['max'],
+                                'start_date':filters_data['filters'][in_k]['values'][j][0],
+                                'end_date':filters_data['filters'][in_k]['values'][j][1],
+                            },
+                            'type':'DatePickerRange',
+                            'namespace': 'dash_core_components'
+                        },
+
+
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'                    
+                }
+
+                # form_grp=FormGroup([
+                #         dhc.Label(Strong("value")),
+                #         DatePickerRange(id={'type':'trans-date-range','index':i},
+                #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['min'],
+                #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['max'],
+                #             start_date=filters_data['filters'][in_k]['values'][i][0],
+                #             end_date=filters_data['filters'][in_k]['values'][i][1],
+                #         )
+                #     ])
+            
+            elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+                'trans-date-single' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                
+                form_grp={
+                    'props':{'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-date-single','index':i},
+                                'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['min'],
+                                'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['max'],
+                                'date':filters_data['filters'][in_k]['values'][j],
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        },
+
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'                                        
+                }
+                
+                # form_grp=FormGroup([
+                #         dhc.Label(Strong("value")),
+                #         DatePickerRange(id={'type':'trans-date-single','index':i},
+                #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['min'],
+                #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['max'],
+                #             date=filters_data['filters'][in_k]['values'][i],
+                #         )
+                #     ])
+
+            elif type(filters_data['filters'][in_k]['values_vals'][j]) is list and \
+                filters_data['filters'][in_k]['values_vals'][j] != [] and \
+                all(t in filters_data['filters'][in_k]['values_vals'][j] for t in ['trans-input', 'trans-use-current-date']):
+
+                ck=False
+                val = None
+                min_dt=None
+                max_dt=None
+
+                sig_dt={
+                            'props':{
+                                'id':{'type':'trans-days-single','index':i},
+                                # 'style':{'display':'none'},
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        }
+                
+
+                # sig_dt=DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'})
+                # ck_val=Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'})
+                if type(filters_data['filters'][in_k]['values'][j][1]) is list:
+                    ck=True
+                    val=filters_data['filters'][in_k]['values'][j][1]
+                    min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
+                    max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
+                    # ck_val=Checklist(
+                    #     id={'type':'trans-use-current-date','index':i},
+                    #     options=[
+                    #         {'label': 'Use current sys date', 'value': 'Use'},
+                    #     ],
+                    #     value=val
+                    # )
+                    ck_val={
+                            'props':{
+                                'id':{'type':'trans-use-current-date','index':i},
+                                'options':[
+                                    {'label': 'Use current sys date', 'value': 'Use'},
+                                ],
+                                'value':val
+                            },
+                            'type':'Checklist',
+                            'namespace': 'dash_core_components'
+                        }
+                    sig_dt={
+                            'props':{
+                                'id':{'type':'trans-days-single','index':i},
+                                'placeholder':'mm/dd/YYYY',
+                                'min_date_allowed':min_dt,
+                                'max_date_allowed':max_dt,
+                                'initial_visible_month':date.today(),
+                                'disabled':True
+                                # 'date':val
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        }
+                else:
+                    val=filters_data['filters'][in_k]['values'][j][1]
+                    min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
+                    max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
+                    # sig_dt=DatePickerSingle(
+                    #     id={'type':'trans-days-single','index':i},
+                    #     placeholder='mm/dd/YYYY',
+                    #     min_date_allowed=min_dt,
+                    #     max_date_allowed=max_dt,
+                    #     # initial_visible_month=date.today(),
+                    #     date=val
+                    # )
+                    sig_dt={
+                            'props':{
+                                'id':{'type':'trans-days-single','index':i},
+                                'placeholder':'mm/dd/YYYY',
+                                'min_date_allowed':min_dt,
+                                'max_date_allowed':max_dt,
+                                # initial_visible_month=date.today(),
+                                'date':val
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        }
+                        
+                    ck_val={
+                            'props':{
+                                'id':{'type':'trans-use-current-date','index':i},
+                                # 'style':{'display':'none'},
+                            },
+                            'type':'Checklist',
+                            'namespace': 'dash_core_components'
+                        }
+
+                
+                form_grp={
+                    'props':{'children':[
+                        {
+                            'props':{'children':{
+                                'props':{'children':"value"},
+                                'type':'Strong',
+                                'namespace': 'dash_html_components'
+                            }},
+                            'type':'Label',
+                            'namespace': 'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'trans-input','index':i},
+                                'debounce':True,
+                                'value':filters_data['filters'][in_k]['values'][j][0],
+                                'type':'number',
+                                'required':True,
+                                'inputMode':'numeric'
+                            },
+                            'type':'Input',
+                            'namespace': 'dash_core_components'
+                        },
+
+                        sig_dt,
+                        ck_val
+                    ]},
+                    'type':'FormGroup',
+                    'namespace': 'dash_bootstrap_components'                    
+                }
+
+
+                # form_grp=FormGroup([
+                #     dhc.Label(Strong("value")),
+                #     TextInput(id={'type':'trans-input','index':i},persistence=True,\
+                #         value=filters_data['filters'][in_k]['values'][i][0],debounce=True),
+                #     sig_dt,
+                #     ck_val
+                # ]) 
+
+            condi_row={
+                'props':{'children':[
+
+
+                    {'props':{'children':{
+                        'props':{'children':[
+                                    {
+                                        'props':{
+                                            'children':{
+                                                    'props':{'children':"Select column name"},
+                                                    'type':'Strong',
+                                                    'namespace': 'dash_html_components'
+                                                },
+                                            'html_for':{'type':'filters-column-names','index':i}
+                                        },
+                                        'type':'Label',
+                                        'namespace':'dash_bootstrap_components'
+                                    },
+                                    {
+                                        'props':{
+                                            'id':{'type':'filters-column-names','index':i},
+                                            'value':filters_data['filters'][in_k]['columns'][j],
+                                            'options':filters_data['filters'][in_k]['columns_drpdwn_vals'][j]
+                                        },
+                                        'type':'Dropdown',
+                                        'namespace':'dash_core_components'
+                                    }
+
+                                ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'                    
+                            },'width':4},
+                        'type':'Col',
+                        'namespace': 'dash_bootstrap_components'
+                    },
+
+                    {
+                        'props':{'children':{
+                                'props':{'children':[
+                                    {
+                                        'props':{
+                                            'children':{
+                                                    'props':{'children':"condition"},
+                                                    'type':'Strong',
+                                                    'namespace': 'dash_html_components'
+                                                },
+                                            'html_for':{'type':'filters-conditions','index':i}
+                                        },
+                                        'type':'Label',
+                                        'namespace':'dash_bootstrap_components'
+                                    },
+
+                                    {
+                                        'props':{
+                                            'id':{'type':'filters-conditions','index':i},
+                                            'value':filters_data['filters'][in_k]['condition'][j],
+                                            'options':filters_data['filters'][in_k]['condition_drpdwn_vals'][j]
+                                        },
+                                        'type':'Dropdown',
+                                        'namespace':'dash_core_components'
+                                    }
+                                    
+                                ]},
+                                'type':'FormGroup',
+                                'namespace': 'dash_bootstrap_components'    
+                        },'width':3},
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+                    {
+                        'props':{
+                            'children':form_grp,
+                            'id':{'type':'filters-text-drpdwn','index':i},
+                            'width':4
+                        },
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+                    {
+                        'props':{
+                            'children':{
+                                'props':{
+                                    'children':{
+                                        'props':{'className':"fa fa-trash-o"},
+                                        'type':'I',
+                                        'namespace':'dash_html_components'
+                                    },
+                                    'id':{'type':'logic-close','index':i}
+                                },
+                                'type':'A',
+                                'namespace':'dash_html_components'
+                            },
+                            
+                            'className':"text-right"
+                        },
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+                    # {
+
+                    #     'props':{
+                    #         'id':{'type':'filters-rows-trash','index':0},
+                    #         'data':None
+                    #     },
+                    #     'type':'Store',
+                    #     'namespace':'dash_core_components'
+                    # },
+
+
+                ],'id':{'type':'condition-rows','index':i}},
+                'type':'Row',
+                'namespace': 'dash_bootstrap_components'
+            }
+            
+            if filters_data['filters'][in_k]['logic'][j] is not None:
+                log_row={
+                    'props':{'children':{
+                        'props':{'children':{
+                            'props':{
+                                'id':{'type':'logic-dropdown','index':i},
+                                'options':[{'label':v,'value':v} for v in ["And","Or"]],
+                                'value':filters_data['filters'][in_k]['logic'][j]
+                            },
+                            'type':'Dropdown',
+                            'namespace':'dash_core_components'
+
+                        },'width':3},
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },'id':{'type':'filters-logic','index':i}},
+                    'type':'Row',
+                    'namespace':'dash_bootstrap_components'
+                }
+
+            else:
+                log_row = {
+                    'props':{'children':{
+                        'props':{'children':"This is Temp column and row"},
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },'id':{"type":"filters-logic","index":0},'style':{'display':'none'}},
+                    'type':'Row',
+                    'namespace':'dash_bootstrap_components'
+                }
+                # log_row=Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
+
+            fil_condition_rows.append(log_row)
+            fil_condition_rows.append(condi_row)
+            
+
+        # print(f"DFD {fil_condition_rows}")
+        fil_div = [
+            {
+                'props':{'children':[
+                    {
+                        'props':{'children':{
+                            'props':{
+                                'children':{
+                                    'props':{'className':"fa fa-refresh"},
+                                    'type':'I',
+                                    'namespace':'dash_html_components'
+                                },
+                                'id':'filters-clear-all'
+                            },
+                            'type':'A',
+                            'namespace':'dash_html_components'
+                        },'className': 'text-right'},
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+
+                    {
+                        'props':{'children':'Select or drop rows'},
+                        'type':'Label',
+                        'namespace':'dash_html_components'
+                    },
+
+                    {
+                        'props':{
+                            'id':'filters-select-drop',
+                            'options':[{'label':v,'value':v} for v in ['Select','Drop']],
+                            'value':filters_data['filters'][in_k]['select_drop'],
+                            'style':{"width":"50%"}
+                        },
+                        'type':'Dropdown',
+                        'namespace':'dash_core_components'
+                    }
+                ]},
+                'type': 'FormGroup',
+                'namespace': 'dash_bootstrap_components'
+            },
+
+
+            {
+                'props':{'children':
+                    {
+                        'props':{'children':"Where"},
+                        'type':'Label',
+                        'namespace':'dash_html_components'
+                    }
+                },
+                'type':'FormGroup',
+                'namespace':'dash_bootstrap_components'
+            },
+
+            {
+                 'props':{'children':fil_condition_rows,'id':'filters-conditional-div'},
+                'type':'Div',
+                'namespace':'dash_html_components'
+            },
+
+            {
+                'props':{'children':{
+                    'props':{"children":{
+                        'props':{
+                            'children':'add condition',
+                            'size':'sm',
+                            'id':'filters-add-condition',
+                            'n_clicks':0
+                        },
+                        'type':'Button',
+                        'namespace':'dash_bootstrap_components'
+                    }},
+                    'type':'Col',
+                    'namespace':'dash_bootstrap_components'
+                }},
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+        ]
+        
+        # print(f"sdfsdf {fil_div}")
+        # print(f"dssdf {childs}")
+        return fil_div          
+
+    elif triggred_compo == "filters-data" and filters_data['filters']=={} and filters_data['status'] is True:
+        return empty_div
     else:
-        return childs
-        # raise PreventUpdate
+        # return childs
+        raise PreventUpdate
 
 # retrived status
 @app.callback(
@@ -561,10 +1756,13 @@ def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_click
     [
         State('filters-conditional-div','children'),
         State('transformations-table-column-data','data'),
-        State('filters-retrived-status','data')
+        State('filters-retrived-status','data'),
+        State({'type':'condition-rows','index':ALL},'id'),
+        State({'type':'filters-logic','index':ALL},'id')
     ],
 )
-def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
+def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat,condi_id,\
+    fil_logic_id):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
     # print(f"Files list {childs}")
@@ -572,74 +1770,112 @@ def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat):
     z=[childs_copy.remove(d) for d in childs if d['type']!="Br" and d['props']['children']==None]
     if set(z) == set([None]):
         [childs_copy.remove(d) for d in childs if d['type']=="Br"]
-    # print(childs_copy)
-    # print(triggred_compo)
-    # print(n_clicks)
-    # print(trans_columns)
-
+    
     if triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy!=[]:
-        indx = n_clicks + 1
+        indx=[int(i['index']) for i in condi_id]
+        if indx != []:
+            indx=array(indx).max()
+        else:
+            indx=0
+
+        indx = int(indx+1)
+
+        # indx = n_clicks + 1
         condition_row = get_condition_rows(trans_columns,indx)
         logic_and_or = Row([
             Col(
-                Dropdown(id={'type':'logic-dropdown','index':indx},
+                dcc.Dropdown(id={'type':'logic-dropdown','index':indx},
                     options=[{'label':i,'value':i} for i in ["And","Or"]]
                 )
             ,width=3),
         ],id={'type':'filters-logic','index':indx})
-        childs_copy.append(Br())
+        childs_copy.append(html.Br())
         childs_copy.append(logic_and_or)
         childs_copy.append(condition_row)
         # print(f"\n\n DIV list {childs_copy}")
         return childs_copy
     elif triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy==[]:
-        indx = n_clicks + 1
+        indx=[int(i['index']) for i in fil_logic_id]
+        if indx != []:
+            indx=array(indx).max()
+        else:
+            indx=0
+
+        indx = int(indx+1)
+        # indx = n_clicks + 1
         condition_row = get_condition_rows(trans_columns,indx)
         # print("got columns")
         logic_and_or = Row(Col("This is Temp column and row"),id={"type":"filters-logic",\
             "index":indx},style={'display':'none'})
-
-        # print("value init")
-
-        # logic_and_or = Row([
-        #     Col(
-        #         Dropdown(id={'type':'logic-dropdown','index':indx},
-        #             options=[{'label':i,'value':i} for i in ["And","Or"]]
-        #         )
-        #     ,width=3),
-        # ],id={'type':'filters-logic','index':indx})
-        childs_copy.append(Br())
+        childs_copy.append(html.Br())
         childs_copy.append(logic_and_or)
         childs_copy.append(condition_row)
-        # print(childs_copy)
-        # print(f"\n\n DIV list {childs_copy}")
         return childs_copy
 
     else:
         raise PreventUpdate
 
+# @app.callback(
+#     # Output('filters-rows-trash','data'),
+#     Output('filter-trash-trigger','data'),
+#     [
+#        Input('filters-rows-trash','data'),
+#     ]
+# )
+# def update_fil_rows_trash(data):
+#     print(f"DFDFDDDDDD {data}")    
+#     if data != [] and data is not None and any(data):
+#         return int(next(item for item in data if item is not None))
+#     else:
+#         raise PreventUpdate
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+#     print(f"DFDFDDDDDD {disabled}")
+#     print(f"DFDFDDDDDD {data['filters']}")
+#     print(f"DFDFDDDDDD {n_clicks}")
+#     if data['filters']!={} and any(n_clicks) and disabled is False:
+#         in_k=list(data["filters"].keys())[0]
+#         for i,j in enumerate(n_clicks):
+#             if j is not None and logic_close_id[i]['index'] in data['filters'][in_k]['index']:
+#                 return logic_close_id[i]['index']
+#             else:
+#                 raise PreventUpdate
+#     # if data['filters']!={} and any(n_clicks) and triggred_compo == "filters-close" and\
+#     #     fil_close is not None:
+
+
+#     else:
+#         raise PreventUpdate
+        
 # clear added filter component
 @app.callback(
     [
         Output({'type':'condition-rows','index':MATCH},'children'),
-        Output({'type':'filters-logic','index':MATCH},'children')
+        Output({'type':'filters-logic','index':MATCH},'children'),
+        # Output({'type':'filters-rows-trash','index':MATCH},'data'),
     ],
     [
-        Input({'type':'logic-close','index':MATCH},'n_clicks'),
+        Input({'type':'logic-close','index':MATCH},'n_clicks'),#filters trash icon click
     ],
     [
         State({'type':'logic-close','index':MATCH},'id'),
         State({'type':'condition-rows','index':MATCH},'children'),
         State({'type':'filters-logic','index':MATCH},'children'),
+        State('filters-data','data'),
     ]
 )
-def close_condition(n_clciks,id,childs,fil_childs):
+def close_condition(n_clciks,id,childs,fil_childs,data):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # if triggred_compo.rfind('logic-close') > -1 and n_clciks is not None and data['filters']!={}:
+    #     in_k=list(data["filters"].keys())[0]
+    #     if data['filters']!={} and id['index'] in data['filters'][in_k]['index']:
+    #         return None, None #, id['index']
+    #     else:
+    #         return None, None #, None
     if triggred_compo.rfind('logic-close') > -1 and n_clciks is not None:
         return None, None
-    
     else:
         raise PreventUpdate
 
@@ -700,7 +1936,8 @@ def update_filters_condition_dropdown(value,id,data,ret_data):
         State('retrived-data','data'),
         State('filters-retrived-status','data'),
         State('add-new-col','data'), # stores all applied filters
-    ]
+    ],
+    prevent_initial_call=True
 )
 def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data,ret_stat,add_new_col):
     indx = id['index'] 
@@ -731,16 +1968,17 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
         
         if value in ['<','<=','==','>=','>','!=']:
             return FormGroup([
-                dhc.Label(Strong("value")),
-                Textarea(id={"type":'trans-text','index':indx},\
-                    persistence=True,value=None,required=True)
+                html.Label(html.Strong("value")),
+                dcc.Input(id={"type":'trans-text','index':indx},\
+                    value=None,required=True,debounce=True,inputMode='numeric',
+                    type='number')
             ])
 
         elif value in ['starts with','contains','ends with']:
             return FormGroup([
-                dhc.Label(Strong("value")),
-                Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None,required=True)
+                html.Label(html.Strong("value")),
+                dcc.Input(id={"type":'trans-text','index':indx},\
+                value=None,required=True,debounce=True)
             ])
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
@@ -753,11 +1991,10 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             else:
                 col=df1[column_name].unique
             return FormGroup([
-                    dhc.Label(Strong("value")),
-                    Dropdown(id={"type":'trans-multi-text','index':indx},
+                    html.Label(html.Strong("value")),
+                    dcc.Dropdown(id={"type":'trans-multi-text','index':indx},
                                 options=[{'label':i,'value':i} for i in col],
-                                multi=True,
-                                persistence=True),
+                                multi=True),
                 ])
         
         elif value in ['days'] and relation_data['table']!=[]:
@@ -767,16 +2004,20 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             min_dt = df1.min()
 
             return FormGroup([
-                dhc.Label(Strong("value")),
-                TextInput(id={'type':'trans-input','index':indx},persistence=True,value=None),
-                DatePickerSingle(
+                html.Label(html.Strong("value")),
+                dcc.Input(id={'type':'trans-input','index':indx},value=None,debounce=True,type='number',\
+                            required=True,
+                            inputMode='numeric'),
+                dcc.DatePickerSingle(
                     id={'type':'trans-days-single','index':indx},
                     placeholder='mm/dd/YYYY',
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
-                    initial_visible_month=date.today()
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 ),
-                Checklist(
+                dcc.Checklist(
                     id={'type':'trans-use-current-date','index':indx},
                     options=[
                         {'label': 'Use current sys date', 'value': 'Use'},
@@ -792,13 +2033,15 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             min_dt = df1.min()
 
             return FormGroup([
-                dhc.Label(Strong("value")),
-                DatePickerSingle(
+                html.Label(html.Strong("value")),
+                dcc.DatePickerSingle(
                     id={'type':'trans-date-single','index':indx},
                     placeholder='mm/dd/YYYY',
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
-                    initial_visible_month=date.today()
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 )
             ])
         
@@ -808,11 +2051,14 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             min_dt = df1.min()
 
             return FormGroup([
-                dhc.Label(Strong("value")),
-                DatePickerRange(
+                html.Label(html.Strong("value")),
+                dcc.DatePickerRange(
                     id={'type':'trans-date-range','index':indx},
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 )
             ])
         else:
@@ -821,16 +2067,17 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
         
         if value in ['<','<=','==','>=','>','!=']:
             return FormGroup([
-                dhc.Label(Strong("value")),
-                Textarea(id={"type":'trans-text','index':indx},\
-                    persistence=True,value=None,required=True)
+                html.Label(html.Strong("value")),
+                dcc.Input(id={"type":'trans-text','index':indx},\
+                    value=None,required=True,debounce=True,inputMode='numeric',
+                    type='number')
             ])
 
         elif value in ['starts with','contains','ends with']:
             return FormGroup([
-                dhc.Label(Strong("value")),
-                Textarea(id={"type":'trans-text','index':indx},\
-                persistence=True,value=None,required=True)
+                html.Label(html.Strong("value")),
+                dcc.Input(id={"type":'trans-text','index':indx},\
+                value=None,required=True,debounce=True)
             ])
 
         elif value in ['has value(s)'] and relation_data['table']!=[]:
@@ -844,11 +2091,10 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
                 col=df1[column_name].unique
             
             return FormGroup([
-                    dhc.Label(Strong("value")),
-                    Dropdown(id={"type":'trans-multi-text','index':indx},
+                    html.Label(html.Strong("value")),
+                    dcc.Dropdown(id={"type":'trans-multi-text','index':indx},
                                 options=[{'label':i,'value':i} for i in col],
-                                multi=True,
-                                persistence=True),
+                                multi=True),
                 ])
         
         elif value in ['days'] and relation_data['table']!=[]:
@@ -858,16 +2104,20 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             min_dt = df1.min()
 
             return FormGroup([
-                dhc.Label(Strong("value")),
-                TextInput(id={'type':'trans-input','index':indx},persistence=True,value=None),
-                DatePickerSingle(
+                html.Label(html.Strong("value")),
+                dcc.Input(id={'type':'trans-input','index':indx},value=None,debounce=True,type='number',\
+                            required=True,
+                            inputMode='numeric'),
+                dcc.DatePickerSingle(
                     id={'type':'trans-days-single','index':indx},
                     placeholder='mm/dd/YYYY',
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
-                    initial_visible_month=date.today()
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 ),
-                Checklist(
+                dcc.Checklist(
                     id={'type':'trans-use-current-date','index':indx},
                     options=[
                         {'label': 'Use current sys date', 'value': 'Use'},
@@ -882,13 +2132,15 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             max_dt = df1.max()
             min_dt = df1.min()
             return FormGroup([
-                dhc.Label(Strong("value")),
-                DatePickerSingle(
+                html.Label(html.Strong("value")),
+                dcc.DatePickerSingle(
                     id={'type':'trans-date-single','index':indx},
                     placeholder='mm/dd/YYYY',
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
-                    initial_visible_month=date.today()
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 )
             ])
         
@@ -897,11 +2149,14 @@ def update_multi_drop_or_text(value,id,childs,column_name,relation_data,ret_data
             max_dt = df1.max()
             min_dt = df1.min()
             return FormGroup([
-                dhc.Label(Strong("value")),
-                DatePickerRange(
+                html.Label(html.Strong("value")),
+                dcc.DatePickerRange(
                     id={'type':'trans-date-range','index':indx},
                     min_date_allowed=min_dt,
                     max_date_allowed=max_dt,
+                    initial_visible_month=date.today(),
+                    clearable=True,
+                    # with_portal=True,
                 )
             ])
         else:
@@ -966,112 +2221,290 @@ def ret_changes(ret_data,n_clicks,menu_n_clicks,sel_val,sel_col_val,apply_childs
     else:
         return sel_val, sel_col_val
 
+# enable or disable the apply button in filters row client-side callback
+app.clientside_callback(
+    """
+    function enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
+        trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
+        trans_days_single,trans_current_date,logic_dropdown) {
 
-# enable or disable the apply button in filters row
-@app.callback(
+        console.log(logic_dropdown)
+        if (fil_sel_drop != null && fil_sel_drop != undefined && fil_col_names.includes('undefined') != true 
+            && fil_col_names.includes(null) != true && fil_condi.includes(undefined) != true && fil_condi.includes(null) != true
+            && logic_dropdown.includes(undefined) != true && logic_dropdown.includes(null) != true) {
+            
+            let text_area=false
+            let multi_drp=false
+            let single_dt=false
+            let txt_box=false
+            let range_dt=false
+            let sys_dt_chk=false
+            let single_days=false
+
+            for (let i in fil_condi){
+                if (['starts with','contains','ends with','<','<=','==','>=','>','!='].indexOf(fil_condi[i]) > -1) {
+                    text_area = true
+                    break
+                }
+            }
+
+            for (let i in fil_condi){
+                if (['has value(s)'].indexOf(fil_condi[i]) > -1) {
+                    multi_drp = true
+                    break
+                }
+            }
+
+            for (let i in fil_condi){
+                if (['days'].indexOf(fil_condi[i]) > -1) {
+                    single_days=true
+                    txt_box=true
+                    sys_dt_chk=true
+                    break
+                }
+            }
+
+            for (let i in fil_condi){
+                if (['before','after','equals','not'].indexOf(fil_condi[i]) > -1) {
+                    single_dt = true
+                    break
+                }
+            }
+
+            for (let i in fil_condi){
+                if (['range'].indexOf(fil_condi[i]) > -1) {
+                    range_dt = true
+                    break
+                }
+            }
+
+            let chk = []
+            let chk2 = []
+
+            if (single_days == true && txt_box == true && sys_dt_chk == true){
+                chk2.push(trans_days_single)
+                chk2.push(trans_input)
+                chk2.push(trans_current_date)
+            }
+
+            if (text_area == true){
+                chk.push(trans_txt)
+            }
+
+            if (multi_drp == true){
+                chk.push(trans_multi_txt)
+            }
+            if (single_dt == true){
+                chk.push(trans_dt_single)
+            }
+            if (range_dt == true){
+                chk.push(trans_dt_start)
+                chk.push(trans_dt_end)
+            }
+
+            let rt=false
+            let rtt=false
+
+            let rt2=false
+            let rtt2=false
+
+            if (chk.length != 0) {
+                for (let i in chk) {
+                    let chk_val = []
+                    for (let k in chk[i]) {
+                        
+                        if (chk[i][k] != null && chk[i][k] != undefined && chk[i][k].length != 0 && chk[i][k] != '') {
+                            chk_val.push(true)
+                        } else {
+                            chk_val.push(false)
+                        }
+                    }
+
+                    if (chk_val.every(Boolean)==true && chk_val.length != 0) {
+                        rt=true
+                    } else {
+                        rtt=true
+                    }
+                }
+            }
+
+            if (chk2.length != 0) {
+                
+                let z1 = []
+                for (let i in chk2[0]) {
+                    if (chk2[0][i] != null && chk2[0][i] != undefined && chk2[0][i] != '' && chk2[0][i].length != 0) {
+                        z1.push(true)
+                    }
+                }
+                for (let j in chk2[2]) {
+                    if (chk2[2][j].length != 0) {
+                        z1.push(true)
+                    }
+                }
+
+                let chk2_val = []
+                for (let i in chk2[1]) {
+                    if (chk2[1][i] != null && chk2[1][i] != undefined && chk2[1][i] != '' && chk2[1][i].length != 0) {
+                        chk2_val.push(true)
+                    } else {
+                        chk2_val.push(false)
+                    }
+                }
+
+                if (chk2_val.every(Boolean) == true && chk2_val.length != 0 && 
+                    chk2[0].length == z1.filter(Boolean).length) {
+                        rt2=true
+                } else {
+                    rtt=true
+                }
+            }
+
+            
+            console.log(rt)
+            console.log(rtt)
+            console.log(rt2)
+            console.log(rtt2)
+
+            if (rt == true && rtt == false && rt2 == false && rtt2 == false) {
+                return false
+            } else if (rt == false && rtt == false && rt2 == true && rtt2 == false) {
+                return false
+            } else if (rt == true && rtt == false && rt2 == true && rtt2 == false) {
+                return false
+            } else {
+                return true
+            }
+
+        } else {
+            return true
+        }
+    }
+    """,
     Output('filters-apply','disabled'),
-    [
-        Input('filters-select-drop','value'),#select or drop rows
-        Input({'type':'filters-column-names','index':ALL},'value'),
-        Input({'type':'filters-conditions','index':ALL},'value'),
-        Input({"type":'trans-text','index':ALL},'value'),
-        Input({"type":'trans-multi-text','index':ALL},'value'),#dropdown
-        Input({'type':'trans-input','index':ALL},'value'), #date days
-        Input({'type':'trans-date-range','index':ALL},'start_date'),
-        Input({'type':'trans-date-range','index':ALL},'end_date'),
-        Input({'type':'trans-date-single','index':ALL},'date'),
-        Input({'type':'trans-days-single','index':ALL},'date'),
-        Input({'type':'trans-use-current-date','index':ALL},'value'),
-        Input({'type':'logic-dropdown','index':ALL},'value'),
-    ]
+    Input('filters-select-drop','value'),#select or drop rows
+    Input({'type':'filters-column-names','index':ALL},'value'),
+    Input({'type':'filters-conditions','index':ALL},'value'),
+    Input({"type":'trans-text','index':ALL},'value'),
+    Input({"type":'trans-multi-text','index':ALL},'value'),#dropdown
+    Input({'type':'trans-input','index':ALL},'value'), #date days
+    Input({'type':'trans-date-range','index':ALL},'start_date'),
+    Input({'type':'trans-date-range','index':ALL},'end_date'),
+    Input({'type':'trans-date-single','index':ALL},'date'),
+    Input({'type':'trans-days-single','index':ALL},'date'),
+    Input({'type':'trans-use-current-date','index':ALL},'value'),
+    Input({'type':'logic-dropdown','index':ALL},'value')
 )
-def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
-    trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
-        trans_days_single,trans_current_date,logic_dropdown):
-        if fil_sel_drop is not None and None not in fil_col_names and None not in fil_condi:
-            text_area=False
-            multi_drp=False
-            single_dt=False
-            txt_box=False
-            range_dt=False
-            sys_dt_chk=False
-            single_days=False
+
+
+
+
+# # enable or disable the apply button in filters row
+# @app.callback(
+#     Output('filters-apply','disabled'),
+#     [
+#         Input('filters-select-drop','value'),#select or drop rows
+#         Input({'type':'filters-column-names','index':ALL},'value'),
+#         Input({'type':'filters-conditions','index':ALL},'value'),
+#         Input({"type":'trans-text','index':ALL},'value'),
+#         Input({"type":'trans-multi-text','index':ALL},'value'),#dropdown
+#         Input({'type':'trans-input','index':ALL},'value'), #date days
+#         Input({'type':'trans-date-range','index':ALL},'start_date'),
+#         Input({'type':'trans-date-range','index':ALL},'end_date'),
+#         Input({'type':'trans-date-single','index':ALL},'date'),
+#         Input({'type':'trans-days-single','index':ALL},'date'),
+#         Input({'type':'trans-use-current-date','index':ALL},'value'),
+#         Input({'type':'logic-dropdown','index':ALL},'value'),
+#     ]
+# )
+# def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
+#     trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
+#         trans_days_single,trans_current_date,logic_dropdown):
+#         if fil_sel_drop is not None and None not in fil_col_names and None not in fil_condi:
+#             text_area=False
+#             multi_drp=False
+#             single_dt=False
+#             txt_box=False
+#             range_dt=False
+#             sys_dt_chk=False
+#             single_days=False
 
             
-            if any([True for i in fil_condi if i in ['starts with','contains','ends with','<','<=','==','>=','>','!=']]):
-                text_area=True
-            if any([True for i in fil_condi if i in ['has value(s)']]):
-                multi_drp=True
-            if any([True for i in fil_condi if i in ['days']]):
-                single_days=True
-                txt_box=True
-                sys_dt_chk=True
-            if any([True for i in fil_condi if i in ['before','after','equals','not']]):
-                single_dt=True
-            if any([True for i in fil_condi if i in ['range']]):
-                range_dt=True
+#             if any([True for i in fil_condi if i in ['starts with','contains','ends with','<','<=','==','>=','>','!=']]):
+#                 text_area=True
+#             if any([True for i in fil_condi if i in ['has value(s)']]):
+#                 multi_drp=True
+#             if any([True for i in fil_condi if i in ['days']]):
+#                 single_days=True
+#                 txt_box=True
+#                 sys_dt_chk=True
+#             if any([True for i in fil_condi if i in ['before','after','equals','not']]):
+#                 single_dt=True
+#             if any([True for i in fil_condi if i in ['range']]):
+#                 range_dt=True
 
-            chk=[]
-            chk2=[]
+#             chk=[]
+#             chk2=[]
             
-            if single_days is True and txt_box is True and sys_dt_chk is True:
-                chk2.append(trans_days_single)
-                chk2.append(trans_input)
-                chk2.append(trans_current_date)
+#             if single_days is True and txt_box is True and sys_dt_chk is True:
+#                 chk2.append(trans_days_single)
+#                 chk2.append(trans_input)
+#                 chk2.append(trans_current_date)
             
             
-            if text_area is True:
-                chk.append(trans_txt)
-            if multi_drp is True:
-                chk.append(trans_multi_txt)
-            if single_dt is True:
-                chk.append(trans_dt_single)
-            if range_dt is True:
-                chk.append(trans_dt_start)
-                chk.append(trans_dt_end)
+#             if text_area is True:
+#                 chk.append(trans_txt)
+#             if multi_drp is True:
+#                 chk.append(trans_multi_txt)
+#             if single_dt is True:
+#                 chk.append(trans_dt_single)
+#             if range_dt is True:
+#                 chk.append(trans_dt_start)
+#                 chk.append(trans_dt_end)
             
 
-            rt=False
-            rtt=False
+#             rt=False
+#             rtt=False
 
-            rt2=False
-            rtt2=False
+#             rt2=False
+#             rtt2=False
 
 
-            if chk != []:
-                for i in chk:
-                    chk_val=[True if k is not None and k !=[] and k != '' else False for k in i]
-                    if all(chk_val) is True and chk_val != []:
-                        rt=True
-                    else:
-                        rtt=True
+#             if chk != []:
+#                 for i in chk:
+#                     chk_val=[True if k is not None and k !=[] and k != '' else False \
+#                         for k in i]
+#                     if all(chk_val) is True and chk_val != []:
+#                         rt=True
+#                     else:
+#                         rtt=True
 
             
-            if chk2 != []:
-                z1=[True for i,j in zip(chk2[0],chk2[2]) if i != [] and i is not None and i != '' or j != []]
+#             if chk2 != []:
+#                 z1=[True for i,j in zip(chk2[0],chk2[2]) if i != [] and i is not None and i != '' or j != []]
 
-                chk2_val = [True if i is not None and i != [] and i != '' else False for i in chk2[1]]
-                if all(chk2_val) is True and chk2_val != [] and\
-                    len(chk2[0]) == z1.count(True):
-                    rt2=True
-                else:
-                    rtt2=True
+#                 chk2_val = [True if i is not None and i != [] and i != '' else False for i in chk2[1]]
+#                 if all(chk2_val) is True and chk2_val != [] and\
+#                     len(chk2[0]) == z1.count(True):
+#                     rt2=True
+#                 else:
+#                     rtt2=True
 
-            # print(chk)
-            # print(chk2)
+#             # print(chk)
+#             # print(chk2)
 
-            if rt is True and rtt is False and rt2 is False and rtt2 is False:
-                return False
-            elif rt is False and rtt is False and rt2 is True and rtt2 is False:
-                return False
-            elif rt is True and rtt is False and rt2 is True and rtt2 is False:
-                return False
-            else:
-                return True
-        else:
-            return True
+#             if rt is True and rtt is False and rt2 is False and rtt2 is False:
+#                 return False
+#             elif rt is False and rtt is False and rt2 is True and rtt2 is False:
+#                 return False
+#             elif rt is True and rtt is False and rt2 is True and rtt2 is False:
+#                 return False
+#             else:
+#                 return True
+#         else:
+#             return True
 
 # get realtime data
+#try to delete the trash when apply is disabled.
 @app.callback(
     Output('realtime-total-records','children'),
     [
@@ -1105,17 +2538,19 @@ def enab_disa_filters_apply(fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
         State({'type':'trans-days-single','index':ALL},'date'),
         State({'type':'trans-use-current-date','index':ALL},'value'),
         State({'type':'logic-dropdown','index':ALL},'value'),
+        State({'type':'logic-close','index':ALL},'id'),
     ]
 )
 def get_real_time_count(disabled,ret_data,filters_data,fil_col_id,fil_condi_id,trans_text_id,\
     trans_multi_id,trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,\
     trans_use_curr_id,logic_val_id,relationship_data,fil_sel_drop,fil_col_names,fil_condi,trans_txt,\
     trans_multi_txt,trans_input,trans_dt_start,trans_dt_end,trans_dt_single,\
-        trans_days_single,trans_current_date,logic_dropdown):
+        trans_days_single,trans_current_date,logic_dropdown,id):
 
 
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    # print(f"current date {triggred_compo}")
 
     if triggred_compo == "filters-apply" and disabled is False:
         # print(f"filters data {filters_data}")
@@ -1143,6 +2578,19 @@ def get_real_time_count(disabled,ret_data,filters_data,fil_col_id,fil_condi_id,t
             return no_of_records
 
         no_of_rows = local_func_get_rows()
+        # if filters_data['filters'] != {}:
+        #     in_k=list(filters_data["filters"].keys())[0]
+        #     print(in_k)
+        #     print(filters_data['filters'][in_k]['index'])
+        #     print([x['index'] for x in id])
+
+
+        #     missng_list = list(sorted(set(filters_data['filters'][in_k]['index']) - set([x['index'] for x in id])))
+        #     # print(f" MISS LIST {missng_list}")
+        #     if missng_list != []:
+        #         return no_of_rows, missng_list
+        #     else:
+        #         return no_of_rows, None
         return no_of_rows
     elif triggred_compo == "retrived-data":
         return ret_data['realtime_rows']
@@ -1297,6 +2745,8 @@ def transformation_modal_expand(trans_drop_value, add_col_close,\
         Input('filters-apply','n_clicks'),
         Input('format-map-data','data'),
         Input('add-new-col','data'),
+        # Input({'type':'filters-rows-trash','index':ALL},'data'),
+        # Input('filter-trash-trigger','data'),
     ],
     [
 
@@ -1320,7 +2770,7 @@ def transformation_modal_expand(trans_drop_value, add_col_close,\
         State('transformations-dropdown','value'),
         State('filters-select-drop','value'),#select or drop rows
         State({'type':'filters-column-names','index':ALL},'value'),
-        State({'type':'filters-conditions','index':ALL},'value'),#545445654
+        State({'type':'filters-conditions','index':ALL},'value'),
         State({"type":'trans-text','index':ALL},'value'),
         State({"type":'trans-multi-text','index':ALL},'value'),
         State({'type':'trans-input','index':ALL},'value'),
@@ -1347,20 +2797,33 @@ def transformation_modal_expand(trans_drop_value, add_col_close,\
         State('format-table','data'), # format table rows/data
         State('format-table','columns'), # format table column
         State('download_data','data'),
-    ],
 
+        State({'type':'filters-column-names','index':ALL},'options'),
+        State({'type':'filters-conditions','index':ALL},'options'),
+        State({'type':'trans-date-range','index':ALL},'min_date_allowed'),
+        State({'type':'trans-date-single','index':ALL},'min_date_allowed'),
+        State({'type':'trans-days-single','index':ALL},'min_date_allowed'),
+        State({'type':'trans-date-range','index':ALL},'max_date_allowed'),
+        State({'type':'trans-date-single','index':ALL},'max_date_allowed'),
+        State({'type':'trans-days-single','index':ALL},'max_date_allowed'),
+        State({"type":'trans-multi-text','index':ALL},'options'),
+    ],
+    prevent_initial_call=True
 )
 
 def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,\
-    sel_aply_n_clicks,fil_aply_n_clicks,format_data,add_col_data,table_row,rel_tbl_data,rel_tbl_col,\
-    rel_tbl_drpdwn,rel_join,join_qry,relationship_data,apply_menu_child,\
-    relation_rows,data,columns,trans_column_data,trans_fil_condi,sel_drp_val,\
-    sel_drp_col_val,trans_value,fil_sel_val,fil_col,fil_condi,trans_text,trans_multi,\
-    trans_input,trans_dt_start,trans_dt_end,trans_dt_single,trans_days_single,\
-    trans_use_current_dt,logic_val,fil_col_id,fil_condi_id,trans_text_id,\
-    trans_multi_id,trans_input_id,trans_dt_id,trans_dt_single_id,trans_days_id,\
-    trans_use_curr_id,logic_val_id,filters_data,formt_tbl_data,formt_tbl_col,\
-    download_data):
+    sel_aply_n_clicks,fil_aply_n_clicks,format_data,add_col_data,\
+    table_row,rel_tbl_data,rel_tbl_col,rel_tbl_drpdwn,rel_join,join_qry,\
+    relationship_data,apply_menu_child,relation_rows,data,columns,trans_column_data,\
+    trans_fil_condi,sel_drp_val,sel_drp_col_val,trans_value,fil_sel_val,fil_col,\
+    fil_condi,trans_text,trans_multi,trans_input,trans_dt_start,trans_dt_end,\
+    trans_dt_single,trans_days_single,trans_use_current_dt,logic_val,fil_col_id,\
+    fil_condi_id,trans_text_id,trans_multi_id,trans_input_id,trans_dt_id,\
+    trans_dt_single_id,trans_days_id,trans_use_curr_id,logic_val_id,filters_data,\
+    formt_tbl_data,formt_tbl_col,download_data, fil_col_names_options,\
+    fil_condi_options,trans_date_range_min,trans_date_single_min,\
+    trans_days_single_min,trans_date_range_max,trans_date_single_max,\
+    trans_days_single_max,trans_multi_options):
 
     ctx = callback_context
     table_data = data
@@ -1415,6 +2878,9 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                     filters_data['filters'][idx]['condition'].pop(ix)
                     filters_data['filters'][idx]['values'].pop(ix)
                     filters_data['filters'][idx]['logic'].pop(ix)
+                    filters_data['filters'][idx]['columns_drpdwn_vals'].pop(ix)
+                    filters_data['filters'][idx]['condition_drpdwn_vals'].pop(ix)
+                    filters_data['filters'][idx]['values_vals'].pop(ix)
             
             if filters_data['filters'][idx]['index'] == []:
                 filters_data['filters'].pop(str(idx))
@@ -1454,6 +2920,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         relationship_data['saved_data']=False
         # print(f"UPDATE_TABLE_ADD_COL {filters_data}")
         if filters_data['index_k'] is not None:
+            filters_data['status']=True
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
             # df = df.fillna('None')
             table_data_format=df.to_dict('records')
@@ -1474,6 +2941,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 table_data_fil, table_columns_fil,relationship_data,rows,\
                 trans_col, sql_qry,csv_string,filters_data,table_row,None,True
         else:
+            filters_data['status']=None
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row,None,False
@@ -1538,7 +3006,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                     table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                     csv_string,filters_data,table_row,None,None
     
-    elif triggred_compo == 'filters-apply':
+    elif triggred_compo == 'filters-apply': #or (triggred_compo == 'filter-trash-trigger' \
+        #and fil_row_trash is not None):
         # keys = list(filters_data['filters'].keys())
         in_k = None
 
@@ -1568,11 +3037,23 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 'columns':[],
                 'condition':[],
                 'values':[],
-                'logic':[]
+                'logic':[],
+                'columns_drpdwn_vals':[],
+                'condition_drpdwn_vals':[],
+                'values_vals':[],
             }
         })
         
 
+        trans_text_type=[i['type'] for i in trans_text_id]
+        trans_multi_type=[{i['type']:j} for i,j in zip(trans_multi_id,trans_multi_options)]
+        fil_col_type=[i['type'] for i in fil_col_id]
+        trans_input_type=[i['type'] for i in trans_input_id]
+        trans_dt_type=[i['type'] for i in trans_dt_id]
+        trans_dt_single_type = [i['type'] for i in trans_dt_single_id]
+        trans_days_type = [i['type'] for i in trans_days_id]
+        trans_use_curr_type = [i['type'] for i in trans_use_curr_id]     
+        
         trans_text_id=[i['index'] for i in trans_text_id]
         trans_multi_id=[i['index'] for i in trans_multi_id]
         fil_col_id=[i['index'] for i in fil_col_id]
@@ -1582,52 +3063,65 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         trans_days_id = [i['index'] for i in trans_days_id]
         trans_use_curr_id = [i['index'] for i in trans_use_curr_id]
 
-        x={'index':[],'val':[]}
-        [(x['index'].append(i),x['val'].append(j)) for i,j in \
-            zip(trans_text_id,trans_text)]
-        [(x['index'].append(i),x['val'].append(j)) for i,j in \
-            zip(trans_multi_id,trans_multi)]
-        # [(x['index'].append(i),x['val'].append(j)) for i,j in \
-        #     zip(trans_days_id,trans_days_single)]
-        # [(x['index'].append(i),x['val'].append(j)) for i,j in \
-        #     zip(trans_use_curr_id,trans_use_current_dt)]
-        [(x['index'].append(i),x['val'].append(j)) for i,j in \
-            zip(trans_dt_single_id,trans_dt_single)]
-        # [(x['index'].append(i),x['val'].append(j)) for i,j in \
-        #     zip(trans_input_id,trans_input)]
-        # [(x['index'].append(i),x['val'].append(j)) for i,j in \
-        #     zip(trans_dt_single_id,trans_dt_single)]
-        [(x['index'].append(i),x['val'].append(j)) for i,j in \
-            zip(trans_dt_id,zip(trans_dt_start,trans_dt_end))]
         
-        # x_l=len(trans_dt_single_id)
-        # y_l=len(trans_input_id)
 
-        # z=[None for i in range(abs(x_l-y_l))]
+        '''
+        {'trans_single_date':{'min':0,max:0}}
+        '''
+        trans_dt_single_dict = [{st:{'min':mn,'max':mx}} for st,mn,mx in \
+            zip(trans_dt_single_type,trans_date_single_min,trans_date_single_max)]
+        trans_dt_range_dict = [{st:{'min':mn,'max':mx}} for st,mn,mx in \
+            zip(trans_dt_type,trans_date_range_min,trans_date_range_max)]
+        trans_days_single_dict = [{st:{'min':mn,'max':mx}} for st,mn,mx in \
+            zip(trans_days_type,trans_days_single_min,trans_days_single_max)]
 
-        # if x_l < y_l:
-        #     trans_dt_single=list(chain(trans_dt_single,z))
-        #     trans_dt_single_id=list(chain(trans_dt_single_id,z))
-        # elif y_l < x_l:
-        #     trans_input=list(chain(trans_input,z))
-        #     trans_input_id=list(chain(trans_input_id,z))
+        # print(trans_dt_type)
+        # print(trans_date_range_min)
+        # print(trans_date_range_max)
+        
+        x={'index':[],'val':[],'type':[]}
+        [(x['index'].append(i),x['val'].append(j),x['type'].append(k)) for i,j,k in \
+            zip(trans_text_id,trans_text,trans_text_type)]
+
+        [(x['index'].append(i),x['val'].append(j),x['type'].append(k)) for i,j,k in \
+            zip(trans_multi_id,trans_multi,trans_multi_type)]
+
+        [(x['index'].append(i),x['val'].append(j),x['type'].append(k)) for i,j,k in \
+            zip(trans_dt_single_id,trans_dt_single,trans_dt_single_dict)]
+
+        [(x['index'].append(i),x['val'].append(j),x['type'].append(k)) for i,j,k in \
+            zip(trans_dt_id,zip(trans_dt_start,trans_dt_end),trans_dt_range_dict)]
+
+
+        # print(trans_dt_start)
+        # print(trans_dt_end)
+        # print(trans_dt_range_dict)
+        # print(trans_dt_id)
+
+        '''
+        {'trans-input':val,
+        'chklist:val',
+        'days':fgc}
+        '''
         
         for indx, idx_1 in zip(range(len(trans_input_id)),trans_use_curr_id):
             if trans_use_current_dt[indx] != []:
                 x['index'].append(idx_1)
                 x['val'].append([trans_input[indx],trans_use_current_dt[indx]])
+                x['type'].append([trans_input_type[indx],trans_use_curr_type[indx],trans_days_single_dict[indx]])
             elif trans_days_single[indx] is not None:
                 x['index'].append(idx_1)
                 x['val'].append([trans_input[indx],trans_days_single[indx]])
+                x['type'].append([trans_input_type[indx],trans_use_curr_type[indx],trans_days_single_dict[indx]])
 
         
         indx_ismis = [i for i,v in zip(fil_col_id,fil_condi) if v == 'is missing']
         indx_isntmis = [i for i,v in zip(fil_col_id,fil_condi) if v == 'is not missing']
 
         if indx_ismis != []:
-            [(x['index'].append(v),x['val'].append('IS-None')) for v in indx_ismis]
+            [(x['index'].append(v),x['val'].append('IS-None'),x['type'].append(None)) for v in indx_ismis]
         if indx_isntmis != []:
-            [(x['index'].append(v),x['val'].append('NOT-None')) for v in indx_isntmis]
+            [(x['index'].append(v),x['val'].append('NOT-None'),x['type'].append(None)) for v in indx_isntmis]
 
         logic_val.insert(0,None)
 
@@ -1638,7 +3132,8 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             'index':fil_col_id,
             'fil_condi':fil_condi,
             'fil_col':fil_col,
-            
+            'fil_col_vals':fil_col_names_options,
+            'fil_condi_vals':fil_condi_options
         }
 
         z={
@@ -1646,24 +3141,66 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             'logic_val':logic_val
         }
 
+        # print(x)
+        # print(y)
+        # print(z)
+
+        x1 = DataFrame(x).sort_values(by='index')['type'].to_list() 
+
         x = DataFrame(x).sort_values(by='index')['val'].to_list()
         y = DataFrame(y).sort_values(by='index').reset_index()
         z = DataFrame(z).sort_values(by='logi_id').reset_index()
 
-
-        for i,k,j,v,l in zip(y['fil_col'],y['fil_condi'],y['index'],x,z['logic_val']):
+        # print(f"FILROWS_TRASH {fil_row_trash}")
+        for i,k,j,v,l,col_opt,cond_opt,x_type in \
+            zip(y['fil_col'],y['fil_condi'],y['index'],x,z['logic_val'],y['fil_col_vals'],y['fil_condi_vals'],x1):
+            
             filters_data['filters'][in_k]['index'].append(j)
             filters_data['filters'][in_k]['condition'].append(k)
             filters_data['filters'][in_k]['columns'].append(i)
             filters_data['filters'][in_k]['values'].append(v)
             filters_data['filters'][in_k]['logic'].append(l)
+            filters_data['filters'][in_k]['columns_drpdwn_vals'].append(col_opt)
+            filters_data['filters'][in_k]['condition_drpdwn_vals'].append(cond_opt)
+            filters_data['filters'][in_k]['values_vals'].append(x_type)
+
         filters_data['filters'][in_k]['select_drop']=fil_sel_val
+        
+        # if filters_data['filters'][in_k]['index'] != []:
+
         filters_data['index_k']=in_k if i_k is None else i_k
+
+        sel_keys = list(filters_data['add_new_col'].keys())
+
+        # print(filters_data)
+
+        # if filters_data['filters'][in_k]['index'] != [] and \
+        #     fil_row_trash is not None and int(fil_row_trash) in filters_data['filters'][in_k]['index']:
+
+
+        if int(filters_data['index_k']) == 1 and filters_data['filters'] != {} and\
+            filters_data['filters'][in_k]['index'] == []:
+            # delete the select_or_drop
+            filters_data['filters'].popitem()
+            filters_data['index_k']=None
+
+        elif int(filters_data['index_k']) > 1 and filters_data['filters'] != {} and\
+            filters_data['filters'][in_k]['index'] == []:
+            # delete the select_or_drop
+            filters_data['filters'].popitem()
+            new_indx = int(indx) - 1
+            
+            if abs(new_indx - int(sel_keys[0])) == 1:
+                pop_item = filters_data['add_new_col'].popitem()
+                filters_data['add_new_col']={new_indx:pop_item[1]}
+                
+            filters_data['index_k']=new_indx
 
         relationship_data['saved_data']=False
         
 
         if filters_data['index_k'] is not None:
+            filters_data['status']=True
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
             # df = df.fillna('None')
             table_data_format=df.to_dict('records')
@@ -1680,10 +3217,14 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             df = df.rename(columns=col_rename)
             table_data_fil = df.to_dict('records')
 
+            # print(f"ROWS {rows}")
+            # print(f"SQL {sql_qry}")
+
             return rel_tbl_data,rel_tbl_col,table_data_format, table_columns_format,\
                 table_data_fil, table_columns_fil,relationship_data,rows,\
                 trans_col, sql_qry,csv_string,filters_data,table_row,True,None
         else:
+            filters_data['status']=None
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row,False,None
@@ -1737,6 +3278,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                     filters=dict(),
                     add_new_col=dict(),
                     index_k=None,
+                    status=None
                 )
         # return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[]
         
@@ -1792,6 +3334,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
             df = df.rename(columns=col_rename)
             table_data_fil = df.to_dict('records')
             filters_data = ret_data['filters_data']
+            filters_data['status']=True
 
 
             if ret_data['format_map_data'] != {}:
@@ -1828,6 +3371,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
 
         else:
             # print('Second Condition',flush=True)
+            filters_data['status']=None
             if relationship_data['table']!=[] and relationship_data['table'] is not None:
                 
                 rel_tbl_drpdwn=list(filter(None,relationship_data['table_order']))
@@ -1888,6 +3432,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         d = {'column_names':[]}
 
         relationship_data['saved_data']=False
+        filters_data['status']=None
 
         if format_data != {} and format_data is not None:
             d["column_names"]=list(format_data.values())
@@ -1940,6 +3485,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                                     filters=dict(),
                                     add_new_col=dict(),
                                     index_k=None,
+                                    status=None
                                 )
                         return [],col,[],col,[],col,rel,0,{},None,'',fil_data,[],None,None
 
@@ -2014,6 +3560,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                         
 
                         if filters_data['index_k'] is not None:
+                            filters_data['status']=True
 
                             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
                             # df = df.fillna('None')
@@ -2035,6 +3582,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                                 table_data_fil, table_columns_fil,relationship_data,rows,\
                                 trans_col, sql_qry,csv_string,filters_data,table_row,None,None
                         else:
+                            filters_data['status']=None
                             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                             csv_string,filters_data,table_row,None,None
@@ -2062,8 +3610,30 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                             filters_data['index_k']=new_indx
                         
                         
+                        # print(f"NEW_COL apply_menu add_col {add_col_data}")
+                        
+                        k_f_id = None
+                        if filters_data['filters'] != {}:
+                            idx = list(filters_data['filters'].keys())[0]
+                            cols_remove=[ix for ix,c in enumerate(filters_data['filters'][idx]['columns']) \
+                                if c not in relationship_data['columns'] and c in add_col_data['add_col_names']]
+                            
+                            # removing the calulated column which are no more in use.
+                            cols_remove = sorted(cols_remove, reverse=True)
+                            for ix in cols_remove:
+                                if ix < len(filters_data['filters'][idx]['columns']):
+                                    filters_data['filters'][idx]['index'].pop(ix)
+                                    filters_data['filters'][idx]['columns'].pop(ix)
+                                    filters_data['filters'][idx]['condition'].pop(ix)
+                                    filters_data['filters'][idx]['values'].pop(ix)
+                                    filters_data['filters'][idx]['logic'].pop(ix)
+                                    filters_data['filters'][idx]['columns_drpdwn_vals'].pop(ix)
+                                    filters_data['filters'][idx]['condition_drpdwn_vals'].pop(ix)
+                                    filters_data['filters'][idx]['values_vals'].pop(ix)
 
+                        # print(f"NEW_COL apply_menu click {filters_data}")
                         if filters_data['index_k'] is not None:
+                            filters_data['status']=True
 
                             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
                             # df = df.fillna('None')
@@ -2085,15 +3655,18 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                                 table_data_fil, table_columns_fil,relationship_data,rows,\
                                 trans_col, sql_qry,csv_string,filters_data,table_row,None,None
                         else:
+                            filters_data['status']=None
                             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                             csv_string,filters_data,table_row,None,None
 
                     else:
+                        filters_data['status']=None
                         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                             csv_string,filters_data,table_row,None,None
         else:
+            filters_data['status']=None
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
                 table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
                 csv_string,filters_data,table_row,None,None
@@ -2127,6 +3700,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
         
 
         if filters_data['index_k'] is not None:
+            filters_data['status']=True
 
             df,sql_qry,rows, csv_string = get_transformations(relationship_data,filters_data,col)
             # df = df.fillna('None')
@@ -2148,10 +3722,12 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 table_data_fil, table_columns_fil,relationship_data,rows,\
                 trans_col, sql_qry,csv_string,filters_data,table_row,None,None
         else:
+            filters_data['status']=None
             return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,table_data,\
             table_columns,relationship_data,rows,trans_column_data,trans_fil_condi,\
             csv_string,filters_data,table_row,None,None
     else:
+        filters_data['status']=None
         return rel_tbl_data,rel_tbl_col,formt_tbl_data,formt_tbl_col,data,columns,relationship_data,\
             rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row,None,None
 

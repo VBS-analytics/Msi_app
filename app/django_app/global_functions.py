@@ -32,6 +32,7 @@ def get_table_names():
     db_connection = create_engine(db_connection_str)
     DB_TABLE_NAMES = db_connection.table_names()
     db_connection=db_connection.dispose()
+    print(DB_TABLE_NAMES)
     return DB_TABLE_NAMES
 
 # creates a sql query of the relationship. 
@@ -599,19 +600,22 @@ def get_filtered_data(fil_dict,table_order,add_new_col):
         if condi is None:
             condi = pds_list[ele]
         else:
-            if fil_dict['logic'][ele] == 'And':
-                # condi = op.and_(condi,pds_list[ele])
-                condi = condi + ' AND '+pds_list[ele]
-            elif fil_dict['logic'][ele] == 'Or':
-                # condi = op.or_(condi,pds_list[ele])
-                condi = condi + ' OR '+pds_list[ele]
+            if ele != 0:
+                if fil_dict['logic'][ele] == 'And':
+                    # condi = op.and_(condi,pds_list[ele])
+                    condi = condi + ' AND '+pds_list[ele]
+                elif fil_dict['logic'][ele] == 'Or':
+                    # condi = op.or_(condi,pds_list[ele])
+                    condi = condi + ' OR '+pds_list[ele]
 
-    if fil_dict['select_drop'] == 'Drop':
+    if fil_dict['select_drop'] == 'Drop' and condi is not None:
         condi = ' WHERE NOT '+condi
         return condi
-    else:
+    elif condi is not None:
         condi = ' WHERE '+condi
         return condi
+    else:
+        return None
 
 
 # Returns given column values to filters modal dropdown.
@@ -757,7 +761,7 @@ def get_column_values(relationship,add_new_col,column_name):
 
 def get_transformations(relationship_data,filters_data,col):
     
-    # print(f"filters data {filters_data}")
+    
     # print(f"relationship {relationship_data}")
 
     
@@ -854,7 +858,7 @@ def get_transformations(relationship_data,filters_data,col):
         filter_query = table_name.replace(';',condi+';')
     else:
         filter_query = table_name
-    # print(f"MAIN ma {filter_query}",flush=True)
+    print(f"MAIN ma {filter_query}",flush=True)
     
     # creating conditional columns.
     # if columns_select != []:
@@ -921,6 +925,7 @@ def get_transformations(relationship_data,filters_data,col):
     # columns_select_1= [j for sub in columns_select for j in sub]
     # columns_select = set(columns_select_1)
     # print(main_query,flush=True)
+    # print(rows,flush=True)
     filters_condition = {
         "SQL_QRY":filter_query,
         "filter_index":None,

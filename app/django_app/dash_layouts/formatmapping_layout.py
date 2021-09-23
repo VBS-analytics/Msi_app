@@ -1,18 +1,20 @@
-from dash_core_components import Upload
-from dash_html_components import A, Div, Br
+# from dash_core_components import Upload
+# from dash_html_components import A, Div, Br
 from dash_bootstrap_components import Button, Row, Col
-from dash_table import DataTable
+# from dash_table import DataTable
 from dash_extensions import Download
+
+from dash import dcc,html,dash_table
 
 def formatmap_tab():
     return [
-        Br(),
-        Div([
+        html.Br(),
+        html.Div([
             Row(
                 Col(
-                    Upload([
+                    dcc.Upload([
                         'Drag and Drop or ',
-                        A('Select a File')
+                        html.A('Select a File')
                     ], style={
                         'width': '100%',
                         'height': '60px',
@@ -26,9 +28,9 @@ def formatmap_tab():
                 )
             ),
 
-            Div([],id='column-names-row'),
+            html.Div([],id='column-names-row'),
 
-            Div(
+            html.Div(
                 Row([
                     Col(
                         Button("Preview", color="primary",id='preview-table-format-button', className="mr-1",size="sm",disabled=True)
@@ -42,10 +44,10 @@ def formatmap_tab():
                 ])
             ),
 
-            Div(
+            html.Div(
                 Row(
                     Col(
-                        DataTable(
+                        dash_table.DataTable(
                             id='format-table',
                             columns=[{"name": i, "id": i} for i in ["column-1","column-2","column-3"]],
                             data= [],

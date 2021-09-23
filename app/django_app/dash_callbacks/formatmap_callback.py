@@ -3,12 +3,12 @@ from ..server import app, server
 from ..global_functions import get_downloaded_data, get_bool_on_col
 
 from dash.dependencies import Output, Input, State, ALL
-from dash import callback_context
-from dash_core_components import Dropdown
-from dash_html_components import Label, Br
+# from dash import callback_context
+# from dash_core_components import Dropdown
+# from dash_html_components import Label, Br
 from dash_bootstrap_components import Col, Row
 
-from dash import callback_context
+from dash import callback_context, dcc, html
 from pandas import read_csv, read_excel
 import io
 import base64
@@ -81,9 +81,9 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
         components = []
         for j,k in enumerate(df.columns):
             components.append(Row([
-                Col(Label(k),width=3),
+                Col(html.Label(k),width=3),
 
-                Col(Dropdown(
+                Col(dcc.Dropdown(
                     id={
                         'type': 'filter-dropdown',
                         'index': j
@@ -92,7 +92,7 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
                     value=None,
                 ),width=3),
             ]))
-            components.append(Br())
+            components.append(html.Br())
         
         but_status = True
         if components != []:
@@ -118,9 +118,9 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
                 val =filter_dropdown_vals[j] if filter_dropdown_vals[j] in \
                     list(trans_columns.keys()) else None
                 components.append(Row([
-                    Col(Label(k),width=3),
+                    Col(html.Label(k),width=3),
 
-                    Col(Dropdown(
+                    Col(dcc.Dropdown(
                         id={
                             'type': 'filter-dropdown',
                             'index': j
@@ -129,7 +129,7 @@ def update_file_upload_columns(contents,relationship_data,ret_data,filename, \
                         value=val,
                     ),width=3),
                 ]))
-                components.append(Br())
+                components.append(html.Br())
             
             but_status = True
             if components != []:
