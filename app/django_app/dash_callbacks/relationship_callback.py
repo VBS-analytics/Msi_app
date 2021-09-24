@@ -32,72 +32,144 @@ from dash.exceptions import PreventUpdate
 from dash_extensions.snippets import send_bytes, send_file
 
 
-
-@app.callback(
-    [
-        Output('sch-hourly-body','style'),
-        Output('sch-daily-body','style'),
-        Output('sch-weekly-body','style'),
-        Output('sch-monthly-body','style'),
-    ],
-    [
-        Input("schedule-radio","value")
-    ]
+# show or hide schedule views
+app.clientside_callback(
+    '''
+    function update_view_of_schedules(value) {
+        if (value == "hourly") {
+            return {},{"display":"none"},{"display":"none"},{"display":"none"}
+        } else if (value == "daily") {
+            return {"display":"none"},{},{"display":"none"},{"display":"none"}
+        } else if (value == "weekly") {
+            return {"display":"none"},{"display":"none"},{},{"display":"none"}
+        } else if (value == "monthly") {
+            return {"display":"none"},{"display":"none"},{"display":"none"},{}
+        } else {
+            return {"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}
+        }
+    }
+    ''',
+    Output('sch-hourly-body','style'),
+    Output('sch-daily-body','style'),
+    Output('sch-weekly-body','style'),
+    Output('sch-monthly-body','style'),
+    Input("schedule-radio","value")
 )
-def update_view_of_schedules(value):
-    if value == "hourly":
-        return {},{"display":"none"},{"display":"none"},{"display":"none"}
-    elif value == "daily":
-        return {"display":"none"},{},{"display":"none"},{"display":"none"}
-    elif value == "weekly":
-        return {"display":"none"},{"display":"none"},{},{"display":"none"}
-    elif value == "monthly":
-        return {"display":"none"},{"display":"none"},{"display":"none"},{}
-    else:
-        return {"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}
 
-@app.callback(
+
+# @app.callback(
+#     [
+#         Output('sch-hourly-body','style'),
+#         Output('sch-daily-body','style'),
+#         Output('sch-weekly-body','style'),
+#         Output('sch-monthly-body','style'),
+#     ],
+#     [
+#         Input("schedule-radio","value")
+#     ]
+# )
+# def update_view_of_schedules(value):
+#     if value == "hourly":
+#         return {},{"display":"none"},{"display":"none"},{"display":"none"}
+#     elif value == "daily":
+#         return {"display":"none"},{},{"display":"none"},{"display":"none"}
+#     elif value == "weekly":
+#         return {"display":"none"},{"display":"none"},{},{"display":"none"}
+#     elif value == "monthly":
+#         return {"display":"none"},{"display":"none"},{"display":"none"},{}
+#     else:
+#         return {"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}
+
+
+# show or hide schedule body
+app.clientside_callback(
+    '''
+    function update_view_of_schedule_body(value) {
+        if (value != null && value.includes(null) != true && value.includes(undefined) != true) {
+            return {}
+        } else {
+            return {"display":"none"}
+        }
+    }
+    ''',
     Output('schedule-body','style'),
-    [
-        Input('schedule-cklist','value')
-    ],
+    Input('schedule-cklist','value')
 )
-def update_view_of_schedule_body(value):
-    if value != []:
-        return {}
-    else:
-        return {"display":"none"}
+
+# @app.callback(
+#     Output('schedule-body','style'),
+#     [
+#         Input('schedule-cklist','value')
+#     ],
+# )
+# def update_view_of_schedule_body(value):
+#     if value != []:
+#         return {}
+#     else:
+#         return {"display":"none"}
 
 
 # Display no.of rows count to front-end from memory.
-@app.callback(
+app.clientside_callback(
+    '''
+    function update_noofpolicies(data) {
+        console.log('Records no.',data)
+        if (data != null && data != undefined) {
+            return String(data)
+        } else {
+            return null
+        }
+    }
+    ''',
     Output('noofpolicies-card','children'),
-    [
-        Input('total-rows','data')
-    ]
+    Input('total-rows','data')
 )
-def update_noofpolicies(data):
-    if data is not None:
-        return str(data)
-    else:
-        return None
+
+# @app.callback(
+#     Output('noofpolicies-card','children'),
+#     [
+#         Input('total-rows','data')
+#     ]
+# )
+# def update_noofpolicies(data):
+#     if data is not None:
+#         return str(data)
+#     else:
+#         return None
 
 
 # stores no.of rows count into memory
-@app.callback(
+app.clientside_callback(
+    '''
+    function display_rows(data1,data2) {
+        if (data1 != null && data2 != null && data1 != undefined && data2 != undefined) {
+            return data2
+        } else if (data1 != null && (data2 == null || data2 == undefined) && data1 != undefined) {
+            return data1
+        } else {
+            return null
+        }
+    }
+    ''',
     Output('total-rows','data'),
-    [
-        Input('relation-rows','data'),
-        Input('transformations-rows','data')
-    ]
+    Input('relation-rows','data'),
+    Input('transformations-rows','data')
 )
-def display_rows(data1,data2):
-    if data1 is not None and data2 is not None:
-        return data2
-    elif data1 is not None and data2 is None:
-        return data1
-    else:
-        return None
+
+# @app.callback(
+#     Output('total-rows','data'),
+#     [
+#         Input('relation-rows','data'),
+#         Input('transformations-rows','data')
+#     ]
+# )
+# def display_rows(data1,data2):
+#     if data1 is not None and data2 is not None:
+#         return data2
+#     elif data1 is not None and data2 is None:
+#         return data1
+#     else:
+#         return None
 
 # download scheduled excel files
 @app.callback(
@@ -111,11 +183,11 @@ def display_rows(data1,data2):
 )
 def download_schedule_excel(n_clicks,value):
     # file_path = os.path.join(settings.MEDIA_ROOT, path)
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    # ctx = callback_context
+    # triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
     # file_name = os.path.basename(value)
 
-    if triggred_compo == 'schedule-fil-modal-download' and n_clicks is not None and value is not None:
+    if n_clicks is not None and value is not None:
         # def to_xlsx(bytes_io):
         #     xslx_writer = ExcelWriter(bytes_io, engine="xlsxwriter")
         #     df=read_excel(value)
@@ -608,86 +680,247 @@ def update_chngs_db(relationship_data,\
     else:
         raise PreventUpdate
 
-# showing the changes made in a dropdown menu in Top right.
-@app.callback(
+
+app.clientside_callback(
+    '''
+    function update_applied_filters_menu(relation_data,filters_data,applied_changes,applied_id) {
+
+        let rel_val = relation_data['table']
+        let add_val = filters_data['add_new_col']
+        let fil_val = filters_data['filters']
+
+        let relationship_menu = []
+        for (let i in applied_changes) {
+            console.log(i,applied_changes[i]['props']['children'])
+            if (applied_changes[i]['props']['id'].constructor == Object
+                && applied_changes[i]['props']['children'] != null
+                && applied_changes[i]['props']['children'].startsWith('Table Relation') == true) {
+                    
+                console.log(typeof(applied_changes[i]['props']['id']))
+                console.log(applied_changes[i]['props']['id'])
+                console.log(applied_changes[i]['props']['children'])
+                relationship_menu.push(true)
+
+            } else {
+                relationship_menu.push(false)
+            }
+        }
+
+        let add_col_menu = []
+        for (let i in applied_changes) {
+            if (applied_changes[i]['props']['id'].constructor == Object
+                && applied_changes[i]['props']['children'] != null 
+                && applied_changes[i]['props']['children'].startsWith('New column added') == true) {
+                
+                add_col_menu.push(true)
+
+            } else {
+
+                add_col_menu.push(false)
+            }
+        }
+
+        let filters_menu = []
+        for (let i in applied_changes) {
+            if (applied_changes[i]['props']['id'].constructor == Object
+                && applied_changes[i]['props']['children'] != null 
+                && applied_changes[i]['props']['children'].startsWith('Filters') == true) {
+                
+                filters_menu.push(true)
+            } else {
+                
+                filters_menu.push(false)
+            }
+        }
+
+        console.log('rel_val',rel_val)
+        console.log('rel_val_len',Object.entries(rel_val).length)
+        console.log('add_val',add_val)
+        console.log('fil_val',fil_val)
+
+        console.log('rel_menu',relationship_menu)
+        console.log('add_menu',add_col_menu)
+        console.log('fil_menu',filters_menu)
+
+
+        if (Object.entries(rel_val).length != 0 && relationship_menu.includes(true) == false) {
+            rel_id = []
+            for (let i in applied_id) {
+                rel_id.push(applied_id[i]['index'])
+            }
+
+            rel = {
+                'props':{"children":"Table Relations  X",
+                    'id':{'type':'applied-changes-menu','index':Math.max.apply(null,rel_id)+1}
+                },
+                'type':'DropdownMenuItem',
+                'namespace':'dash_bootstrap_components'
+            }
+            applied_changes.push(rel)
+        }
+
+        if (Object.entries(rel_val).length == 0 && relationship_menu.includes(true) == true) {
+            for (let i in applied_changes) {
+                if (applied_changes[i]['props']['id'].constructor == Object && 
+                    applied_changes[i]['props']['children'] != null && 
+                    (applied_changes[i]['props']['children'].startsWith('Table Relation')==true ||
+                    applied_changes[i]['props']['children'].startsWith('New column added')==true ||
+                    applied_changes[i]['props']['children'].startsWith('Filters')==true
+                    )) {
+                    applied_changes.splice(i,1)
+                }
+            }
+
+        }
+
+        if (Object.entries(add_val).length != 0 && add_col_menu.includes(true) == false) {
+            add_id = []
+            for (let i in applied_id) {
+                add_id.push(applied_id[i]['index'])
+            }
+
+            add_col = {
+                'props':{"children":"New column added  X",
+                    'id':{'type':'applied-changes-menu','index':Math.max.apply(null,add_id)+1}
+                },
+                'type':'DropdownMenuItem',
+                'namespace':'dash_bootstrap_components'
+            }
+            applied_changes.push(add_col)
+        }
+
+
+        if (Object.entries(add_val).length == 0 && add_col_menu.includes(true) == true) {
+            for (let i in applied_changes) {
+                if (applied_changes[i]['props']['id'].constructor == Object &&
+                    applied_changes[i]['props']['children'] != null && 
+                    applied_changes[i]['props']['children'].startsWith('New column added')) {
+                    
+                    applied_changes.splice(i,1)
+                }
+            }
+        }
+
+
+        if (Object.entries(fil_val).length != 0 && filters_menu.includes(true) == false) {
+            
+            fil_id = []
+            for (let i in applied_id) {
+                fil_id.push(applied_id[i]['index'])
+            }
+
+            fil = {
+                'props':{"children":"Filters  X",
+                    'id':{'type':'applied-changes-menu','index':Math.max.apply(null,fil_id)+1}
+                },
+                'type':'DropdownMenuItem',
+                'namespace':'dash_bootstrap_components'
+            }
+            applied_changes.push(fil)
+        }
+
+        if (Object.entries(fil_val).length == 0 && filters_menu.includes(true) == true) {
+            for (let i in applied_changes) {
+                if (applied_changes[i]['props']['id'].constructor == Object && 
+                    applied_changes[i]['props']['children'] != null && 
+                    applied_changes[i]['props']['children'].startsWith('Filters') == true){
+                    
+                    applied_changes.splice(i,1)
+                }
+            }
+
+        }
+        return applied_changes
+    }
+    ''',
     Output('applied-changes-dropdown','children'),
-    [
-        Input('relationship-data','data'),        
-    ],
-    [
-        State('filters-data','data'),
-        State('applied-changes-dropdown','children'),
-        State({'type':'applied-changes-menu','index':ALL},'id'),
-    ]
-
+    Input('relationship-data','data'),        
+    State('filters-data','data'),
+    State('applied-changes-dropdown','children'),
+    State({'type':'applied-changes-menu','index':ALL},'id'),
 )
-def update_applied_filters_menu(relation_data,filters_data,applied_changes,applied_id):
-    # print(relation_data,flush=True)
-    # print(filters_data,flush=True)
-    # print(fil_val,flush=True)
-    rel_val = relation_data['table']
-    add_val = filters_data['add_new_col']
-    fil_val = filters_data['filters']
 
-    # print(rel_val,flush=True)
-    # print(sel_val,flush=True)
-    # print(fil_val,flush=True)
 
-    relationship_menu = [True if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith('Table Relation')\
-            else False for indx,i in enumerate(applied_changes)]
+# # showing the changes made in a dropdown menu in Top right.
+# @app.callback(
+#     Output('applied-changes-dropdown','children'),
+#     [
+#         Input('relationship-data','data'),        
+#     ],
+#     [
+#         State('filters-data','data'),
+#         State('applied-changes-dropdown','children'),
+#         State({'type':'applied-changes-menu','index':ALL},'id'),
+#     ]
+
+# )
+# def update_applied_filters_menu(relation_data,filters_data,applied_changes,applied_id):
+#     # print(relation_data,flush=True)
+#     # print(filters_data,flush=True)
+#     # print(fil_val,flush=True)
+#     rel_val = relation_data['table']
+#     add_val = filters_data['add_new_col']
+#     fil_val = filters_data['filters']
+
+#     # print(rel_val,flush=True)
+#     # print(sel_val,flush=True)
+#     # print(fil_val,flush=True)
+
+#     relationship_menu = [True if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith('Table Relation')\
+#             else False for indx,i in enumerate(applied_changes)]
     
-    add_col_menu = [True if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith('New column added')\
-            else False for indx,i in enumerate(applied_changes)]
+#     add_col_menu = [True if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith('New column added')\
+#             else False for indx,i in enumerate(applied_changes)]
 
-    filters_menu = [True if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith('Filters')\
-            else False for indx,i in enumerate(applied_changes)]
+#     filters_menu = [True if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith('Filters')\
+#             else False for indx,i in enumerate(applied_changes)]
 
-    if rel_val is not None and rel_val != [] and any(relationship_menu) is False:
-        rel_id = [i['index'] for i in applied_id]
-        rel = DropdownMenuItem(f"Table Relations  X"\
-                ,id={'type':'applied-changes-menu','index':max(rel_id)+1})
-        applied_changes.append(rel)
+#     if rel_val is not None and rel_val != [] and any(relationship_menu) is False:
+#         rel_id = [i['index'] for i in applied_id]
+#         rel = DropdownMenuItem(f"Table Relations  X"\
+#                 ,id={'type':'applied-changes-menu','index':max(rel_id)+1})
+#         applied_changes.append(rel)
     
-    if (rel_val is None or rel_val == []) and any(relationship_menu) is True:
-        [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
-            if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith(('Table Relation','New column added','Filters'))]
+#     if (rel_val is None or rel_val == []) and any(relationship_menu) is True:
+#         [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
+#             if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith(('Table Relation','New column added','Filters'))]
     
-    if add_val is not None and add_val != {} and any(add_col_menu) is False:
-        add_id = [i['index'] for i in applied_id]
+#     if add_val is not None and add_val != {} and any(add_col_menu) is False:
+#         add_id = [i['index'] for i in applied_id]
            
-        add_col = DropdownMenuItem(f"New column added  X"\
-            ,id={'type':'applied-changes-menu','index':max(add_id)+1})
+#         add_col = DropdownMenuItem(f"New column added  X"\
+#             ,id={'type':'applied-changes-menu','index':max(add_id)+1})
         
-        applied_changes.append(add_col)
+#         applied_changes.append(add_col)
 
-    if (add_val is None or add_val == {}) and any(add_col_menu) is True:
-        [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
-            if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith('New column added')]
+#     if (add_val is None or add_val == {}) and any(add_col_menu) is True:
+#         [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
+#             if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith('New column added')]
     
-    if fil_val is not None and fil_val != {} and any(filters_menu) is False:
-        fil_id = [i['index'] for i in applied_id]
+#     if fil_val is not None and fil_val != {} and any(filters_menu) is False:
+#         fil_id = [i['index'] for i in applied_id]
            
-        fil = DropdownMenuItem(f"Filters  X"\
-            ,id={'type':'applied-changes-menu','index':max(fil_id)+1})
+#         fil = DropdownMenuItem(f"Filters  X"\
+#             ,id={'type':'applied-changes-menu','index':max(fil_id)+1})
         
-        applied_changes.append(fil)
-    if (fil_val is None or fil_val == {}) and any(filters_menu) is True:
-        [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
-            if type(i['props']['id']) == dict and \
-            i['props']['children'] is not None and\
-            i['props']['children'].startswith('Filters')]
+#         applied_changes.append(fil)
+#     if (fil_val is None or fil_val == {}) and any(filters_menu) is True:
+#         [applied_changes.remove(applied_changes[indx]) for indx,i in enumerate(applied_changes) \
+#             if type(i['props']['id']) == dict and \
+#             i['props']['children'] is not None and\
+#             i['props']['children'].startswith('Filters')]
     
-    return applied_changes
+#     return applied_changes
 
 
 # load table names to first dropdown options
@@ -705,7 +938,8 @@ def update_db_table_names(data):
         x=[{'label':i,'value':i} for i in tb]
         # print(f"Table Names {x}")
         return x
-    
+
+   
 # add new col
 @app.callback(
     Output('add-new-col-modal-body','children'),
@@ -886,23 +1120,38 @@ def update_add_button_status(values,childs,options):
         return True, True
 
 
-@app.callback(
-    Output('table-dropdown-alert','is_open'),
-    [
-        # Input({'type':'relationship-sql-joins','index':ALL},'n_clicks'),
-        Input({'type':'relationship-table-dropdown','index':ALL},'value'),
-    ],
-    [
-        State({'type':'relationship-table-dropdown','index':ALL},'options'),
-    ]
+# @app.callback(
+#     Output('table-dropdown-alert','is_open'),
+#     [
+#         # Input({'type':'relationship-sql-joins','index':ALL},'n_clicks'),
+#         Input({'type':'relationship-table-dropdown','index':ALL},'value'),
+#     ],
+#     [
+#         State({'type':'relationship-table-dropdown','index':ALL},'options'),
+#     ]
 
+# )
+# def update_table_dropdown_alert(value,options):
+#     #print(f"values **** {options}")
+#     if None not in value:
+#         return False
+#     else:
+#         return True
+
+# show alert when any of the relation table dropdown is empty.
+app.clientside_callback(
+    '''
+    function update_table_dropdown_alert(value) {
+        if (value.includes(null) != true && value.includes(undefined) != true) {
+            return false
+        } else {
+            return true
+        }
+    }
+    ''',
+    Output('table-dropdown-alert','is_open'),
+    Input({'type':'relationship-table-dropdown','index':ALL},'value')
 )
-def update_table_dropdown_alert(value,options):
-    #print(f"values **** {options}")
-    if None not in value:
-        return False
-    else:
-        return True
     
 
 # load sql join table column names and modal open
@@ -1006,7 +1255,6 @@ def update_main_sql_query(data,rel_values,ids):
         State({'type':'relationship-sql-joins','index':MATCH},'children'),
         State({'type':'join-status','index':MATCH},'is_open'),
         State({'type':'relationship-sql-joins','index':MATCH},'id'),
-
     ]
 )
 def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\

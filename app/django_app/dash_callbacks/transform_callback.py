@@ -196,19 +196,38 @@ def get_condition_rows(columns,indx):
 
     ],id={'type':'condition-rows','index':indx})
 
-# remove added new column
-@app.callback(
+app.clientside_callback(
+    '''
+    function update_add_new_col_apply(col_name_val, col_input_val) {
+        if (col_name_val.includes(null) != true && col_name_val.length > 0
+            && col_input_val.includes(null) != true && col_input_val.length > 0) {
+            
+            return false
+        } else {
+            return true
+        }
+    }
+    ''',
     Output('add-new-col-modal-apply','disabled'),
-    [
-        Input({"type":"add-new-col-name","index":ALL},'value'),
-        Input({"type":'add-col-value-input',"index":ALL},'value'),
-    ]
+    Input({"type":"add-new-col-name","index":ALL},'value'),
+    Input({"type":'add-col-value-input',"index":ALL},'value')
 )
-def update_add_new_col_apply(col_name_val, col_input_val):
-    if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
-        return False
-    else:
-        return True
+
+# remove added new column
+# @app.callback(
+#     Output('add-new-col-modal-apply','disabled'),
+#     [
+#         Input({"type":"add-new-col-name","index":ALL},'value'),
+#         Input({"type":'add-col-value-input',"index":ALL},'value'),
+#     ]
+# )
+# def update_add_new_col_apply(col_name_val, col_input_val):
+#     # print(f"WEWEEW {col_name_val}",flush=True)
+#     # print(f"GHGHGH {col_input_val}",flush=True)
+#     if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
+#         return False
+#     else:
+#         return True
 
 @app.callback(
     Output('add-new-col','data'),
@@ -1748,72 +1767,423 @@ def update_retrived_stat(fil_add_condi_n_clicks,previ_n_clicks,fil_apply_n_click
 
 
 # Adds a new condition row for filter rows.
-@app.callback(
+app.clientside_callback(
+    '''
+    function update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat,condi_id,fil_logic_id) {
+        let childs_copy = childs
+        let z = []
+        for (let d in childs) {
+            if (childs[d]['type'] != 'Br' && (childs[d]['props']['children'] == null
+                || childs[d]['props']['children'] == undefined)) {
+                childs_copy.splice(d,1)
+            }
+        }
+        
+        for (let d in childs) {
+            if (childs[d]['type'] == 'Br') {
+                childs_copy.splice(d,1)
+            }
+        }
+
+        if (n_clicks != null && childs_copy.length > 0) {
+            let indx = []
+            for (let i in condi_id) {
+                indx.push(Number(condi_id[i]['index']))
+            }
+            let idx = 0
+            if (indx.length > 0) {
+                let idx = Math.max.apply(null,indx)
+            }
+
+            indx = Number(idx)+1
+
+            let col_val = []
+            let col_keys = Object.keys(trans_columns)
+            
+            for (let i in col_keys) {
+                col_val.push({'label':col_keys[i],'value':col_keys[i]})
+            }
+
+            let condition_row = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                        'props':{'children':'Select column name'},
+                                                        'type':'Strong',
+                                                        'namespace':'dash_html_components'
+                                                    },
+                                                    'html_for':{'type':'filters-column-names','index':indx}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-column-names','index':indx},
+                                                    'options':col_val,
+                                                    'value':null
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
+                                        ],
+                                    },
+                                    'type':'FormGroup',
+                                        'namespace':'dash_bootstrap_components'
+                                },
+                                'width':4
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                        'props':{'children':'condition'},
+                                                        'type':'Strong',
+                                                        'namespace':'dash_html_components'
+                                                    },
+                                                    'html_for':{'type':'filters-conditions','index':indx}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-conditions','index':indx},
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
+                                        ],
+                                    },
+                                    'type':'FormGroup',
+                                        'namespace':'dash_bootstrap_components'
+                                },
+                                'width':3
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'filters-text-drpdwn','index':indx},
+                                'width':4
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':{
+                                            'props':{
+                                                'className':"fa fa-trash-o"
+                                            },
+                                            'type':'I',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'id':{'type':'logic-close','index':indx}
+                                    },
+                                    'type':'A',
+                                    'namespace':'dash_html_components'
+                                },
+                                'className':"text-right"
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    ],
+                    'id':{'type':'condition-rows','index':indx}
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+
+            let logic_and_or = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'id':{'type':'logic-dropdown','index':indx},
+                                        'options':[{'label':'And','value':'And'},{'label':'Or','value':'Or'}]
+                                    },
+                                    'type':'Dropdown',
+                                    'namespace':'dash_core_components'
+                                },
+                                'width':3
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    ],
+                    'id':{'type':'filters-logic','index':indx}
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+
+            childs_copy.push({'props':{'children':null},'type':'Br','namespace':'dash_html_components'})
+            childs_copy.push(logic_and_or)
+            childs_copy.push(condition_row)
+
+            return childs_copy
+        } else if (n_clicks != null && childs_copy.length == 0) {
+            let indx = []
+            for (let i in fil_logic_id) {
+                indx.push(Number(fil_logic_id[i]['index']))
+            }
+
+            let idx = 0
+            if (indx.length > 0) {
+                let idx = Math.max.apply(null,indx)
+            }
+
+            indx = Number(idx)+1
+
+            let col_val = []
+            let col_keys = Object.keys(trans_columns)
+            
+            for (let i in col_keys) {
+                col_val.push({'label':col_keys[i],'value':col_keys[i]})
+            }
+
+            let condition_row = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                        'props':{'children':'Select column name'},
+                                                        'type':'Strong',
+                                                        'namespace':'dash_html_components'
+                                                    },
+                                                    'html_for':{'type':'filters-column-names','index':indx}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-column-names','index':indx},
+                                                    'options':col_val,
+                                                    'value':null
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
+                                        ],
+                                    },
+                                    'type':'FormGroup',
+                                        'namespace':'dash_bootstrap_components'
+                                },
+                                'width':4
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                        'props':{'children':'condition'},
+                                                        'type':'Strong',
+                                                        'namespace':'dash_html_components'
+                                                    },
+                                                    'html_for':{'type':'filters-conditions','index':indx}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-conditions','index':indx},
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
+                                        ],
+                                    },
+                                    'type':'FormGroup',
+                                        'namespace':'dash_bootstrap_components'
+                                },
+                                'width':3
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{'type':'filters-text-drpdwn','index':indx},
+                                'width':4
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':{
+                                            'props':{
+                                                'className':"fa fa-trash-o"
+                                            },
+                                            'type':'I',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'id':{'type':'logic-close','index':indx}
+                                    },
+                                    'type':'A',
+                                    'namespace':'dash_html_components'
+                                },
+                                'className':"text-right"
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    ],
+                    'id':{'type':'condition-rows','index':indx}
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+
+            let logic_and_or = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':"This is Temp column and row",
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    ],
+                    'id':{"type":"filters-logic","index":indx},
+                    'style':{'display':'none'}
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+
+            childs_copy.push({'props':{'children':null},'type':'Br','namespace':'dash_html_components'})
+            childs_copy.push(logic_and_or)
+            childs_copy.push(condition_row)
+
+            return childs_copy
+        }
+    }
+    ''',
     Output('filters-conditional-div','children'),
-    [
-        Input('filters-add-condition','n_clicks'),
-    ],
-    [
-        State('filters-conditional-div','children'),
-        State('transformations-table-column-data','data'),
-        State('filters-retrived-status','data'),
-        State({'type':'condition-rows','index':ALL},'id'),
-        State({'type':'filters-logic','index':ALL},'id')
-    ],
+    Input('filters-add-condition','n_clicks'),
+    State('filters-conditional-div','children'),
+    State('transformations-table-column-data','data'),
+    State('filters-retrived-status','data'),
+    State({'type':'condition-rows','index':ALL},'id'),
+    State({'type':'filters-logic','index':ALL},'id'),
+    prevent_initial_call=True
 )
-def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat,condi_id,\
-    fil_logic_id):
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    # print(f"Files list {childs}")
-    childs_copy=childs.copy()
-    z=[childs_copy.remove(d) for d in childs if d['type']!="Br" and d['props']['children']==None]
-    if set(z) == set([None]):
-        [childs_copy.remove(d) for d in childs if d['type']=="Br"]
+
+# @app.callback(
+#     Output('filters-conditional-div','children'),
+#     [
+#         Input('filters-add-condition','n_clicks'),
+#     ],
+#     [
+#         State('filters-conditional-div','children'),
+#         State('transformations-table-column-data','data'),
+#         State('filters-retrived-status','data'),
+#         State({'type':'condition-rows','index':ALL},'id'),
+#         State({'type':'filters-logic','index':ALL},'id')
+#     ],
+# )
+# def update_filters_condition_div(n_clicks,childs,trans_columns,ret_stat,condi_id,\
+#     fil_logic_id):
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+#     # print(f"Files list {childs}")
+#     childs_copy=childs.copy()
+#     z=[childs_copy.remove(d) for d in childs if d['type']!="Br" and d['props']['children']==None]
+#     if set(z) == set([None]):
+#         [childs_copy.remove(d) for d in childs if d['type']=="Br"]
     
-    if triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy!=[]:
-        indx=[int(i['index']) for i in condi_id]
-        if indx != []:
-            indx=array(indx).max()
-        else:
-            indx=0
+#     if triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy!=[]:
+#         indx=[int(i['index']) for i in condi_id]
+#         if indx != []:
+#             indx=array(indx).max()
+#         else:
+#             indx=0
 
-        indx = int(indx+1)
+#         indx = int(indx+1)
 
-        # indx = n_clicks + 1
-        condition_row = get_condition_rows(trans_columns,indx)
-        logic_and_or = Row([
-            Col(
-                dcc.Dropdown(id={'type':'logic-dropdown','index':indx},
-                    options=[{'label':i,'value':i} for i in ["And","Or"]]
-                )
-            ,width=3),
-        ],id={'type':'filters-logic','index':indx})
-        childs_copy.append(html.Br())
-        childs_copy.append(logic_and_or)
-        childs_copy.append(condition_row)
-        # print(f"\n\n DIV list {childs_copy}")
-        return childs_copy
-    elif triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy==[]:
-        indx=[int(i['index']) for i in fil_logic_id]
-        if indx != []:
-            indx=array(indx).max()
-        else:
-            indx=0
+#         # indx = n_clicks + 1
+#         condition_row = get_condition_rows(trans_columns,indx)
+#         logic_and_or = Row([
+#             Col(
+#                 dcc.Dropdown(id={'type':'logic-dropdown','index':indx},
+#                     options=[{'label':i,'value':i} for i in ["And","Or"]]
+#                 )
+#             ,width=3),
+#         ],id={'type':'filters-logic','index':indx})
+#         childs_copy.append(html.Br())
+#         childs_copy.append(logic_and_or)
+#         childs_copy.append(condition_row)
+#         # print(f"\n\n DIV list {childs_copy}")
+#         return childs_copy
+#     elif triggred_compo == 'filters-add-condition' and n_clicks is not None and childs_copy==[]:
+#         indx=[int(i['index']) for i in fil_logic_id]
+#         if indx != []:
+#             indx=array(indx).max()
+#         else:
+#             indx=0
 
-        indx = int(indx+1)
-        # indx = n_clicks + 1
-        condition_row = get_condition_rows(trans_columns,indx)
-        # print("got columns")
-        logic_and_or = Row(Col("This is Temp column and row"),id={"type":"filters-logic",\
-            "index":indx},style={'display':'none'})
-        childs_copy.append(html.Br())
-        childs_copy.append(logic_and_or)
-        childs_copy.append(condition_row)
-        return childs_copy
+#         indx = int(indx+1)
+#         # indx = n_clicks + 1
+#         condition_row = get_condition_rows(trans_columns,indx)
+#         # print("got columns")
+#         logic_and_or = Row(Col("This is Temp column and row"),id={"type":"filters-logic",\
+#             "index":indx},style={'display':'none'})
+#         childs_copy.append(html.Br())
+#         childs_copy.append(logic_and_or)
+#         childs_copy.append(condition_row)
+#         return childs_copy
 
-    else:
-        raise PreventUpdate
+#     else:
+#         raise PreventUpdate
 
 # @app.callback(
 #     # Output('filters-rows-trash','data'),
@@ -1880,45 +2250,123 @@ def close_condition(n_clciks,id,childs,fil_childs,data):
         raise PreventUpdate
 
 # Update condition dropdown based on column selected Eg: >, <, ==..etc
-@app.callback(
-    Output({'type':'filters-conditions','index':MATCH}, 'options'),
-    [
-        Input({'type':'filters-column-names','index':MATCH}, 'value'),
-    ],
-    [
-        State({'type':'filters-column-names','index':MATCH},'id'),
-        State('transformations-table-column-data','data'),
-        State('retrived-data','data')
-    ]
-)
-def update_filters_condition_dropdown(value,id,data,ret_data):
-    if value is not None and data != {} and (data[value] == 'float64' or data[value] == 'int64'):
-        return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
-            'is missing','is not missing']]
-    elif value is not None and data != {} and (data[value] == 'object' or data[value] == 'category'):
-        return [{'label':i,'value':i} for i in ['has value(s)', 'starts with', \
-            'contains','ends with','is missing','is not missing']]
-    elif value is not None and data != {} and (data[value] == 'datetime64[ns]' or data[value] == 'datetime64'):
-        return [{'label':i,'value':i} for i in ['days','before','after',\
-            'not','equals','range','is missing','is not missing']]
+app.clientside_callback(
+    '''
+    function update_filters_condition_dropdown(value,id,data,ret_data) {
+        if (value != null && Object.entries(data).length > 0
+            && (data[value] == 'float64' || data[value] == 'int64')) {
+            
+            let temp_vals = []
+            let options = ['has value(s)','<','<=','==','!=','>','>=','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
+        
+        } else if (value != null && Object.entries(data).length > 0
+            && (data[value] == 'object' || data[value] == 'category')) {
+            
+            let temp_vals = []
+            let options = ['has value(s)', 'starts with','contains','ends with','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
+        
+        } else if (value != null && Object.entries(data).length > 0
+            && (data[value] == 'datetime64[ns]' || data[value] == 'datetime64')) {
+            
+            let temp_vals = []
+            let options = ['days','before','after','not','equals','range','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
 
-    elif value is not None and data == {} and ret_data is not None and\
-        (ret_data['transformations_table_column_data'][value] == 'float64' or\
-            ret_data['transformations_table_column_data'][value] == 'int64'):
-        return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
-            'is missing','is not missing']]
-    elif value is not None and data == {} and ret_data is not None and\
-        (ret_data['transformations_table_column_data'][value] == 'object' or\
-            ret_data['transformations_table_column_data'][value] == 'category'):
-        return [{'label':i,'value':i} for i in ['has value(s)', 'starts with', \
-            'contains','ends with','is missing','is not missing']]
-    elif value is not None and data == {} and ret_data is not None and\
-        (ret_data['transformations_table_column_data'][value] == 'datetime64[ns]'or\
-            ret_data['transformations_table_column_data'][value] == 'datetime64'):
-        return [{'label':i,'value':i} for i in ['days','before','after',\
-            'not','equals','range','is missing','is not missing']]
-    else:       
-        return []
+        } else if (value != null && Object.entries(data).length == 0 && ret_data != null
+            && ret_data != undefined
+            && (ret_data['transformations_table_column_data'][value] == 'float64'
+            || ret_data['transformations_table_column_data'][value] == 'int64')) {
+            
+            let temp_vals = []
+            let options = ['has value(s)','<','<=','==','!=','>','>=','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
+        } else if (value != null && Object.entries(data).length == 0 && ret_data != null
+            && ret_data != undefined
+            && (ret_data['transformations_table_column_data'][value] == 'object'
+            || ret_data['transformations_table_column_data'][value] == 'category')) {
+            
+            let temp_vals = []
+            let options = ['has value(s)', 'starts with','contains','ends with','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
+        } else if (value != null && Object.entries(data).length == 0 && ret_data != null
+            && ret_data != undefined
+            && (ret_data['transformations_table_column_data'][value] == 'datetime64[ns]'
+            || ret_data['transformations_table_column_data'][value] == 'datetime64')) {
+            
+            let temp_vals = []
+            let options = ['days','before','after','not','equals','range','is missing','is not missing']
+            for (let i in options) {
+                temp_vals.push({'label':options[i],'value':options[i]})
+            }
+            return temp_vals
+        } else {
+            return []
+        }
+    }    
+    ''',
+    Output({'type':'filters-conditions','index':MATCH}, 'options'),
+    Input({'type':'filters-column-names','index':MATCH}, 'value'),
+    State({'type':'filters-column-names','index':MATCH},'id'),
+    State('transformations-table-column-data','data'),
+    State('retrived-data','data')
+)
+
+# @app.callback(
+#     Output({'type':'filters-conditions','index':MATCH}, 'options'),
+#     [
+#         Input({'type':'filters-column-names','index':MATCH}, 'value'),
+#     ],
+#     [
+#         State({'type':'filters-column-names','index':MATCH},'id'),
+#         State('transformations-table-column-data','data'),
+#         State('retrived-data','data')
+#     ]
+# )
+# def update_filters_condition_dropdown(value,id,data,ret_data):
+#     if value is not None and data != {} and (data[value] == 'float64' or data[value] == 'int64'):
+#         return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
+#             'is missing','is not missing']]
+#     elif value is not None and data != {} and (data[value] == 'object' or data[value] == 'category'):
+#         return [{'label':i,'value':i} for i in ['has value(s)', 'starts with', \
+#             'contains','ends with','is missing','is not missing']]
+#     elif value is not None and data != {} and (data[value] == 'datetime64[ns]' or data[value] == 'datetime64'):
+#         return [{'label':i,'value':i} for i in ['days','before','after',\
+#             'not','equals','range','is missing','is not missing']]
+
+#     elif value is not None and data == {} and ret_data is not None and\
+#         (ret_data['transformations_table_column_data'][value] == 'float64' or\
+#             ret_data['transformations_table_column_data'][value] == 'int64'):
+#         return [{'label':i,'value':i} for i in ['has value(s)','<','<=','==','!=','>','>=', \
+#             'is missing','is not missing']]
+#     elif value is not None and data == {} and ret_data is not None and\
+#         (ret_data['transformations_table_column_data'][value] == 'object' or\
+#             ret_data['transformations_table_column_data'][value] == 'category'):
+#         return [{'label':i,'value':i} for i in ['has value(s)', 'starts with', \
+#             'contains','ends with','is missing','is not missing']]
+#     elif value is not None and data == {} and ret_data is not None and\
+#         (ret_data['transformations_table_column_data'][value] == 'datetime64[ns]'or\
+#             ret_data['transformations_table_column_data'][value] == 'datetime64'):
+#         return [{'label':i,'value':i} for i in ['days','before','after',\
+#             'not','equals','range','is missing','is not missing']]
+#     else:       
+#         return []
 
 # add multi-dropdown or textbox based on condition selected
 @app.callback(
@@ -2599,47 +3047,88 @@ def get_real_time_count(disabled,ret_data,filters_data,fil_col_id,fil_condi_id,t
 
 
 # enable or disable the date picker when current date is used.
-@app.callback(
-    [
-        Output({'type':'trans-days-single','index':MATCH},'disabled'),
-        Output({'type':'trans-days-single','index':MATCH},'date'),
-    ],
-    [
-        Input({'type':'trans-use-current-date','index':MATCH},'value'),
-    ],
-    [
-        State({'type':'trans-days-single','index':MATCH},'date'),
-    ]
+app.clientside_callback(
+    '''
+    function update_state_date_picker(use_curr_date,date_pick) {
+        # console.log(use_curr_date)
+        if (use_curr_date != undefined && use_curr_date != null && use_curr_date.length < 1) {
+            return false, date_pick
+        } else {
+            return true, null
+        }
+    }
+    ''',
+    Output({'type':'trans-days-single','index':MATCH},'disabled'),
+    Output({'type':'trans-days-single','index':MATCH},'date'),
+    Input({'type':'trans-use-current-date','index':MATCH},'value'),
+    State({'type':'trans-days-single','index':MATCH},'date')
 )
-def update_state_date_picker(use_curr_date,date_pick):
+
+# @app.callback(
+#     [
+#         Output({'type':'trans-days-single','index':MATCH},'disabled'),
+#         Output({'type':'trans-days-single','index':MATCH},'date'),
+#     ],
+#     [
+#         Input({'type':'trans-use-current-date','index':MATCH},'value'),
+#     ],
+#     [
+#         State({'type':'trans-days-single','index':MATCH},'date'),
+#     ]
+# )
+# def update_state_date_picker(use_curr_date,date_pick):
     
-    if use_curr_date == []:
-        return False, date_pick
-    else:
-        return True, None
+#     if use_curr_date == []:
+#         return False, date_pick
+#     else:
+#         return True, None
 
 
 # transformations filters modal data feeding.
-@app.callback(
-    Output({'type':'filters-column-names','index':0},'options'),
-
-    [
-        Input('transformations-dropdown','value'),
-    ],
-    [
-        State('relationship-data','data'),
-        State('transformations-table-column-data','data'),
-    ]
-)
-def update_transformation_modal(value,data,trans_column_data):
-    if value is not None and data != {}:
-        if value == 'Filter rows':
-            # modal_head = H5(value)
-            return [{'label':i,'value':i} for i in trans_column_data.keys()]
-        else:
+app.clientside_callback(
+    '''
+    function update_transformation_modal(value,data,trans_column_data) {
+        if ((value != null || value != undefined) && Object.entries(data).length > 0) {
+            if (value == 'Filter rows') {
+                let temp_vals = []
+                let key_vals = Object.keys(trans_column_data)
+                for (i in key_vals) {
+                    temp_vals.push({'label':key_vals[i],'value':key_vals[i]})
+                }
+                return temp_vals
+            } else {
+                return []
+            }
+        } else {
             return []
-    else:
-        return []
+        }
+    }
+    ''',
+    Output({'type':'filters-column-names','index':0},'options'),
+    Input('transformations-dropdown','value'),
+    State('relationship-data','data'),
+    State('transformations-table-column-data','data'),
+)
+# @app.callback(
+#     Output({'type':'filters-column-names','index':0},'options'),
+
+#     [
+#         Input('transformations-dropdown','value'),
+#     ],
+#     [
+#         State('relationship-data','data'),
+#         State('transformations-table-column-data','data'),
+#     ]
+# )
+# def update_transformation_modal(value,data,trans_column_data):
+#     if value is not None and data != {}:
+#         if value == 'Filter rows':
+#             # modal_head = H5(value)
+#             return [{'label':i,'value':i} for i in trans_column_data.keys()]
+#         else:
+#             return []
+#     else:
+#         return []
 
 
 # transformation dropdown
@@ -3471,7 +3960,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row,None,None
     
     elif triggred_compo.rfind('applied-changes-menu') > -1:
-        # print(f"{apply_menu_child}",flush=True)
+        print(f"{apply_menu_child}",flush=True)
         if any(menu_n_clicks):
             for idx,i in enumerate(menu_n_clicks):
 
