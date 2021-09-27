@@ -36,16 +36,19 @@ from dash_extensions.snippets import send_bytes, send_file
 app.clientside_callback(
     '''
     function update_view_of_schedules(value) {
-        if (value == "hourly") {
-            return {},{"display":"none"},{"display":"none"},{"display":"none"}
-        } else if (value == "daily") {
-            return {"display":"none"},{},{"display":"none"},{"display":"none"}
-        } else if (value == "weekly") {
-            return {"display":"none"},{"display":"none"},{},{"display":"none"}
-        } else if (value == "monthly") {
-            return {"display":"none"},{"display":"none"},{"display":"none"},{}
+        console.log('schedule cklist',value)
+        console.log('schedule cklist',value.conductor)
+              
+        if (value != null && value != undefined && value == "hourly") {
+            return [{},{"display":"none"},{"display":"none"},{"display":"none"}]
+        } else if (value != null && value != undefined && value == "daily") {
+            return [{"display":"none"},{},{"display":"none"},{"display":"none"}]
+        } else if (value != null && value != undefined && value == "weekly") {
+            return [{"display":"none"},{"display":"none"},{},{"display":"none"}]
+        } else if (value != null && value != undefined && value == "monthly") {
+            return [{"display":"none"},{"display":"none"},{"display":"none"},{}]
         } else {
-            return {"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}
+            return [{"display":"none"},{"display":"none"},{"display":"none"},{"display":"none"}]
         }
     }
     ''',
@@ -85,7 +88,8 @@ app.clientside_callback(
 app.clientside_callback(
     '''
     function update_view_of_schedule_body(value) {
-        if (value != null && value.includes(null) != true && value.includes(undefined) != true) {
+        
+        if (value != null && value.includes(null) != true && value.includes(undefined) != true && value.length > 0) {
             return {}
         } else {
             return {"display":"none"}
@@ -113,7 +117,7 @@ app.clientside_callback(
 app.clientside_callback(
     '''
     function update_noofpolicies(data) {
-        console.log('Records no.',data)
+        
         if (data != null && data != undefined) {
             return String(data)
         } else {
@@ -691,14 +695,11 @@ app.clientside_callback(
 
         let relationship_menu = []
         for (let i in applied_changes) {
-            console.log(i,applied_changes[i]['props']['children'])
+            
             if (applied_changes[i]['props']['id'].constructor == Object
                 && applied_changes[i]['props']['children'] != null
                 && applied_changes[i]['props']['children'].startsWith('Table Relation') == true) {
                     
-                console.log(typeof(applied_changes[i]['props']['id']))
-                console.log(applied_changes[i]['props']['id'])
-                console.log(applied_changes[i]['props']['children'])
                 relationship_menu.push(true)
 
             } else {
@@ -732,15 +733,6 @@ app.clientside_callback(
                 filters_menu.push(false)
             }
         }
-
-        console.log('rel_val',rel_val)
-        console.log('rel_val_len',Object.entries(rel_val).length)
-        console.log('add_val',add_val)
-        console.log('fil_val',fil_val)
-
-        console.log('rel_menu',relationship_menu)
-        console.log('add_menu',add_col_menu)
-        console.log('fil_menu',filters_menu)
 
 
         if (Object.entries(rel_val).length != 0 && relationship_menu.includes(true) == false) {
@@ -941,20 +933,34 @@ def update_db_table_names(data):
 
    
 # add new col
-@app.callback(
-    Output('add-new-col-modal-body','children'),
-    [
-        Input('retrived-data','data'),
-    ],
-    [
-        State('add-new-col-modal-body','children'),
-    ],
-)
-def update_add_new_col_row(data,add_new_col_child):
-    if data is not None:
-        return data['add_new_col_rows']
-    else:
-        return add_new_col_child
+# app.clientside_callback(
+#     '''
+#     function update_add_new_col_row(data,add_new_col_child) {
+#         if (data != null && data != undefined) {
+#             return data['add_new_col_rows']
+#         } else {
+#             return add_new_col_child
+#         }
+#     }
+#     ''',
+#     Output('add-new-col-modal-body','children'),
+#     Input('retrived-data','data'),
+#     State('add-new-col-modal-body','children'),
+# )
+# @app.callback(
+#     Output('add-new-col-modal-body','children'),
+#     [
+#         Input('retrived-data','data'),
+#     ],
+#     [
+#         State('add-new-col-modal-body','children'),
+#     ],
+# )
+# def update_add_new_col_row(data,add_new_col_child):
+#     if data is not None:
+#         return data['add_new_col_rows']
+#     else:
+#         return add_new_col_child
 
 
 # add new table dropdown
@@ -975,8 +981,6 @@ def update_add_new_col_row(data,add_new_col_child):
 def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs):
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    
     
     if triggred_compo == 'add-table-button':
         x=data
@@ -1218,10 +1222,6 @@ def update_main_sql_query(data,rel_values,ids):
     
     if sql_qry != []:
         rel_values=list(filter(None,rel_values))
-        #print(f"RELATION SHIP {rel_values}")
-
-
-        # print(f"IDS {ids}")
         status,qry_list=get_main_sql_query(sql_qry,rel_values)
         if status:
             return qry_list
