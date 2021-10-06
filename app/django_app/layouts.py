@@ -172,6 +172,8 @@ def index():
                         'sel_col':None,
                         'add_new_col_rows':{},
                         'realtime_rows':{},
+                        'sch_rows':[],
+                        'sch_email':{}
                     }
                 ),
 

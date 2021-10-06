@@ -17,7 +17,7 @@ from ..global_functions import get_columns, get_join_main, get_main_sql_query,ge
 import json
 from .. models import MsiFilters
 import sys
-import regex
+
 import ast 
 import re
 import os
@@ -31,13 +31,207 @@ from crontab import CronTab
 from dash.exceptions import PreventUpdate
 from dash_extensions.snippets import send_bytes, send_file
 
+app.clientside_callback(
+    '''
+    function update_modal_sf_body(data,childs) {
+        if (data != null && data != undefined) {
+            return data['sch_rows']
+        } else {
+            return childs
+        }            
+    }
+    ''',
+    Output('modal-sf-body','children'),
+    Input('retrived-data','data'),
+    State('modal-sf-body','children'),
+)
+# @app.callback(
+#     Output('modal-sf-body','children'),
+#     [
+#         Input('retrived-data','data')
+#     ],
+#     [
+#         State('modal-sf-body','children')
+#     ]
+# )
+# def update_modal_sf_body(data,childs):
+#     if data is not None:
+#         return data['sch_rows']
+#     else:
+#         return childs
+
+app.clientside_callback(
+    '''
+    function update_to_email_div(to_email_val,email_badge_n_clicks,to_email_div) {
+        
+        
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+        //console.log('email trigger',triggered)
+
+        if (triggered != null && triggered != undefined && triggered.length > 0 && triggered.includes('sch-to-email-input.value')
+            && to_email_val != null && to_email_val != undefined &&
+            (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(to_email_val))) {
+            let val = {
+                "props":{
+                    "children":{
+                        "props":{
+                            "children":to_email_val,
+                            "color":"primary",
+                            "className":"mr-1"
+                        },
+                        "type":"Badge",
+                        "namespace":"dash_bootstrap_components"
+                    },
+                    'id':{'type':'to-emails-badge','index':to_email_div.length + 1},
+                    'n_clicks':0
+
+                },
+                "type":"A",
+                "namespace":"dash_html_components"
+            }
+
+            to_email_div.push(val)
+
+            return to_email_div
+        } else if (triggered != null && triggered != undefined && triggered.length > 0
+            && (/{"index":/.test(triggered[0]))) {
+                y=triggered[0].match(/{"index":.*,/)[0]
+                //console.log(y)
+
+                //console.log(y.match(/[^{"index":.*,]+/)[0])
+
+                index = Number(y.match(/[^{"index":.*,]+/)[0])
+
+                //console.log(to_email_div)
+
+                for (let i in to_email_div) {
+                    if (Number(to_email_div[i]['props']['id']['index']) == index ) {
+                        to_email_div.splice(i,1)
+                        break
+                    }
+                }
+
+                return to_email_div
+
+        } else {
+            return to_email_div
+        }
+    }
+    ''',
+    Output('sch-to-email-div','children'),
+    Input('sch-to-email-input','value'),
+    Input({'type':'to-emails-badge','index':ALL},'n_clicks'),
+    State('sch-to-email-div','children')
+)
+
+
+app.clientside_callback(
+    '''
+    function update_cc_email_div(cc_email_val,email_badge_n_clicks,cc_email_div) {
+        
+        
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+        //console.log('email trigger',triggered)
+
+        if (triggered != null && triggered != undefined && triggered.length > 0 
+            && triggered.includes('sch-cc-email-input.value')
+            && cc_email_val != null && cc_email_val != undefined &&
+            (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(cc_email_val))) {
+            let val = {
+                "props":{
+                    "children":{
+                        "props":{
+                            "children":cc_email_val,
+                            "color":"primary",
+                            "className":"mr-1"
+                        },
+                        "type":"Badge",
+                        "namespace":"dash_bootstrap_components"
+                    },
+                    'id':{'type':'cc-emails-badge','index':cc_email_div.length + 1},
+                    'n_clicks':0
+                },
+                "type":"A",
+                "namespace":"dash_html_components"
+            }
+
+            cc_email_div.push(val)
+
+            return cc_email_div
+
+        } else if (triggered != null && triggered != undefined && triggered.length > 0
+            && (/{"index":/.test(triggered[0]))) {
+                y=triggered[0].match(/{"index":.*,/)[0]
+                //console.log(y)
+
+                //console.log(y.match(/[^{"index":.*,]+/)[0])
+
+                index = Number(y.match(/[^{"index":.*,]+/)[0])
+
+                //console.log(cc_email_div)
+
+                for (let i in cc_email_div) {
+                    if (Number(cc_email_div[i]['props']['id']['index']) == index ) {
+                        cc_email_div.splice(i,1)
+                        break
+                    }
+                }
+
+                return cc_email_div
+
+        } else {
+            return cc_email_div
+        }
+    }
+    ''',
+    Output('sch-cc-email-div','children'),
+    Input('sch-cc-email-input','value'),
+    Input({'type':'cc-emails-badge','index':ALL},'n_clicks'),
+    State('sch-cc-email-div','children')
+)
+
+
+app.clientside_callback(
+    '''
+    function toggle_mail_collapse(n,is_open,childs) {
+        //console.log('n val',n)
+        //console.log('is_op',is_open)
+        if (n != null && n != undefined && n > 0 && is_open != null
+            && is_open != undefined) {
+            if (is_open == true) {
+                return [false, "Compose mail"]
+            } else {
+                return [true, "Don't Compose mail"]
+            }
+        }
+        return [is_open,childs]
+    }
+    ''',
+    Output("email-collapse", "is_open"),
+    Output("compose-mail-button", "children"),
+    Input("compose-mail-button", "n_clicks"),
+    State("email-collapse", "is_open"),
+    State("compose-mail-button", "children"),
+)
+
+# @app.callback(
+#     Output("collapse", "is_open"),
+#     [Input("collapse-button", "n_clicks")],
+#     [State("collapse", "is_open")],
+# )
+# def toggle_collapse(n, is_open):
+#     if n:
+#         return not is_open
+#     return is_open
+
+
 
 # show or hide schedule views
 app.clientside_callback(
     '''
     function update_view_of_schedules(value) {
-        console.log('schedule cklist',value)
-        console.log('schedule cklist',value.conductor)
+        //console.log('schedule cklist',value)
+        //console.log('schedule cklist',value.conductor)
               
         if (value != null && value != undefined && value == "hourly") {
             return [{},{"display":"none"},{"display":"none"},{"display":"none"}]
@@ -353,17 +547,28 @@ def update_saved_filters(n_clicks,close_n_clicks,ret_data,is_open,fil_radio_val)
         State('sch-monthly-hour-input','value'),
         State('sch-monthly-min-input','value'),
 
-        State('sch-email-input','value'),
         State('sch-auto-del-input','value'),
+        State('sch-email-input','value'),
+        State('sch-pass-input','value'),
+        State('sch-to-email-div','children'),
+        State('sch-cc-email-div','children'),
+        State('sch-subject-input','value'),
+        State('sch-message-input','value'),
+        State('compose-mail-button','children'),
+
+        State('modal-sf-body','children')
     ]
 )
 def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist_value,sch_radio_value,\
     sch_hly_val,sch_dly_hr_val,sch_dly_min_val,sch_wly_wk_val,\
     sch_wly_hr_val,sch_wly_min_val,sch_mly_mon_val,sch_mly_dt_val,\
-    sch_mly_hr_val,sch_mly_min_val,sch_email_val,sch_auto_del_val):
+    sch_mly_hr_val,sch_mly_min_val,sch_auto_del_val,sch_email_val,sch_pass_val,
+    sch_to_email_child,sch_cc_email_child,sch_sub_val,sch_msg_val,com_but_child,
+    save_modal_body):
 
     ctx = callback_context
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
 
     if triggred_compo == 'modal-sf-save' and n_clicks is not None \
         and fil_name is not None:
@@ -388,12 +593,57 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
 
             # fil_name = fil_name + '_' + now
 
-            job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
+            # job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
             # job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name}',comment=str(fil_name))
             
             # for j in cron:
             #     print(sch_str,flush=True)
             #     print(j,flush=True)
+
+            sch_email = {
+                "from":'',
+                'pass':'',
+                'to':'',
+                'cc':'',
+                'sub':'',
+                'msg':''
+            }
+            if com_but_child != "Compose mail" and sch_email_val != None \
+                and len(sch_to_email_child) > 1 and sch_sub_val != None \
+                and sch_msg_val != None and sch_pass_val != None:
+
+                if sch_email_val != None:
+                    sch_email['from']=sch_email_val
+                if sch_pass_val != None:
+                    # print(sch_pass_val)
+                    sch_email['pass']=sch_pass_val
+                if len(sch_to_email_child) > 1:
+                    to_mails = ''
+                    for i in sch_to_email_child[1:]:
+                        if to_mails == '':
+                            to_mails=i['props']['children']['props']['children']
+                        else:
+                            to_mails+=";"+i['props']['children']['props']['children']
+                    sch_email['to']=to_mails
+
+                if len(sch_cc_email_child) > 1:
+                    cc_mails = ''
+                    for i in sch_cc_email_child[1:]:
+                        if cc_mails == '':
+                            cc_mails=i['props']['children']['props']['children']
+                        else:
+                            cc_mails+=";"+i['props']['children']['props']['children']
+                    sch_email['cc']=cc_mails
+
+                if sch_sub_val != None:
+                    sch_email['sub']=sch_sub_val
+                if sch_msg_val != None:
+                    sch_email['msg']=sch_msg_val
+            
+            data['sch_email'] = sch_email
+            data['sch_rows'] = save_modal_body
+            # print(data['sch_email'])
+            # print(sch_str)
 
             data = json.dumps(data)
             
@@ -417,6 +667,7 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
                 return False,True
             else:
                 if sch_str != "":
+                    job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
                     job.setall(sch_str)
                     cron.write()
                     if sch_auto_del_val is not None:
@@ -427,6 +678,7 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
                 filter_data.save()
                 return True,False
         else:
+            data['sch_rows'] = save_modal_body
             data = json.dumps(data)
             if MsiFilters.objects.filter(filter_name = fil_name).exists():
                 # try:
@@ -467,9 +719,52 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
 
             # fil_name = fil_name + '_' + now
 
-            job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
+            # job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
             # job = cron.new(command=f'/py/bin/python {schedule_script_loc} {fil_name}',comment=str(fil_name))
             
+            sch_email = {
+                "from":'',
+                'pass':'',
+                'to':'',
+                'cc':'',
+                'sub':'',
+                'msg':''
+            }
+            if com_but_child != "Compose mail" and sch_email_val != None \
+                and len(sch_to_email_child) > 1 and sch_sub_val != None \
+                and sch_msg_val != None and sch_pass_val != None:
+
+                if sch_email_val != None:
+                    sch_email['from']=sch_email_val
+                if sch_pass_val != None:
+                    # print(sch_pass_val)
+                    sch_email['pass']=sch_pass_val
+                if len(sch_to_email_child) > 1:
+                    to_mails = ''
+                    for i in sch_to_email_child[1:]:
+                        if to_mails == '':
+                            to_mails=i['props']['children']['props']['children']
+                        else:
+                            to_mails+=";"+i['props']['children']['props']['children']
+                        
+                    sch_email['to']=to_mails
+                if len(sch_cc_email_child) > 1:
+                    cc_mails = ''
+                    for i in sch_cc_email_child[1:]:
+                        if cc_mails == '':
+                            cc_mails=i['props']['children']['props']['children']
+                        else:
+                            cc_mails+=";"+i['props']['children']['props']['children']
+                    sch_email['cc']=cc_mails
+                if sch_sub_val != None:
+                    sch_email['sub']=sch_sub_val
+                if sch_msg_val != None:
+                    sch_email['msg']=sch_msg_val
+            
+            data['sch_email'] = sch_email
+            data['sch_rows'] = save_modal_body
+            # print(f'indise {data["sch_email"]}')
+            # print(f'indise {sch_str}')
             # for j in cron:
             #     print(sch_str,flush=True)
             #     print(j,flush=True)
@@ -479,10 +774,12 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
             if MsiFilters.objects.filter(filter_name = fil_name).exists():
                 try:
                     dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
-                    cron = CronTab(user=True)
+                    cron = CronTab(user='root')
                     cron.remove_all(comment=str(fil_name))
                     cron.write()
+                    # print("already exist")
                     if sch_str != "":
+                        job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
                         job.setall(sch_str)
                         cron.write()
                         if sch_auto_del_val is not None:
@@ -496,6 +793,7 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
                 return True,False
             else:
                 if sch_str != "":
+                    job = cron.new(command=f'/app/django_app/schedule_script.py {fil_name} >> /app/django_app/media/django_app/test.log',comment=str(fil_name))
                     job.setall(sch_str)
                     cron.write()
                     if sch_auto_del_val is not None:
@@ -507,11 +805,12 @@ def save_to_db(n_clicks,fil_exists_n_clicks,save_but_clicks,data,fil_name,cklist
                 return True,False
                 
         else:
+            data['sch_rows'] = save_modal_body
             data = json.dumps(data)
             if MsiFilters.objects.filter(filter_name = fil_name).exists():
                 try:
                     dat = MsiFilters.objects.filter(filter_name=fil_name).delete()
-                    cron = CronTab(user=True)
+                    cron = CronTab(user='root')
                     cron.remove_all(comment=str(fil_name))
                     cron.write()
                     filter_data = MsiFilters(filter_name=fil_name,filter_data=data)
@@ -578,111 +877,231 @@ def update_retrived_data(n_clicks,del_n_clicks,value,data):
         raise PreventUpdate
     
 # save modal open or close
-@app.callback(
+app.clientside_callback(
+    '''
+    function sf_modal_open(n_clicks,close_n_clicks,is_open) {
+        //console.log('save_run',n_clicks)
+        //console.log('save_sadasdrun',close_n_clicks)
+        //console.log('save_openrun',is_open)
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+        if (triggered != null && triggered != undefined && triggered.length > 0
+            && triggered.includes('run.n_clicks') && n_clicks != null && n_clicks != undefined
+            && n_clicks > 0) {
+            
+            if (is_open == false || is_open == undefined || is_open == null) {
+                return true
+            } else {
+                return false
+            }
+        } else if (triggered != null && triggered != undefined && triggered.length > 0
+            && triggered.includes('modal-sf-close.n_clicks') && close_n_clicks != null && close_n_clicks != undefined
+            && close_n_clicks > 0) {
+
+            if (is_open == false || is_open == undefined || is_open == null) {
+                return true
+            } else {
+                return false
+            }
+        } else {
+            return is_open
+        }
+    }
+    
+    
+    ''',
     Output('sf-modal','is_open'),
-    [
-        Input('run','n_clicks'),
-        Input('modal-sf-close','n_clicks'),
-    ],
-    [
-        State('sf-modal','is_open')
-    ]
+    Input('run','n_clicks'),
+    Input('modal-sf-close','n_clicks'),
+    State('sf-modal','is_open')
 )
-def sf_modal_open(n_clicks,close_n_clicks,is_open):
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # sys.stderr.write(str(triggred_compo))
-    # print(f"\n{str(is_open)}")
-    # print(f"\n{str(close_n_clicks)}")
+# @app.callback(
+#     Output('sf-modal','is_open'),
+#     [
+#         Input('run','n_clicks'),
+#         Input('modal-sf-close','n_clicks'),
+#     ],
+#     [
+#         State('sf-modal','is_open')
+#     ]
+# )
+# def sf_modal_open(n_clicks,close_n_clicks,is_open):
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if triggred_compo == 'run' and n_clicks is not None:
-        return not is_open
-    elif triggred_compo == 'modal-sf-close' and close_n_clicks is not None:
-        return not is_open
-    else:
-        return is_open
+#     # sys.stderr.write(str(triggred_compo))
+#     # print(f"\n{str(is_open)}")
+#     # print(f"\n{str(close_n_clicks)}")
+
+#     if triggred_compo == 'run' and n_clicks is not None:
+#         return not is_open
+#     elif triggred_compo == 'modal-sf-close' and close_n_clicks is not None:
+#         return not is_open
+#     else:
+#         return is_open
 
 # save changes to memory
-@app.callback(
+app.clientside_callback(
+    '''
+function update_chngs_db(relationship_data,format_map_data,upload_file_columns_data,
+  format_row,tables_row,filter_rows,transformations_table_column_data,
+  transformations_filters_condi,save_changes_data,filters_data,
+  sel_drp_val,sel_drp_col_val,add_new_col_body,realtime_rows) {
+  
+  const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+
+  //console.log('save_to_memo',triggered)
+  if (triggered.includes("relationship-data.data")) {
+    filters_data['status']=null
+    
+    save_changes_data['relationship_data']=relationship_data
+    save_changes_data['filters_data']=filters_data
+    save_changes_data['transformations_table_column_data']=transformations_table_column_data
+    save_changes_data['transformations_filters_condi']=transformations_filters_condi
+
+    //console.log('ind',tables_row)
+    tables_row = JSON.stringify(tables_row)
+    const tbl_row_regx = /'n_clicks': [\d|null]+/ig
+    tables_row = tables_row.replaceAll(tbl_row_regx,"'n_clicks': null")
+    
+    tables_row = JSON.parse(tables_row)
+    //console.log('table_row',tables_row)
+    save_changes_data['tables_rows'] = tables_row
+
+    filter_rows = JSON.stringify(filter_rows)
+    const fil_row_regx = /'n_clicks': [\d|null]+/ig
+    filter_rows = filter_rows.replaceAll(fil_row_regx,"'n_clicks': null")
+    filter_rows = JSON.parse(filter_rows)
+    save_changes_data['filter_rows'] = filter_rows
+
+    save_changes_data['filter_rows'] = filter_rows
+
+    save_changes_data['sel_val'] = sel_drp_val
+    save_changes_data['sel_col'] = sel_drp_col_val
+
+    add_new_col_body = JSON.stringify(add_new_col_body)
+    const add_new_row_regx = /'n_clicks': [\d|null]+/ig
+    add_new_col_body = add_new_col_body.replaceAll(add_new_row_regx,"'n_clicks': null")
+    add_new_col_body = JSON.parse(add_new_col_body)
+    save_changes_data['add_new_col_rows'] = add_new_col_body
+    save_changes_data['realtime_rows']=realtime_rows
+
+    // return save_changes_data
+  }
+  
+  if (triggered.includes('format-map-data.data')) {
+    save_changes_data['format_map_data']=format_map_data
+    save_changes_data['format_rows'] = format_row
+
+    // return save_changes_data
+  } 
+  
+  if (triggered.includes('upload-file-columns-data.data')) {
+    save_changes_data['upload_file_columns_data']=upload_file_columns_data
+    // return save_changes_data
+  }
+
+  return save_changes_data
+}
+    ''',
     Output('save-changes','data'),
-    [
-        Input('relationship-data','data'),
-        
-        Input('format-map-data','data'),
-        Input('upload-file-columns-data','data'),
-    ],
-    [
-        State('column-names-row','children'),
-        State('tables-row', 'children'),
-        State('filters-div','children'),
-        State('transformations-table-column-data','data'),
-        State('transformations-filters-condi','data'),
-        State('save-changes','data'),
-        State('filters-data','data'), 
-        State('select-drop-select-drop','value'),
-        State('select-drop-col-names','value'),
-        State('add-new-col-modal-body','children'),
-        State('realtime-total-records','children')
-    ],
+    Input('relationship-data','data'),
+    Input('format-map-data','data'),
+    Input('upload-file-columns-data','data'),
+    State('column-names-row','children'),
+    State('tables-row', 'children'),
+    State('filters-div','children'),
+    State('transformations-table-column-data','data'),
+    State('transformations-filters-condi','data'),
+    State('save-changes','data'),
+    State('filters-data','data'), 
+    State('select-drop-select-drop','value'),
+    State('select-drop-col-names','value'),
+    State('add-new-col-modal-body','children'),
+    State('realtime-total-records','children'),
 )
-def update_chngs_db(relationship_data,\
-    format_map_data,upload_file_columns_data,format_row,tables_row,filter_rows,\
-        transformations_table_column_data,\
-        transformations_filters_condi,save_changes_data,filters_data,\
-        sel_drp_val,sel_drp_col_val,add_new_col_body,realtime_rows):
 
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # print(save_changes_data,flush=True)
-    # print(relationship_data,flush=True)
-
-    if triggred_compo == 'relationship-data':
-        # print(f"\n{type(relationship_data)}",flush=True)
-        # print(f"\n{tables_row}",flush=True)
-        filters_data['status']=None
-        save_changes_data['relationship_data']=relationship_data
-        save_changes_data['filters_data']=filters_data
-        save_changes_data['transformations_table_column_data']=transformations_table_column_data
-        save_changes_data['transformations_filters_condi']=transformations_filters_condi
-        tables_row = str(tables_row)
-        tables_row=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",tables_row)
-        tables_row=ast.literal_eval(str(tables_row))
-
-        save_changes_data['tables_rows'] = tables_row
+# @app.callback(
+#     Output('save-changes','data'),
+#     [
+#         Input('relationship-data','data'),
         
-        filter_rows = str(filter_rows)
-        filter_rows=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",filter_rows)
-        filter_rows=ast.literal_eval(str(filter_rows))
-
-        save_changes_data['filter_rows'] = filter_rows
-
-        save_changes_data['sel_val'] = sel_drp_val
-        save_changes_data['sel_col'] = sel_drp_col_val
-
-        add_new_col_body = str(add_new_col_body)
-        add_new_col_body=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",add_new_col_body)
-        add_new_col_body=ast.literal_eval(str(add_new_col_body))
-        save_changes_data['add_new_col_rows'] = add_new_col_body
-
-        save_changes_data['realtime_rows']=realtime_rows
-
-        # print(add_new_col_body)
+#         Input('format-map-data','data'),
+#         Input('upload-file-columns-data','data'),
         
-        # print(f"\n\n{save_changes_data}",flush=True)
-        return save_changes_data
+#     ],
+#     [
+#         State('column-names-row','children'),
+#         State('tables-row', 'children'),
+#         State('filters-div','children'),
+#         State('transformations-table-column-data','data'),
+#         State('transformations-filters-condi','data'),
+#         State('save-changes','data'),
+#         State('filters-data','data'), 
+#         State('select-drop-select-drop','value'),
+#         State('select-drop-col-names','value'),
+#         State('add-new-col-modal-body','children'),
+#         State('realtime-total-records','children')
+#     ],
+# )
+# def update_chngs_db(relationship_data,\
+#     format_map_data,upload_file_columns_data,format_row,tables_row,filter_rows,\
+#         transformations_table_column_data,\
+#         transformations_filters_condi,save_changes_data,filters_data,\
+#         sel_drp_val,sel_drp_col_val,add_new_col_body,realtime_rows):
+
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+#     # print(save_changes_data,flush=True)
+#     # print(relationship_data,flush=True)
+
+#     if triggred_compo == 'relationship-data':
+#         # print(f"\n{type(relationship_data)}",flush=True)
+#         # print(f"\n{tables_row}",flush=True)
+#         filters_data['status']=None
+#         save_changes_data['relationship_data']=relationship_data
+#         save_changes_data['filters_data']=filters_data
+#         save_changes_data['transformations_table_column_data']=transformations_table_column_data
+#         save_changes_data['transformations_filters_condi']=transformations_filters_condi
+#         tables_row = str(tables_row)
+#         tables_row=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",tables_row)
+#         tables_row=ast.literal_eval(str(tables_row))
+
+#         save_changes_data['tables_rows'] = tables_row
+        
+#         filter_rows = str(filter_rows)
+#         filter_rows=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",filter_rows)
+#         filter_rows=ast.literal_eval(str(filter_rows))
+
+#         save_changes_data['filter_rows'] = filter_rows
+
+#         save_changes_data['sel_val'] = sel_drp_val
+#         save_changes_data['sel_col'] = sel_drp_col_val
+
+#         add_new_col_body = str(add_new_col_body)
+#         add_new_col_body=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",add_new_col_body)
+#         add_new_col_body=ast.literal_eval(str(add_new_col_body))
+#         save_changes_data['add_new_col_rows'] = add_new_col_body
+
+#         save_changes_data['realtime_rows']=realtime_rows
+
+#         # print(add_new_col_body)
+        
+#         # print(f"\n\n{save_changes_data}",flush=True)
+#         return save_changes_data
     
-    elif triggred_compo == 'format-map-data':
-        save_changes_data['format_map_data']=format_map_data
-        save_changes_data['format_rows'] = format_row
-        return save_changes_data
+#     elif triggred_compo == 'format-map-data':
+#         save_changes_data['format_map_data']=format_map_data
+#         save_changes_data['format_rows'] = format_row
+#         return save_changes_data
     
-    elif triggred_compo == 'upload-file-columns-data':
-        save_changes_data['upload_file_columns_data']=upload_file_columns_data
-        return save_changes_data
-    else:
-        raise PreventUpdate
+#     elif triggred_compo == 'upload-file-columns-data':
+#         save_changes_data['upload_file_columns_data']=upload_file_columns_data
+#         return save_changes_data
+#     else:
+#         raise PreventUpdate
 
 
 app.clientside_callback(
@@ -964,164 +1383,540 @@ def update_db_table_names(data):
 
 
 # add new table dropdown
-@app.callback(
-    Output('tables-row', 'children'),
-    [
-        Input('add-table-button','n_clicks'),
-        Input('retrived-data','data'),
-        Input({'type':'relationship-table-close','index':ALL},'n_clicks'),
-    ],
-    [
-        State('table-rows-save','data'),
-        State({'type':'relationship-table-dropdown','index':ALL},'value'),
-        State('db-table-names','data'),
-        State('tables-row','children'),
-    ]
-)
-def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs):
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    if triggred_compo == 'add-table-button':
-        x=data
-        if None not in value:
-            [x.remove(i) for i in value]
-            component_id = len(value)
-
-            options=[{'label':i,'value':i} for i in x]
-
-            childs = str(childs)
-            apply_clicks = re.findall("'apply-join-modal', 'index': [\d|None]*}, 'className': 'ml-auto'. 'n_clicks': [\d|None]*",childs)
-            for s in apply_clicks:
-                new_s=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",s)
-                childs=childs.replace(s,new_s)
-
-
-            # childs=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",childs)
-            childs=ast.literal_eval(str(childs))
-
-            mod = Modal([
-                    ModalHeader(html.H5('Join on')),
-                    ModalBody([
-                        html.Div([
-                            Row(Col(dcc.Dropdown(id={'type':'sql-join-modal','index':component_id},\
-                                options=[{'label':i,'value':i} for i in ['LEFT', 'RIGHT', 'CROSS', 'INNER']]))),
-                            html.Br(),
-                            Row([
-                                Col(html.H5(id={'type':'left-table-name','index':component_id})),
-                                Col(html.H5(id={'type':'right-table-name','index':component_id}))
-                            ]),
-                            Row([
-                                Col(dcc.Dropdown(id={'type':'left-table-join-modal','index':component_id})),
-                                Col(dcc.Dropdown(id={'type':'right-table-join-modal','index':component_id}))
-                            ]),
-                            # Row(
-                            #     Col(
-                            #         H5(id={'type':'join-status','index':component_id})
-                            #     )
-                            # )
-                            html.Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':component_id}))
-                        ])
-                    ]),
-                    ModalFooter([
-                        # Toast(id={"type":'join-status','index':component_id}),
-                        Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto'),
-                        Button("Close",id={'type':'close-join-modal','index':component_id},className='ml-auto'),
-                    ])
-                ],id={'type':'join-modal','index':component_id},centered=True,size='lg',backdrop="static")
+app.clientside_callback(
+    '''
+    function update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs) {
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+        //console.log('add new table',triggered)
+        if (triggered.includes('add-table-button.n_clicks')) {
+            let x = data
+            //console.log('values',value)
             
-            store = dcc.Store(id={'type':'sql-joins-query','index':component_id},data=None)
+            if (value.includes(null) != true) {
+                let remov_loc = []
+                for (i in value) {
+                    if (x.indexOf(value[i]) != -1) {
+                        x.splice(x.indexOf(value[i]),1)
+                    }
+                }
 
-            childs.append(store)
+                let component_id = value.length
 
-            childs.append(mod)
+                let options = []
 
-            childs.append(
-                {'props':{'children': {'props':{
-                    'children':{'props':{'src':app.get_asset_url('sql-join-icon.png')},
-                                'type':'Img',
-                                'namespace':'dash_html_components'},
+                for (i in x) {
+                    options.push({'label':x[i],'value':x[i]})
+                }
 
-                    'id': {'type': 'relationship-sql-joins',
-                                'index': component_id
+                for (i in childs) {
+                    if (childs[i]['type'] == 'Modal') {
+                        // console.log(str[i]['props']['children'])
+                        for (j in childs[i]['props']['children']) {
+                            if (childs[i]['props']['children'][j]['type'] == 'ModalFooter') {
+                                for (k in childs[i]['props']['children'][j]['props']['children']) {
+                                    if (childs[i]['props']['children'][j]['props']['children'][k]['props']['id']['type'] == "apply-join-modal") {
+                                        if ("n_clicks" in childs[i]['props']['children'][j]['props']['children'][k]['props']) {
+                                            childs[i]['props']['children'][j]['props']['children'][k]['props']['n_clicks']=0
+                                            childs[i]['props']['children'][j]['props']['children'][k]['props']['n_clicks_timestamp']=0
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                //console.log("for loop completed")
+
+
+                let mod = {
+                    'props':{
+                        'children':[
+                            {
+                                'props':{
+                                    'children':{
+                                        'props':{'children':'Join on'},
+                                        'type':'H5',
+                                        'namespace':'dash_html_components'
+                                    }
+                                },
+                                'type':'ModalHeader',
+                                'namespace':'dash_bootstrap_components'
                             },
+
+                            {
+                                'props':{
+                                    'children':[
+                                        {
+                                            'props':{
+                                                'children':{
+                                                    'props':{
+                                                        'children':{
+                                                            'props':{
+                                                                'id':{'type':'sql-join-modal','index':component_id},
+                                                                'options':[{'label':'LEFT','value':'LEFT'},{'label':'RIGHT','value':'RIGHT'},{'label':'CROSS','value':'CROSS'},{'label':'INNER','value':'INNER'}]
+                                                            },
+                                                            'type':'Dropdown',
+                                                            'namespace':'dash_core_components'
+                                                        }
+                                                    },
+                                                    'type':'Col',
+                                                    'namespace':'dash_bootstrap_components'
+                                                },
+                                            },
+                                            'type':'Row',
+                                            'namespace':'dash_bootstrap_components'
+                                        },
+
+                                        {
+                                            'props':{'children':null},
+                                            'type':'Br',
+                                            'namespace':'dash_html_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                'children':[
+                                                    {
+                                                        'props':{
+                                                            'children':{
+                                                                'props':{
+                                                                    'id':{'type':'left-table-name','index':component_id}
+                                                                },
+                                                                'type':'H5',
+                                                                'namespace':'dash_html_components'
+                                                            }
+                                                        },
+                                                        'type':'Col',
+                                                        'namespace':'dash_bootstrap_components'
+                                                    },
+
+                                                    {
+                                                        'props':{
+                                                            'children':{
+                                                                'props':{
+                                                                    'id':{'type':'right-table-name','index':component_id}
+                                                                },
+                                                                'type':'H5',
+                                                                'namespace':'dash_html_components'
+                                                            }
+                                                        },
+                                                        'type':'Col',
+                                                        'namespace':'dash_bootstrap_components'
+                                                    }
+                                                ]
+                                            },
+                                            'type':'Row',
+                                            'namespace':'dash_bootstrap_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                'children':[
+                                                    {
+                                                        'props':{
+                                                            'children':{
+                                                                'props':{
+                                                                    'id':{'type':'left-table-join-modal','index':component_id}
+                                                                },
+                                                                'type':'Dropdown',
+                                                                'namespace':'dash_core_components'
+                                                            }
+                                                        },
+                                                        'type':'Col',
+                                                        'namespace':'dash_bootstrap_components'
+                                                    },
+
+                                                    {
+                                                        'props':{
+                                                            'children':{
+                                                                'props':{
+                                                                    'id':{'type':'right-table-join-modal','index':component_id}
+                                                                },
+                                                                'type':'Dropdown',
+                                                                'namespace':'dash_core_components'
+                                                            }
+                                                        },
+                                                        'type':'Col',
+                                                        'namespace':'dash_bootstrap_components'
+                                                    },
+
+                                                    {
+                                                        'props':{
+                                                            'children':{
+                                                                'props':{
+                                                                    'children':'Error',
+                                                                    'color':'danger',
+                                                                    'is_open':false,
+                                                                    'id':{"type":'join-status','index':component_id}
+                                                                },
+                                                                'type':'Alert',
+                                                                'namespace':'dash_bootstrap_components'
+                                                            }
+                                                        },
+                                                        'type':'Div',
+                                                        'namespace':'dash_html_components'
+                                                    }
+                                                ]
+                                            },
+                                            'type':'Row',
+                                            'namespace':'dash_bootstrap_components'
+                                        }
+
+                                        
+                                    ],
+                                    'type':'Div',
+                                    'namespace':'dash_html_components'
+                                },
+                                'type':'ModalBody',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+                            {
+                                'props':{
+                                    'children':[
+                                        {
+                                            'props':{
+                                                'children':'Apply',
+                                                'id':{'index':component_id,'type':'apply-join-modal'},
+                                                'className':'ml-auto'
+                                            },
+                                            'type':'Button',
+                                            'namespace':'dash_bootstrap_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                'children':'Close',
+                                                'id':{'index':component_id,'type':'close-join-modal'},
+                                                'className':'ml-auto'
+                                            },
+                                            'type':'Button',
+                                            'namespace':'dash_bootstrap_components'
+                                        }
+                                    ]
+                                },
+                                'type':'ModalFooter',
+                                'namespace':'dash_bootstrap_components'
+                            }
+                        ],
+                        'id':{'type':'join-modal','index':component_id},
+                        'centered':true,
+                        'size':'lg',
+                        'backdrop':"static"
                     },
-                    'type':'A',
-                    "namespace":'dash_html_components'
-                },  
-                "width":1},
-                'type': 'Col',
-                'namespace': 'dash_bootstrap_components'}
-            )
+                    'type':'Modal',
+                    'namespace':'dash_bootstrap_components'
+                }
 
-            childs.append(
-                {'props': {'children': {'props': {'id': {'type': 'relationship-table-dropdown',
-                    'index': component_id},
-                    'value': None,
-                    'options':options},
-                    'type': 'Dropdown',
-                    'namespace': 'dash_core_components'},
-                'width': 3},
-                'type': 'Col',
-                'namespace': 'dash_bootstrap_components'}
-            )
+                let store = {
+                    'props':{
+                        'id':{'type':'sql-joins-query','index':component_id},
+                        'data':null
+                    },
+                    'type':'Store',
+                    'namespace':'dash_core_components'
+                }
 
-            childs.append(
-                Col(
-                    html.A(
-                        html.I(className='fa fa-times'),
-                        id={'type':'relationship-table-close','index':component_id},
-                    ),
+                childs.push(store)
+                childs.push(mod)
+                childs.push(
+                    {'props':{'children': {'props':{
+                        'children':{'props':{'src':'/assets/sql-join-icon.png'},
+                                    'type':'Img',
+                                    'namespace':'dash_html_components'},
+
+                        'id': {'type': 'relationship-sql-joins',
+                                    'index': component_id
+                                },
+                        },
+                        'type':'A',
+                        "namespace":'dash_html_components'
+                    },  
+                    "width":1},
+                    'type': 'Col',
+                    'namespace': 'dash_bootstrap_components'}
                 )
-            )
 
-            
+                childs.push(
+                    {'props': {'children': {'props': {'id': {'type': 'relationship-table-dropdown',
+                        'index': component_id},
+                        'value': null,
+                        'options':options},
+                        'type': 'Dropdown',
+                        'namespace': 'dash_core_components'},
+                    'width': 3},
+                    'type': 'Col',
+                    'namespace': 'dash_bootstrap_components'}
+                )
+
+                childs.push(
+                    {
+                        'props':{
+                            'children':{
+                                'props':{
+                                    'children':{
+                                        'props':{
+                                            'className':'fa fa-times'
+                                        },
+                                        'type':'I',
+                                        'namespace':'dash_html_components'
+                                    },
+                                    'id':{'type':'relationship-table-close','index':component_id}
+                                },
+                                'type':'A',
+                                'namespace':'dash_html_components'
+                            }
+                        },
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                )
+                return childs
+
+            }
+        } else if (triggered.includes('retrived-data.data') && ret_data != null && ret_data != undefined) {
+            //console.log("saved_data",ret_data['tables_rows'])
+            return ret_data['tables_rows']
+        } else if (triggered.includes(undefined) == false && triggered.includes(null) == false && triggered[0] != undefined
+            && triggered.includes(triggered[triggered[0].search(/{.*"relationship-table-close.*/g)])) {
+            let indx = Number(triggered[0].match(/:[\d]+/g)[0].slice(1))
+
+            childs_copy = childs.slice()
+
+            //console.log('childs len',childs.length)
+            //console.log('childs len',childs_copy.length)
+
+            //console.log('children',childs_copy)
 
 
+            for (itm in childs_copy) {
+                
+                for (itm1 in childs) {
+                    try {
+                        if (childs[itm1]['props']['children']['props']['id'] != undefined
+                            && childs[itm1]['props']['children']['props']['id']['index'] == indx) {
+                            x=childs.splice(itm1,1)
+                            //console.log('deleted1',x)
+                            break
+                        }
+
+                    } catch {
+                        if (childs[itm1]['props']['id'] != undefined
+                            && childs[itm1]['props']['id']['index'] == indx) {
+                            x=childs.splice(itm1,1)
+                            //console.log('deleted1',x)
+                            break
+                        }
+                    }
+                    
+                    //console.log('inside',childs[itm1]['props']['children']['props']['id'])
+                }
+            }
+            //console.log('childs len22',childs.length)
+            //console.log('childs len',childs_copy.length)
             return childs
-    elif triggred_compo.rfind('relationship-table-close') > -1:
-        # indx = triggred_compo['index']
-        indx = int(triggred_compo[9])
 
-        childs_copy = childs.copy()
+        } else {
+            return childs
+        }
+    }
+    ''',
+    Output('tables-row', 'children'),
+    Input('add-table-button','n_clicks'),
+    Input('retrived-data','data'),
+    Input({'type':'relationship-table-close','index':ALL},'n_clicks'),
+    State('table-rows-save','data'),
+    State({'type':'relationship-table-dropdown','index':ALL},'value'),
+    State('db-table-names','data'),
+    State('tables-row','children'),
+    prevent_initial_call=True
+)
 
-        for itm in childs_copy:
-            try:
-                if itm['props']['children']['props']['id']['index'] == indx:
-                    childs.remove(itm)
-            except:
-                if itm['props']['id']['index'] == indx:
-                    childs.remove(itm)
+# @app.callback(
+#     Output('tables-row', 'children'),
+#     [
+#         Input('add-table-button','n_clicks'),
+#         Input('retrived-data','data'),
+#         Input({'type':'relationship-table-close','index':ALL},'n_clicks'),
+#     ],
+#     [
+#         State('table-rows-save','data'),
+#         State({'type':'relationship-table-dropdown','index':ALL},'value'),
+#         State('db-table-names','data'),
+#         State('tables-row','children'),
+#     ],
+#     prevent_initial_call=True
+# )
+# def update_tables_row(clk,ret_data,rel_close_click,table_save,value,data,childs):
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+#     if triggred_compo == 'add-table-button':
+#         x=data
+#         if None not in value:
+#             [x.remove(i) for i in value]
+#             component_id = len(value)
 
-        return childs
-    elif triggred_compo == 'retrived-data' and ret_data is not None:
-        return ret_data['tables_rows']
-    else:
-        return childs
+#             options=[{'label':i,'value':i} for i in x]
+
+#             childs = str(childs)
+#             print(childs)
+#             apply_clicks = re.findall("'apply-join-modal', 'index': [\d|None]*}, 'className': 'ml-auto'. 'n_clicks': [\d|None]*",childs)
+#             for s in apply_clicks:
+#                 new_s=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",s)
+#                 childs=childs.replace(s,new_s)
+
+
+#             # childs=regex.sub("'n_clicks': [\d|None]*","'n_clicks': None",childs)
+#             childs=ast.literal_eval(str(childs))
+
+#             mod = Modal([
+#                     ModalHeader(html.H5('Join on')),
+#                     ModalBody([
+#                         html.Div([
+#                             Row(Col(dcc.Dropdown(id={'type':'sql-join-modal','index':component_id},\
+#                                 options=[{'label':i,'value':i} for i in ['LEFT', 'RIGHT', 'CROSS', 'INNER']]))),
+#                             html.Br(),
+#                             Row([
+#                                 Col(html.H5(id={'type':'left-table-name','index':component_id})),
+#                                 Col(html.H5(id={'type':'right-table-name','index':component_id}))
+#                             ]),
+#                             Row([
+#                                 Col(dcc.Dropdown(id={'type':'left-table-join-modal','index':component_id})),
+#                                 Col(dcc.Dropdown(id={'type':'right-table-join-modal','index':component_id}))
+#                             ]),
+#                             # Row(
+#                             #     Col(
+#                             #         H5(id={'type':'join-status','index':component_id})
+#                             #     )
+#                             # )
+#                             html.Div(Alert("Error",color='danger',is_open=False,id={"type":'join-status','index':component_id}))
+#                         ])
+#                     ]),
+#                     ModalFooter([
+#                         # Toast(id={"type":'join-status','index':component_id}),
+#                         Button("Apply",id={'type':'apply-join-modal','index':component_id},className='ml-auto'),
+#                         Button("Close",id={'type':'close-join-modal','index':component_id},className='ml-auto'),
+#                     ])
+#                 ],id={'type':'join-modal','index':component_id},centered=True,size='lg',backdrop="static")
+            
+#             store = dcc.Store(id={'type':'sql-joins-query','index':component_id},data=None)
+
+#             childs.append(store)
+
+#             childs.append(mod)
+
+#             childs.append(
+#                 {'props':{'children': {'props':{
+#                     'children':{'props':{'src':app.get_asset_url('sql-join-icon.png')},
+#                                 'type':'Img',
+#                                 'namespace':'dash_html_components'},
+
+#                     'id': {'type': 'relationship-sql-joins',
+#                                 'index': component_id
+#                             },
+#                     },
+#                     'type':'A',
+#                     "namespace":'dash_html_components'
+#                 },  
+#                 "width":1},
+#                 'type': 'Col',
+#                 'namespace': 'dash_bootstrap_components'}
+#             )
+
+#             childs.append(
+#                 {'props': {'children': {'props': {'id': {'type': 'relationship-table-dropdown',
+#                     'index': component_id},
+#                     'value': None,
+#                     'options':options},
+#                     'type': 'Dropdown',
+#                     'namespace': 'dash_core_components'},
+#                 'width': 3},
+#                 'type': 'Col',
+#                 'namespace': 'dash_bootstrap_components'}
+#             )
+
+#             childs.append(
+#                 Col(
+#                     html.A(
+#                         html.I(className='fa fa-times'),
+#                         id={'type':'relationship-table-close','index':component_id},
+#                     ),
+#                 )
+#             )
+
+#             return childs
+#     elif triggred_compo.rfind('relationship-table-close') > -1:
+#         # indx = triggred_compo['index']
+#         indx = int(triggred_compo[9])
+
+#         childs_copy = childs.copy()
+
+#         for itm in childs_copy:
+#             try:
+#                 if itm['props']['children']['props']['id']['index'] == indx:
+#                     childs.remove(itm)
+#             except:
+#                 if itm['props']['id']['index'] == indx:
+#                     childs.remove(itm)
+
+#         return childs
+#     elif triggred_compo == 'retrived-data' and ret_data is not None:
+#         return ret_data['tables_rows']
+#     else:
+#         return childs
 
     
 # enable or disable the Add table button and Run Button
-@app.callback(
-    [
-        Output('add-table-button','disabled'),
-        Output('preview-table-button','disabled'),
-    ],
+app.clientside_callback(
+    '''
+    function update_add_button_status(values,childs,options) {
+        let y = []
+        let childs_copy = childs.slice(1)
+        for (i in childs_copy) {
+            y.push(childs_copy[i]['props']['src'])
+        }
 
-    [
-        Input({'type':'relationship-table-dropdown','index':ALL},'value'),
-        Input({'type':'relationship-sql-joins','index':ALL},'children'),
-    ],
-    [
-        State({'type':'relationship-table-dropdown','index':ALL},'options')
-    ]
+        //console.log('values',values)
+        //console.log('yls',y)
+
+        if (values.includes(null) != true && values.includes(undefined) != true
+            && y.includes("/assets/sql-join-icon.png") != true) {
+            return [false,false]
+        } else {
+            return [true,true]
+        }
+    }
+    ''',
+    Output('add-table-button','disabled'),
+    Output('preview-table-button','disabled'),
+    Input({'type':'relationship-table-dropdown','index':ALL},'value'),
+    Input({'type':'relationship-sql-joins','index':ALL},'children'),
+    State({'type':'relationship-table-dropdown','index':ALL},'options')
 )
-def update_add_button_status(values,childs,options):
-    #print(f'VALUES OPTIONS... {options}')
-    y=[i['props']['src'] for i in childs[1:]]
-    if None not in values and app.get_asset_url('sql-join-icon.png') not in y:
-        return False, False
-    else:
-        return True, True
+
+# @app.callback(
+#     [
+#         Output('add-table-button','disabled'),
+#         Output('preview-table-button','disabled'),
+#     ],
+
+#     [
+#         Input({'type':'relationship-table-dropdown','index':ALL},'value'),
+#         Input({'type':'relationship-sql-joins','index':ALL},'children'),
+#     ],
+#     [
+#         State({'type':'relationship-table-dropdown','index':ALL},'options')
+#     ]
+# )
+# def update_add_button_status(values,childs,options):
+#     #print(f'VALUES OPTIONS... {options}')
+#     y=[i['props']['src'] for i in childs[1:]]
+#     if None not in values and app.get_asset_url('sql-join-icon.png') not in y:
+#         return False, False
+#     else:
+#         return True, True
 
 
 # @app.callback(
@@ -1255,7 +2050,8 @@ def update_main_sql_query(data,rel_values,ids):
         State({'type':'relationship-sql-joins','index':MATCH},'children'),
         State({'type':'join-status','index':MATCH},'is_open'),
         State({'type':'relationship-sql-joins','index':MATCH},'id'),
-    ]
+    ],
+    prevent_initial_call=True
 )
 def update_on_apply_joins(n_clicks,tbl_l,tbl_r,value_l,value_r,join_value,\
     sql_qry,sql_join_icon,join_status,id_rel):

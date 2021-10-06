@@ -1,7 +1,7 @@
 # from dash_core_components import Dropdown, Input, RadioItems, Store,Checklist
 # from dash_html_components import Br, Div, Label, H5, A, Img, I
 from dash_bootstrap_components import Modal, ModalHeader, ModalFooter, ModalBody, \
-    Button, Row, Col, Tooltip, Toast,Alert,FormGroup, FormText, Form, FormFeedback, Label
+    Button, Row, Col, Tooltip, Toast,Alert,FormGroup, FormText, Form, FormFeedback, Label, Collapse, Badge
 # import dash_html_components as dhc
 
 # from dash_table import DataTable
@@ -220,17 +220,81 @@ def relationship_tab():
                                     html.Br(),
                                     Row([
                                         Col([
-                                            Label("Auto-Delete after n days"),
+                                            Label("Auto-Delete excel files after n days"),
                                             dcc.Input(id="sch-auto-del-input",placeholder="days in number..",
                                             type='number',inputMode="numeric",required=True)
                                         ]),
                                     ]),
-                                    Row([
-                                        Col([
-                                            Label("Enter E-mail for alerts"),
-                                            dcc.Input(id="sch-email-input",placeholder="Email..")
-                                        ]),
-                                    ])                                    
+                                    html.Br(),
+                                    Row(
+                                        Col(
+                                            Button(
+                                                "Compose mail",
+                                                id="compose-mail-button",
+                                                className="mb-3",
+                                                color="primary",
+                                                n_clicks=0,
+                                            )
+                                        )
+                                    ),
+                                    Row(
+                                        Col(
+                                            Collapse([
+                                                    Form([
+                                                        FormGroup([
+                                                            html.Label("Email"),
+                                                            dcc.Input(inputMode="email",type='email', id="sch-email-input", placeholder="Enter email")
+                                                        ]),
+                                                        FormGroup([
+                                                            html.Label("Password"),
+                                                            dcc.Input(type='password', id="sch-pass-input", placeholder="Enter password")
+                                                        ])
+                                                    ]),
+
+                                                    Form([
+                                                        FormGroup([
+                                                            html.Label("TO"),
+                                                            html.Div([
+                                                                html.A(Badge("Primary", color="primary", className="mr-1"),
+                                                                    id={'type':'to-emails-badge','index':0},style={'display':'none'},n_clicks=0),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                                # html.A(Badge("Primary", color="primary", className="mr-1")),
+                                                            ],id='sch-to-email-div'),
+                                                            html.Br(),
+                                                            dcc.Input(inputMode="email",type='email',debounce=True, id="sch-to-email-input", placeholder="Enter email")
+                                                        ]),
+
+                                                        FormGroup([
+                                                            html.Label("CC"),
+                                                            html.Div([
+                                                                html.A(Badge("Primary", color="primary", className="mr-1"),
+                                                                    id={'type':'cc-emails-badge','index':0},style={'display':'none'},n_clicks=0),
+                                                            ],id='sch-cc-email-div'),
+                                                            html.Br(),
+                                                            dcc.Input(inputMode="email",type='email', debounce=True,id="sch-cc-email-input", placeholder="Enter email")
+                                                        ]),
+
+                                                        FormGroup([
+                                                            html.Label("Subject"),
+                                                            dcc.Input(id="sch-subject-input", placeholder="Enter subject",required=True)
+                                                        ]),
+
+                                                        FormGroup([
+                                                            html.Label("Message"),
+                                                            dcc.Textarea(id="sch-message-input", placeholder="Enter Message",required=True)
+                                                        ])
+                                                    ])
+                                                ],
+                                                id='email-collapse',
+                                                is_open=False
+                                            )
+                                        ,width=6)                                        
+                                    )                                    
                                 ]),
                             ],id='schedule-body',style={"display":"none"}),
 

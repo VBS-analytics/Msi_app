@@ -167,22 +167,44 @@ def disable_preview(values,download_data):
 
 
 # stores the mapped data to memory.
-@app.callback(
+app.clientside_callback(
+    '''
+    function display_output(n_clicks,values,data) {
+        if (n_clicks != null && n_clicks != undefined && n_clicks > 0){
+            if (data != null && data != undefined && data.length > 0) {
+                let d = {}
+                for (let i in data){
+                    d[data[i]]=values[i]
+                }
+                return d
+            }
+        }
+    }
+        
+    ''',
     Output('format-map-data', 'data'),
-    [
-        Input('preview-table-format-button','n_clicks'),
-    ],
-    
-    [
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State('upload-file-columns-data','data'),
-    ]
+    Input('preview-table-format-button','n_clicks'),
+    State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+    State('upload-file-columns-data','data'),
+    prevent_initial_call=True
 )
-def display_output(n_clicks,values,data):
-    if n_clicks is not None:
-        if data != []:
-            d={}
-            [d.update({i:j}) for i,j in zip(data,values)]
-            return d
-    else:
-        raise PreventUpdate
+
+# @app.callback(
+#     Output('format-map-data', 'data'),
+#     [
+#         Input('preview-table-format-button','n_clicks'),
+#     ],
+    
+#     [
+#         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+#         State('upload-file-columns-data','data'),
+#     ]
+# )
+# def display_output(n_clicks,values,data):
+#     if n_clicks is not None:
+#         if data != []:
+#             d={}
+#             [d.update({i:j}) for i,j in zip(data,values)]
+#             return d
+#     else:
+#         raise PreventUpdate

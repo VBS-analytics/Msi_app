@@ -165,36 +165,36 @@ def get_filter_records(filters_data,trans_text_id,trans_multi_id,fil_col_id,\
         return None,None,None,None
 
 # add condition row
-def get_condition_rows(columns,indx):
-    # print(f"get condition rows {type(indx)}")
-    # print(f"get condition row {indx}")
-    return Row([
-        Col(
-            FormGroup([
-                Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
-                dcc.Dropdown(
-                    id={'type':'filters-column-names','index':indx},
-                    options=[{'label':i,'value':i} for i in columns.keys()],
-                    value=None
-                )
-            ])
-        ,width=4),
+# def get_condition_rows(columns,indx):
+#     # print(f"get condition rows {type(indx)}")
+#     # print(f"get condition row {indx}")
+#     return Row([
+#         Col(
+#             FormGroup([
+#                 Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':indx}),
+#                 dcc.Dropdown(
+#                     id={'type':'filters-column-names','index':indx},
+#                     options=[{'label':i,'value':i} for i in columns.keys()],
+#                     value=None
+#                 )
+#             ])
+#         ,width=4),
 
-        Col(
-            FormGroup([
-                Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
-                dcc.Dropdown(
-                    id={'type':'filters-conditions','index':indx}
-                )
-            ])
-        ,width=3),
+#         Col(
+#             FormGroup([
+#                 Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':indx}),
+#                 dcc.Dropdown(
+#                     id={'type':'filters-conditions','index':indx}
+#                 )
+#             ])
+#         ,width=3),
 
-        Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
+#         Col(id={'type':'filters-text-drpdwn','index':indx},width=4),
 
-        Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
-        # Store(id={'type':'filters-rows-trash','index':indx},data=None)
+#         Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':indx}),className="text-right"),
+#         # Store(id={'type':'filters-rows-trash','index':indx},data=None)
 
-    ],id={'type':'condition-rows','index':indx})
+#     ],id={'type':'condition-rows','index':indx})
 
 app.clientside_callback(
     '''
@@ -229,215 +229,1333 @@ app.clientside_callback(
 #     else:
 #         return True
 
-@app.callback(
+app.clientside_callback(
+    '''
+    function update_add_new_col_values(n_clicks,col_name_val,col_input_val,filters_data,add_new_col_id) {
+        if (n_clicks != null && n_clicks != undefined && n_clicks > 0) {
+            if (col_name_val.length > 0 && col_name_val.includes(null)!=true && col_name_val.includes(undefined)!=true
+                && col_input_val.length > 0 && col_input_val.includes(null) != true && col_input_val.includes(undefined) != true) {
+                let qry_str = ""
+                let add_col_id = []
+
+                for (i in col_name_val) {
+                    if (qry_str == "") {
+                        qry_str = qry_str + String(col_input_val[i]) + ' AS ' + String(col_name_val[i])
+                    } else {
+                        qry_str = qry_str + String(col_input_val[i]) + ' AS ' + String(col_name_val[i])
+                    }
+                    add_col_id.push(add_new_col_id[i]['index'])
+                }
+
+                return {"add_col_names":col_name_val,"add_col_qry":qry_str,"add_col_id":add_col_id,"add_col_input":col_input_val}
+            } else {
+                window.dash_clientside.no_update
+            }
+        } else {
+            window.dash_clientside.no_update
+        }
+    }    
+    ''',
     Output('add-new-col','data'),
-    [
-        Input('add-new-col-modal-apply','n_clicks')
-    ],
-    [
-        State({"type":"add-new-col-name","index":ALL},'value'),
-        State({"type":'add-col-value-input',"index":ALL},'value'),
-        State('filters-data','data'), # stores all applied filters
-        State({"type":"add-new-col-name","index":ALL},'id')
-    ]
+    Input('add-new-col-modal-apply','n_clicks'),
+    State({"type":"add-new-col-name","index":ALL},'value'),
+    State({"type":'add-col-value-input',"index":ALL},'value'),
+    State('filters-data','data'), # stores all applied filters
+    State({"type":"add-new-col-name","index":ALL},'id')
 )
-def update_add_new_col_values(n_clicks,col_name_val,col_input_val,filters_data,add_new_col_id):
-    if n_clicks is not None:
-        if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
-            qry_str = ""
-            add_col_id = []
-            for col_name, col_val, col_id in zip(col_name_val,col_input_val,add_new_col_id):
-                if qry_str == "":
-                    qry_str = qry_str + str(col_val) + ' AS ' + str(col_name)
-                else:
-                    qry_str = qry_str + ', ' + str(col_val) + ' AS ' + str(col_name)
-                add_col_id.append(col_id['index'])
+
+# @app.callback(
+#     Output('add-new-col','data'),
+#     [
+#         Input('add-new-col-modal-apply','n_clicks')
+#     ],
+#     [
+#         State({"type":"add-new-col-name","index":ALL},'value'),
+#         State({"type":'add-col-value-input',"index":ALL},'value'),
+#         State('filters-data','data'), # stores all applied filters
+#         State({"type":"add-new-col-name","index":ALL},'id')
+#     ]
+# )
+# def update_add_new_col_values(n_clicks,col_name_val,col_input_val,filters_data,add_new_col_id):
+#     if n_clicks is not None:
+#         if all(col_name_val) and col_name_val != [] and all(col_input_val) and col_input_val != []:
+#             qry_str = ""
+#             add_col_id = []
+#             for col_name, col_val, col_id in zip(col_name_val,col_input_val,add_new_col_id):
+#                 if qry_str == "":
+#                     qry_str = qry_str + str(col_val) + ' AS ' + str(col_name)
+#                 else:
+#                     qry_str = qry_str + ', ' + str(col_val) + ' AS ' + str(col_name)
+#                 add_col_id.append(col_id['index'])
             
             
-            return dict(add_col_names=col_name_val,add_col_qry=qry_str,add_col_id = add_col_id,add_col_input=col_input_val)
-        else:
-            raise PreventUpdate
-    else:
-        raise PreventUpdate
+#             return dict(add_col_names=col_name_val,add_col_qry=qry_str,add_col_id = add_col_id,add_col_input=col_input_val)
+#         else:
+#             raise PreventUpdate
+#     else:
+#         raise PreventUpdate
 
 # add new column button
-@app.callback(
+app.clientside_callback(
+    '''
+    function update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id) {
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
+
+        function anynull(arr) {
+            return arr.some(el => el !== null && el !== undefined);
+        }
+
+        if (triggered.includes('add-col-new-col-but.n_clicks')
+            && n_clicks != null && n_clicks != undefined && n_clicks > 0) {
+            
+            let indx = []
+            for (i in add_col_remove_id) {
+                indx.push(Number(add_col_remove_id[i]['index']))
+            }
+
+            if (indx.length > 0) {
+                indx = Math.max.apply(null,indx)
+            } else {
+                indx = 0
+            }
+
+            indx = Number(indx+1)
+
+            grp_1 = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':{
+                                            'props':{
+                                                'className':"fa fa-trash"
+                                            },
+                                            'type':'I',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'id':{'type':'add-col-remove','index':indx}
+                                    },
+                                    'type':'A',
+                                    'namespace':'dash_html_components'
+                                },
+                                'className':"text-right"
+                            },
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{"children":"Enter column name"},
+                            'type':'Label',
+                            'namespace':'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":"add-new-col-name","index":indx},
+                                'type':"text",
+                                'minLength':5,
+                                'required':true,
+                            },
+                            'type':'Input',
+                            'namespace':'dash_core_components'
+                        },
+
+                        {
+                            'props':{
+                                "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+                                'color':"secondary"
+                            },
+                            'type':'FormText',
+                            'namespace':'dash_bootstrap_components'
+                        },
+                    ],
+                    'id':{"type":'add-col-grp-1','index':indx}
+                },
+                'type':'FormGroup',
+                'namespace':'dash_bootstrap_components'
+            }
+            grp_2 = {
+                'props':{
+                    'children':[
+                        {
+                            'props':{'children':"Assign value to new column"},
+                            'type':'Label',
+                            'namespace':'dash_html_components'
+                        },
+
+                        {
+                            'props':{
+                                'id':{"type":'add-col-value-input',"index":indx},
+                                'type':'text',
+                                'required':true,
+                            },
+                            'type':'Input',
+                            'namespace':'dash_core_components'
+                        }
+                    ],
+                    'id':{"type":'add-col-grp-2','index':indx}
+                },
+                'type':'FormGroup',
+                'namespace':'dash_bootstrap_components'
+            }
+            grp_3 = {
+                'props':{
+                    'id':{"type":'add-col-hr-3','index':indx}
+                },
+                'type':'Hr',
+                'namespace':'dash_html_components'
+            } 
+
+            childs.push(grp_1)
+            childs.push(grp_2)
+            childs.push(grp_3)
+
+            return childs
+        } else if (triggered.includes(undefined) == false && triggered.includes(null) == false && triggered[0] != undefined
+            && triggered.includes(triggered[triggered[0].search(/{.*"add-col-remove.*/g)])) {
+            let indx = null
+
+            if (anynull(trash_n_clicks)) {
+                indx = []
+                for (i in trash_n_clicks) {
+                    if (trash_n_clicks[i] != null && trash_n_clicks[i] != undefined && trash_n_clicks[i] > 0) {
+                        indx.push(i)
+                    }
+                }
+
+                indx = add_col_remove_id[indx[0]]
+                indx = indx['index']
+            }
+            childs_copy = childs.slice()
+
+            if (indx != null && indx != undefined) {
+                for (i in childs) {
+                    for (j in childs_copy) {
+                        if (childs_copy[j]['props']['id']['index'] == Number(indx)) {
+                            childs_copy.splice(j,1)
+                            break
+                        }
+
+                    }
+                    
+                }
+                return childs_copy
+            }
+            window.dash_clientside.no_update
+        } else {
+            window.dash_clientside.no_update
+        }
+    }    
+    ''',
     Output('add-col-form','children'),
-    [
-        Input('add-col-new-col-but','n_clicks'),
-        Input({'type':'add-col-remove','index':ALL},'n_clicks'),
-    ],
-    [
-        State('add-col-form','children'),
-        State({'type':'add-col-remove','index':ALL},'id'),
-    ],
+    Input('add-col-new-col-but','n_clicks'),
+    Input({'type':'add-col-remove','index':ALL},'n_clicks'),
+    State('add-col-form','children'),
+    State({'type':'add-col-remove','index':ALL},'id'),
     prevent_initial_call=True
 )
-def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+# @app.callback(
+#     Output('add-col-form','children'),
+#     [
+#         Input('add-col-new-col-but','n_clicks'),
+#         Input({'type':'add-col-remove','index':ALL},'n_clicks'),
+#     ],
+#     [
+#         State('add-col-form','children'),
+#         State({'type':'add-col-remove','index':ALL},'id'),
+#     ],
+#     prevent_initial_call=True
+# )
+# def update_add_col_div(n_clicks,trash_n_clicks,childs,add_col_remove_id):
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if triggred_compo == "add-col-new-col-but" and n_clicks is not None:
-        indx=[int(i['index']) for i in add_col_remove_id]
-        if indx != []:
-            indx=array(indx).max()
-        else:
-            indx=0
+#     if triggred_compo == "add-col-new-col-but" and n_clicks is not None:
+#         indx=[int(i['index']) for i in add_col_remove_id]
+#         if indx != []:
+#             indx=array(indx).max()
+#         else:
+#             indx=0
 
-        indx = int(indx+1)
+#         indx = int(indx+1)
         
-        grp_1 = FormGroup([
-                    Col(html.A(html.I(className="fa fa-trash"),id={'type':'add-col-remove','index':indx}),className="text-right"),
-                    html.Label("Enter column name"),
-                    dcc.Input(id={"type":"add-new-col-name","index":indx},type="text",minLength=5,required=True),
-                    FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
-                ],id={"type":'add-col-grp-1','index':indx})
+#         grp_1 = FormGroup([
+#                     Col(html.A(html.I(className="fa fa-trash"),id={'type':'add-col-remove','index':indx}),className="text-right"),
+#                     html.Label("Enter column name"),
+#                     dcc.Input(id={"type":"add-new-col-name","index":indx},type="text",minLength=5,required=True),
+#                     FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
+#                 ],id={"type":'add-col-grp-1','index':indx})
         
-        grp_2 = FormGroup([
-                    html.Label("Assign value to new column"),
-                    # RadioItems(
-                    #         options=[{'label':i,'value':i} for i in zip(["single value","conditional value"])],
-                    #         id={"type":"add-col-value-radio","index":indx},
-                    # ),
-                    dcc.Input(id={"type":'add-col-value-input',"index":indx},type='text',required=True),
-                ],id={"type":'add-col-grp-2','index':indx})
+#         grp_2 = FormGroup([
+#                     html.Label("Assign value to new column"),
+#                     # RadioItems(
+#                     #         options=[{'label':i,'value':i} for i in zip(["single value","conditional value"])],
+#                     #         id={"type":"add-col-value-radio","index":indx},
+#                     # ),
+#                     dcc.Input(id={"type":'add-col-value-input',"index":indx},type='text',required=True),
+#                 ],id={"type":'add-col-grp-2','index':indx})
         
         
-        # childs.append(trash_but)
-        childs.append(grp_1)
-        childs.append(grp_2)
-        childs.append(html.Hr(id={"type":'add-col-hr-3','index':indx}))
-        return childs
+#         # childs.append(trash_but)
+#         childs.append(grp_1)
+#         childs.append(grp_2)
+#         childs.append(html.Hr(id={"type":'add-col-hr-3','index':indx}))
+#         return childs
 
-    elif triggred_compo.rfind('add-col-remove') > -1:
-        indx=None
-        print(f"add-col-remove n_clciks {trash_n_clicks}")
-        # print(f"add-col-remove id {trash_n_clicks}")
-        if any(trash_n_clicks):
-            indx = [idx for idx,i in enumerate(trash_n_clicks) if i is not None and i > 0]
-            indx = add_col_remove_id[indx[0]]
-            indx = indx['index']    
+#     elif triggred_compo.rfind('add-col-remove') > -1:
+#         indx=None
+#         # print(f"add-col-remove n_clciks {trash_n_clicks}")
+#         # print(f"add-col-remove id {trash_n_clicks}")
+#         if any(trash_n_clicks):
+#             indx = [idx for idx,i in enumerate(trash_n_clicks) if i is not None and i > 0]
+#             indx = add_col_remove_id[indx[0]]
+#             indx = indx['index']    
 
-        childs_copy = childs.copy()
+#         childs_copy = childs.copy()
                     
 
-        if indx is not None:
-            for idx,i in enumerate(childs):
-                print(f"add-col-remove childs {i['props']['id']}")
-                if i['props']['id']['index'] == int(indx):
-                    childs_copy.remove(i)
-            return childs_copy
-        raise PreventUpdate
-    else:
-        raise PreventUpdate
+#         if indx is not None:
+#             for idx,i in enumerate(childs):
+#                 # print(f"add-col-remove childs {i['props']['id']}")
+#                 if i['props']['id']['index'] == int(indx):
+#                     childs_copy.remove(i)
+#             return childs_copy
+#         raise PreventUpdate
+#     else:
+#         raise PreventUpdate
 
 
 # display the saved filters changes to front-end
-@app.callback(
-    [
-        Output('filters-div','children'),
-        Output('add-new-col-modal-body','children'),
-    ],
-    [
-        Input('retrived-data','data'),
-        Input('preview-table-button','n_clicks'),
-        # Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
-        # Input("filters-clear-all","n_clicks"),
-        # Input('add-new-col-modal-apply','n_clicks'),
-        Input('filters-data','data'),
-        # Input('transformations-dropdown','value'),
-        # Input('filters-modal','is_open'),
-    ],
-    [
-        State('filters-div','children'),
-        State('add-new-col-modal-body','children'),
-        State('filters-data','data'),
-    ],
-)
-def update_filter_div(data,n_clicks,\
-    filters_data,childs,add_childs,fil_data):#apply_menu_child,filters-clear-all
-    ctx = callback_context
-    triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+app.clientside_callback(
+    '''
+    function update_filter_div(data,n_clicks,filters_data) {
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id)
 
-    print(f"FILTERS DIV {triggred_compo}",flush=True)
-    print(f"FILTERS DATA {filters_data}",flush=True)
-    # print(f"FILTERS DIV {len(childs[2]['props']['children'])}",flush=True)
-    # print(f"FILTERS_DIV {filters_data['filters']}")
-    # print(f"FILTERS_DIVvvvv {fil_data['filters']}")
+        let empty_div = [
+            {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':{
+                                            'props':{'className':"fa fa-refresh"},
+                                            'type':'I',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'id':'filters-clear-all',
+                                        'className':"text-right"
+                                    },
+                                    'type':'A',
+                                    'namespace':'dash_html_components'
+                                }
+                            },
+                            'type':'Col',
+                            'namespace':"dash_bootstrap_components"
+                        },
 
-    empty_div = [
-        FormGroup([
-            Col(html.A(html.I(className="fa fa-refresh"),id='filters-clear-all'),className="text-right"),
-            html.Label("Select or drop rows"),
-            dcc.Dropdown(
-                    id='filters-select-drop',
-                    options=[{'label':i,'value':i} for i in ['Select','Drop']],
-                    value=None,
-                    style={"width":"50%"}
-                ),
-            # FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
-        ]),
+                        {
+                            'props':{
+                                'children':'Select or drop rows'
+                            },
+                            'type':'Label',
+                            'namespace':'dash_html_components'
+                        },
 
-        FormGroup([
-            html.Label("Where,")
-        ]),
+                        {
+                            'props':{
+                                'id':'filters-select-drop',
+                                'options':[{'label':'Select','value':'Select'},{'label':'Drop','value':'Drop'}],
+                                'value':null,
+                                'style':{"width":"50%"}
+                            },
+                            'type':'Dropdown',
+                            'namespace':'dash_core_components'
+                        }
+                    ]
+                },
+                'type':'FormGroup',
+                'namespace':'dash_bootstrap_components'
+            },
 
-        html.Div([
-            Row([
-                Col(
-                    FormGroup([
-                        Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':0}),
-                        dcc.Dropdown(
-                            id={'type':'filters-column-names','index':0},
-                            value=None
-                        )
-                    ])
-                ,width=4),
+            {
+                'props':{
+                    'children':{
+                        'props':{
+                            'children':'Where,'
+                        },
+                        'type':'Label',
+                        'namespace':'dash_html_components'
+                    }
+                },
+                'type':'FormGroup',
+                'namespace':'dash_bootstrap_components'
+            },
 
-                Col(
-                    FormGroup([
-                        Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':0}),
-                        dcc.Dropdown(
-                            id={'type':'filters-conditions','index':0}
-                        )
-                    ])
-                ,width=3),
+            {
+                'props':{
+                    'children':[
+                        {
+                            'props':{
+                                'children':[
+                                    {
+                                        'props':{
+                                            'children':{
+                                                'props':{
+                                                    'children':[
+                                                        {
+                                                            'props':{
+                                                                'children':{
+                                                                    'props':{'children':'Select column name'},
+                                                                    'type':'Strong',
+                                                                    'namespace':'dash_html_components'
+                                                                },
+                                                                'html_for':{'type':'filters-column-names','index':0}    
+                                                            },
+                                                            'type':'Label',
+                                                            'namespace':'dash_bootstrap_components'
+                                                        },
 
-                Col([
-                    FormGroup([
-                        html.Label(html.Strong("value")),
-                        dcc.Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
-                        dcc.Input(id={"type":'trans-text','index':0},style={'display':'none'},debounce=True),
-                        dcc.Input(id={'type':'trans-input','index':0},style={'display':'none'},debounce=True),
-                        dcc.DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
-                        dcc.DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
-                        dcc.DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
-                        dcc.Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
-                    ])
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'filters-column-names','index':0},
+                                                                'value':null
+                                                            },
+                                                            'type':'Dropdown',
+                                                            'namespace':'dash_core_components'
+                                                        }
+                                                    ]
+                                                },
+                                                'type':'FormGroup',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+                                            'width':4
+                                        },
+                                        'type':'Col',
+                                        'namespace':'dash_bootstrap_components'
+                                    },
+
+                                    {
+                                        'props':{
+                                            'children':{
+                                                'props':{
+                                                    'children':[
+                                                        {
+                                                            'props':{
+                                                                'children':{
+                                                                    'props':{'children':'condition'},
+                                                                    'type':'Strong',
+                                                                    'namespace':'dash_html_components'
+                                                                },
+                                                                'html_for':{'type':'filters-conditions','index':0}    
+                                                            },
+                                                            'type':'Label',
+                                                            'namespace':'dash_bootstrap_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'filters-conditions','index':0},
+                                                            },
+                                                            'type':'Dropdown',
+                                                            'namespace':'dash_core_components'
+                                                        }
+                                                    ]
+                                                },
+                                                'type':'FormGroup',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+                                            'width':3
+                                        },
+                                        'type':'Col',
+                                        'namespace':'dash_bootstrap_components'
+                                    },
+
+                                    {
+                                        'props':{
+                                            'children':{
+                                                'props':{
+                                                    'children':[
+                                                        {
+                                                            'props':{
+                                                                'children':{
+                                                                    'props':{'children':'value'},
+                                                                    'type':'Strong',
+                                                                    'namespace':'dash_html_components'
+                                                                }
+                                                            },
+                                                            'type':'Label',
+                                                            'namespace':'dash_html_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{"type":'trans-multi-text','index':0},
+                                                                'style':{'display':'none'}
+                                                            },
+                                                            'type':'Dropdown',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{"type":'trans-text','index':0},
+                                                                'style':{'display':'none'},
+                                                                'debounce':true
+                                                            },
+                                                            'type':'Input',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'trans-input','index':0},
+                                                                'style':{'display':'none'},
+                                                                'debounce':true
+                                                            },
+                                                            'type':'Input',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'trans-date-range','index':0},
+                                                                'style':{'display':'none'}
+                                                            },
+                                                            'type':'DatePickerRange',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'trans-date-single','index':0},
+                                                                'style':{'display':'none'}
+                                                            },
+                                                            'type':'DatePickerSingle',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'trans-days-single','index':0},
+                                                                'style':{'display':'none'}
+                                                            },
+                                                            'type':'DatePickerSingle',
+                                                            'namespace':'dash_core_components'
+                                                        },
+
+                                                        {
+                                                            'props':{
+                                                                'id':{'type':'trans-use-current-date','index':0},
+                                                                'style':{'display':'none'}
+                                                            },
+                                                            'type':'Checklist',
+                                                            'namespace':'dash_core_components'
+                                                        }
+                                                    ]
+                                                },
+                                                'type':'FormGroup',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+                                            'id':{'type':'filters-text-drpdwn','index':0},
+                                            'width':4
+                                        },
+                                        'type':'Col',
+                                        'namespace':'dash_bootstrap_components'
+                                    },
+
+                                    {
+                                        'props':{
+                                            'children':{
+                                                'props':{
+                                                    'children':{
+                                                        'props':{
+                                                            'className':"fa fa-trash-o"
+                                                        },
+                                                        'type':'I',
+                                                        'namespace':'dash_html_components'
+                                                    },
+                                                    'id':{'type':'logic-close','index':0}
+                                                },
+                                                'type':'A',
+                                                'namespace':'dash_html_components'
+                                            }
+                                        },
+                                        'type':'Col',
+                                        'namespace':'dash_bootstrap_components'
+                                    }
+                                ],
+                                'id':{'type':'condition-rows','index':0}
+                            },
+                            'type':'Row',
+                            'namespace':'dash_bootstrap_components'
+                        },
+
+                        {
+                            'props':{
+                                'children':{
+                                    'props':{
+                                        'children':'This is Temp column and row'
+                                    },
+                                    'type':'Col',
+                                    'namespace':'dash_bootstrap_components'
+                                },
+                                'id':{"type":"filters-logic","index":0},
+                                'style':{'display':'none'}
+                            },
+                            'type':'Row',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    ],
+                    'id':'filters-conditional-div'
+                },
+                'type':'Div',
+                'namespace':'dash_html_components'
+            },
+
+            {
+                'props':{
+                    "children":{
+                        'props':{
+                            'children':{
+                                'props':{
+                                    'children':'add condition',
+                                    'size':'sm',
+                                    'id':'filters-add-condition'
+                                },
+                                'type':'Button',
+                                'namespace':'dash_bootstrap_components'
+                            }  
+                        },
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+
+        ]
+
+        let empty_div_add = [
+            {
+                'props':{
+                    'children':[
+                            {
+                                'props':{
+                                    'children':[
+                                        {
+                                            'props':{
+                                                'children':{
+                                                    'props':{
+                                                        'children':{
+                                                            'props':{
+                                                                'className':"fa fa-trash"
+                                                            },
+                                                            'type':'I',
+                                                            'namespace':'dash_html_components'
+                                                        },
+                                                        'id':{'type':'add-col-remove','index':0}
+                                                    },
+                                                    'type':'A',
+                                                    'namespace':'dash_html_components'
+                                                },
+                                                'className':"text-right"
+                                            },
+                                            'type':'Col',
+                                            'namespace':'dash_bootstrap_components'
+                                        },
+
+                                        {
+                                            'props':{"children":"Enter column name"},
+                                            'type':'Label',
+                                            'namespace':'dash_html_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                'id':{"type":"add-new-col-name","index":0},
+                                                'type':"text",
+                                                'minLength':5,
+                                                'required':true
+                                            },
+                                            'type':'Input',
+                                            'namespace':'dash_core_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+                                                'color':"secondary"
+                                            },
+                                            'type':'FormText',
+                                            'namespace':'dash_bootstrap_components'
+                                        },
+                                    ],
+                                    'id':{"type":'add-col-grp-1','index':0}
+                                },
+                                'type':'FormGroup',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+                            {
+                                'props':{
+                                    'children':[
+                                        {
+                                            'props':{'children':"Assign value to new column"},
+                                            'type':'Label',
+                                            'namespace':'dash_html_components'
+                                        },
+
+                                        {
+                                            'props':{
+                                                'id':{"type":'add-col-value-input',"index":0},
+                                                'type':'text',
+                                                'required':true
+                                            },
+                                            'type':'Input',
+                                            'namespace':'dash_core_components'
+                                        }
+                                    ],
+                                    'id':{"type":'add-col-grp-2','index':0}
+                                },
+                                'type':'FormGroup',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+                            {
+                                'props':{
+                                    'id':{"type":'add-col-hr-3','index':0}
+                                },
+                                'type':'Hr',
+                                'namespace':'dash_html_components'
+                            }
+                        ],
+                    'id':"add-col-form"
+                },
+                'type':'Form',
+                'namespace':'dash_bootstrap_components'
+            },
+
+            {
+                'props':{'children':null},
+                'type':'Hr',
+                'namespace':'dash_html_components'
+            },
+
+            {
+                'props':{
+                    'children':{
+                        'props':{
+                            'children':{
+                                'props':{
+                                    'children':"Add column",
+                                    'id':"add-col-new-col-but"
+                                },
+                                'type':'Button',
+                                'namespace':'dash_html_components'
+                            }
+                        },
+                        'type':'Col',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                },
+                'type':'Row',
+                'namespace':'dash_bootstrap_components'
+            }
+        ]
+
+        if (triggered.includes('retrived-data.data') && data != null && data != undefined && Object.entries(data['filters_data']['filters']).length !=  0) {
+            return [data['filter_rows'], data['add_new_col_rows']]
+        } else if (triggered.includes('preview-table-button.n_clicks')) {
+            if (n_clicks != null && n_clicks != undefined && n_clicks > 0) {
+                return [empty_div,empty_div_add]
+            } else {
+                window.dash_clientside.no_update
+            }
+        } else if (triggered.includes('filters-data.data') && Object.entries(filters_data['filters']).length != 0 && filters_data['status'] == true) {
+            let fil_div = []
+            let add_col_div=[]
+
+            if (Object.entries(filters_data['filters']).length != 0) {
+                let in_k = Object.keys(filters_data["filters"])[0]
+                let fil_condition_rows = []
+
+                for (i in filters_data['filters'][in_k]['index']) {
+                    let form_grp = {
+                        'props':{
+                            'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":'trans-multi-text','index':0},
+                                        'style':{'display':'none'}
+                                    },
+                                    'type':'Dropdown',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":'trans-text','index':0},
+                                        'style':{'display':'none'},
+                                        'debounce':true
+                                    },
+                                    'type':'Input',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-input','index':0},
+                                        'style':{'display':'none'},
+                                        'debounce':true
+                                    },
+                                    'type':'Input',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-date-range','index':0},
+                                        'style':{'display':'none'},
+                                    },
+                                    'type':'DatePickerRange',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-date-single','index':0},
+                                        'style':{'display':'none'},
+                                    },
+                                    'type':'DatePickerSingle',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-days-single','index':0},
+                                        'style':{'display':'none'},
+                                    },
+                                    'type':'DatePickerSingle',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-use-current-date','index':0},
+                                        'style':{'display':'none'},
+                                    },
+                                    'type':'Checklist',
+                                    'namespace': 'dash_core_components'
+                                },
+                            ]
+                        },
+                        'type':'FormGroup',
+                        'namespace': 'dash_bootstrap_components'
+                    }
+
+                    if (filters_data['filters'][in_k]['values_vals'][i].constructor == Object
+                        && Object.keys(filters_data['filters'][in_k]['values_vals'][i]).includes("trans-multi-text")) {
+                        
+                        form_grp = {
+                            'props':{'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":'trans-multi-text','index':filters_data['filters'][in_k]['index'][i]},
+                                        'value':filters_data['filters'][in_k]['values'][i],
+                                        'multi':true,
+                                        'options':filters_data['filters'][in_k]['values_vals'][i]['trans-multi-text']
+                                    },
+                                    'type':'Dropdown',
+                                    'namespace': 'dash_core_components'
+                                },
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'
+                        }
+
+                    } else if (filters_data['filters'][in_k]['values_vals'][i].constructor == String
+                        && filters_data['filters'][in_k]['values_vals'][i].includes('trans-text') ) {
+                        
+                        form_grp={
+                            'props':{"children":[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":'trans-text','index':filters_data['filters'][in_k]['index'][i]},
+                                        'debounce':true,
+                                        'value':filters_data['filters'][in_k]['values'][i]
+                                    },
+                                    'type':'Input',
+                                    'namespace': 'dash_core_components'
+                                },
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'
+                        }
+
+                    } else if (filters_data['filters'][in_k]['values_vals'][i].constructor == String
+                        && filters_data['filters'][in_k]['values_vals'][i].includes('trans-input') ) {
+                        
+                        form_grp={
+                            'props':{'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-input','index':filters_data['filters'][in_k]['index'][i]},
+                                        'debounce':true,
+                                        'value':filters_data['filters'][in_k]['values'][i]
+                                    },
+                                    'type':'Input',
+                                    'namespace': 'dash_core_components'
+                                },
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'
+                        }
+
+                    } else if (filters_data['filters'][in_k]['values_vals'][i].constructor == Object
+                        && Object.keys(filters_data['filters'][in_k]['values_vals'][i]).includes('trans-date-range')) {
+                        
+                        form_grp={
+                            'props':{'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-date-range','index':filters_data['filters'][in_k]['index'][i]},
+                                        'min_date_allowed':filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['min'],
+                                        'max_date_allowed':filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['max'],
+                                        'start_date':filters_data['filters'][in_k]['values'][i][0],
+                                        'end_date':filters_data['filters'][in_k]['values'][i][1],
+                                    },
+                                    'type':'DatePickerRange',
+                                    'namespace': 'dash_core_components'
+                                },
+
+
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'                    
+                        }
+                    } else if (filters_data['filters'][in_k]['values_vals'][i].constructor == Object
+                        && Object.keys(filters_data['filters'][in_k]['values_vals'][i]).includes('trans-date-single')) {
+                        
+                        form_grp={
+                            'props':{'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-date-single','index':filters_data['filters'][in_k]['index'][i]},
+                                        'min_date_allowed':filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['min'],
+                                        'max_date_allowed':filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['max'],
+                                        'date':filters_data['filters'][in_k]['values'][i],
+                                    },
+                                    'type':'DatePickerSingle',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'                                        
+                        }
+        
+
+                    } else if (filters_data['filters'][in_k]['values_vals'][i].constructor == Array
+                        && filters_data['filters'][in_k]['values_vals'][i].length > 0
+                        && filters_data['filters'][in_k]['values_vals'][i].includes('trans-input')
+                        && filters_data['filters'][in_k]['values_vals'][i].includes('trans-use-current-date')) {
+                        
+                        let ck=false
+                        let val = null
+                        let min_dt=null
+                        let max_dt=null
+
+                        let sig_dt={
+                            'props':{
+                                'id':{'type':'trans-days-single','index':filters_data['filters'][in_k]['index'][i]},
+                            },
+                            'type':'DatePickerSingle',
+                            'namespace': 'dash_core_components'
+                        }
+
+                        if (filters_data['filters'][in_k]['values'][i][1].constructor == Array) {
+                            ck=true
+                            val=filters_data['filters'][in_k]['values'][i][1]
+                            min_dt=filters_data['filters'][in_k]['values_vals'][i][2]['trans-days-single']['min']
+                            max_dt=filters_data['filters'][in_k]['values_vals'][i][2]['trans-days-single']['max']
+
+                            ck_val={
+                                'props':{
+                                    'id':{'type':'trans-use-current-date','index':filters_data['filters'][in_k]['index'][i]},
+                                    'options':[
+                                        {'label': 'Use current sys date', 'value': 'Use'},
+                                    ],
+                                    'value':val
+                                },
+                                'type':'Checklist',
+                                'namespace': 'dash_core_components'
+                            }
+                            sig_dt={
+                                    'props':{
+                                        'id':{'type':'trans-days-single','index':filters_data['filters'][in_k]['index'][i]},
+                                        'placeholder':'mm/dd/YYYY',
+                                        'min_date_allowed':min_dt,
+                                        'max_date_allowed':max_dt,
+                                        'initial_visible_month':new Date(),
+                                        'disabled':true
+                                        
+                                    },
+                                    'type':'DatePickerSingle',
+                                    'namespace': 'dash_core_components'
+                                }
+                        } else {
+                            val=filters_data['filters'][in_k]['values'][i][1]
+                            min_dt=filters_data['filters'][in_k]['values_vals'][i][2]['trans-days-single']['min']
+                            max_dt=filters_data['filters'][in_k]['values_vals'][i][2]['trans-days-single']['max']
+
+                            sig_dt={
+                                'props':{
+                                    'id':{'type':'trans-days-single','index':filters_data['filters'][in_k]['index'][i]},
+                                    'placeholder':'mm/dd/YYYY',
+                                    'min_date_allowed':min_dt,
+                                    'max_date_allowed':max_dt,
+                                    'date':val
+                                },
+                                'type':'DatePickerSingle',
+                                'namespace': 'dash_core_components'
+                            }
+                            
+                            ck_val={
+                                    'props':{
+                                        'id':{'type':'trans-use-current-date','index':filters_data['filters'][in_k]['index'][i]},
+                                    },
+                                    'type':'Checklist',
+                                    'namespace': 'dash_core_components'
+                            }
+                        }
+                        
+                        form_grp={
+                            'props':{'children':[
+                                {
+                                    'props':{'children':{
+                                        'props':{'children':"value"},
+                                        'type':'Strong',
+                                        'namespace': 'dash_html_components'
+                                    }},
+                                    'type':'Label',
+                                    'namespace': 'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{'type':'trans-input','index':filters_data['filters'][in_k]['index'][i]},
+                                        'debounce':true,
+                                        'value':filters_data['filters'][in_k]['values'][i][0],
+                                        'type':'number',
+                                        'required':true,
+                                        'inputMode':'numeric'
+                                    },
+                                    'type':'Input',
+                                    'namespace': 'dash_core_components'
+                                },
+
+                                sig_dt,
+                                ck_val
+                            ]},
+                            'type':'FormGroup',
+                            'namespace': 'dash_bootstrap_components'                    
+                        }
+
+                    }
                     
-                ],id={'type':'filters-text-drpdwn','index':0},width=4),
+                    condi_row={
+                        'props':{'children':[
+                            {'props':{'children':{
+                                'props':{'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                            'props':{'children':"Select column name"},
+                                                            'type':'Strong',
+                                                            'namespace': 'dash_html_components'
+                                                        },
+                                                    'html_for':{'type':'filters-column-names','index':filters_data['filters'][in_k]['index'][i]}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-column-names','index':filters_data['filters'][in_k]['index'][i]},
+                                                    'value':filters_data['filters'][in_k]['columns'][i],
+                                                    'options':filters_data['filters'][in_k]['columns_drpdwn_vals'][i]
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
 
-                # Col(dhc.Button(id={'type':'logic-close','index':0},hidden=True))
-                Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':0}),className="text-right"),
-                # Store(id={'type':'filters-rows-trash','index':0},data=None)
-            
-            ],id={'type':'condition-rows','index':0}),
-            Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
-        ],id='filters-conditional-div'),
+                                        ]},
+                                    'type':'FormGroup',
+                                    'namespace': 'dash_bootstrap_components'                    
+                                    },'width':4},
+                                'type':'Col',
+                                'namespace': 'dash_bootstrap_components'
+                            },
 
-        Row(
-            Col(
-                Button('add condition', size='sm', id='filters-add-condition')
-            )
-        ),
-                
-    ]
+                            {
+                                'props':{'children':{
+                                        'props':{'children':[
+                                            {
+                                                'props':{
+                                                    'children':{
+                                                            'props':{'children':"condition"},
+                                                            'type':'Strong',
+                                                            'namespace': 'dash_html_components'
+                                                        },
+                                                    'html_for':{'type':'filters-conditions','index':filters_data['filters'][in_k]['index'][i]}
+                                                },
+                                                'type':'Label',
+                                                'namespace':'dash_bootstrap_components'
+                                            },
 
-    empty_div_add =  [
-        {
-            'props':{
-            'children':[
+                                            {
+                                                'props':{
+                                                    'id':{'type':'filters-conditions','index':filters_data['filters'][in_k]['index'][i]},
+                                                    'value':filters_data['filters'][in_k]['condition'][i],
+                                                    'options':filters_data['filters'][in_k]['condition_drpdwn_vals'][i]
+                                                },
+                                                'type':'Dropdown',
+                                                'namespace':'dash_core_components'
+                                            }
+                                            
+                                        ]},
+                                        'type':'FormGroup',
+                                        'namespace': 'dash_bootstrap_components'    
+                                },'width':3},
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+                            {
+                                'props':{
+                                    'children':form_grp,
+                                    'id':{'type':'filters-text-drpdwn','index':filters_data['filters'][in_k]['index'][i]},
+                                    'width':4
+                                },
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+                            {
+                                'props':{
+                                    'children':{
+                                        'props':{
+                                            'children':{
+                                                'props':{'className':"fa fa-trash-o"},
+                                                'type':'I',
+                                                'namespace':'dash_html_components'
+                                            },
+                                            'id':{'type':'logic-close','index':filters_data['filters'][in_k]['index'][i]}
+                                        },
+                                        'type':'A',
+                                        'namespace':'dash_html_components'
+                                    },
+                                    
+                                    'className':"text-right"
+                                },
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },   
+                        ],'id':{'type':'condition-rows','index':filters_data['filters'][in_k]['index'][i]}},
+                        'type':'Row',
+                        'namespace': 'dash_bootstrap_components'
+                    }
+
+                    if (filters_data['filters'][in_k]['logic'][i] != null && filters_data['filters'][in_k]['logic'][i] != undefined) {
+                        log_row={
+                            'props':{'children':{
+                                'props':{'children':{
+                                    'props':{
+                                        'id':{'type':'logic-dropdown','index':i},
+                                        'options':[{'label':'And','value':'And'},{'label':'Or','value':'Or'}],
+                                        'value':filters_data['filters'][in_k]['logic'][i]
+                                    },
+                                    'type':'Dropdown',
+                                    'namespace':'dash_core_components'
+
+                                },'width':3},
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },'id':{'type':'filters-logic','index':filters_data['filters'][in_k]['index'][i]}},
+                            'type':'Row',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    } else {
+                        log_row = {
+                            'props':{'children':{
+                                'props':{'children':"This is Temp column and row"},
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },'id':{"type":"filters-logic","index":0},'style':{'display':'none'}},
+                            'type':'Row',
+                            'namespace':'dash_bootstrap_components'
+                        }
+                    }
+
+                    fil_condition_rows.push(log_row)
+                    fil_condition_rows.push(condi_row)
+                    
+                }
+
+                fil_div = [
                     {
+                        'props':{'children':[
+                            {
+                                'props':{'children':{
+                                    'props':{
+                                        'children':{
+                                            'props':{'className':"fa fa-refresh"},
+                                            'type':'I',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'id':'filters-clear-all',
+                                        'className':"text-right"
+                                    },
+                                    'type':'A',
+                                    'namespace':'dash_html_components'
+                                },'className': 'text-right'},
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            },
+
+
+                            {
+                                'props':{'children':'Select or drop rows'},
+                                'type':'Label',
+                                'namespace':'dash_html_components'
+                            },
+
+                            {
+                                'props':{
+                                    'id':'filters-select-drop',
+                                    'options':[{'label':"Select",'value':"Select"},{'label':"Drop",'value':"Drop"}],
+                                    'value':filters_data['filters'][in_k]['select_drop'],
+                                    'style':{"width":"50%"}
+                                },
+                                'type':'Dropdown',
+                                'namespace':'dash_core_components'
+                            }
+                        ]},
+                        'type': 'FormGroup',
+                        'namespace': 'dash_bootstrap_components'
+                    },
+
+
+                    {
+                        'props':{'children':
+                            {
+                                'props':{'children':"Where"},
+                                'type':'Label',
+                                'namespace':'dash_html_components'
+                            }
+                        },
+                        'type':'FormGroup',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+                    {
+                        'props':{'children':fil_condition_rows,'id':'filters-conditional-div'},
+                        'type':'Div',
+                        'namespace':'dash_html_components'
+                    },
+
+                    {
+                        'props':{'children':{
+                            'props':{"children":{
+                                'props':{
+                                    'children':'add condition',
+                                    'size':'sm',
+                                    'id':'filters-add-condition',
+                                    'n_clicks':0
+                                },
+                                'type':'Button',
+                                'namespace':'dash_bootstrap_components'
+                            }},
+                            'type':'Col',
+                            'namespace':'dash_bootstrap_components'
+                        }},
+                        'type':'Row',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                ]
+            }
+            let add_col_rows=[]
+            if (Object.entries(filters_data['add_new_col']).length != 0) {
+                let in_kk = Object.keys(filters_data["add_new_col"])[0]
+
+                for (i in filters_data['add_new_col'][in_kk]['index']) {
+                    add_col_grp1 = {
                         'props':{
                             'children':[
                                 {
@@ -451,7 +1569,7 @@ def update_filter_div(data,n_clicks,\
                                                     'type':'I',
                                                     'namespace':'dash_html_components'
                                                 },
-                                                'id':{'type':'add-col-remove','index':0}
+                                                'id':{'type':'add-col-remove','index':filters_data['add_new_col'][in_kk]['index'][i]}
                                             },
                                             'type':'A',
                                             'namespace':'dash_html_components'
@@ -470,10 +1588,11 @@ def update_filter_div(data,n_clicks,\
 
                                 {
                                     'props':{
-                                        'id':{"type":"add-new-col-name","index":0},
+                                        'id':{"type":"add-new-col-name","index":filters_data['add_new_col'][in_kk]['index'][i]},
                                         'type':"text",
                                         'minLength':5,
-                                        'required':True
+                                        'required':true,
+                                        'value':filters_data['add_new_col'][in_kk]['col_names'][i]
                                     },
                                     'type':'Input',
                                     'namespace':'dash_core_components'
@@ -488,13 +1607,12 @@ def update_filter_div(data,n_clicks,\
                                     'namespace':'dash_bootstrap_components'
                                 },
                             ],
-                            'id':{"type":'add-col-grp-1','index':0}
+                            'id':{"type":'add-col-grp-1','index':filters_data['add_new_col'][in_kk]['index'][i]}
                         },
                         'type':'FormGroup',
                         'namespace':'dash_bootstrap_components'
-                    },
-
-                    {
+                    }
+                    add_col_grp2 = {
                         'props':{
                             'children':[
                                 {
@@ -505,873 +1623,1424 @@ def update_filter_div(data,n_clicks,\
 
                                 {
                                     'props':{
-                                        'id':{"type":'add-col-value-input',"index":0},
+                                        'id':{"type":'add-col-value-input',"index":filters_data['add_new_col'][in_kk]['index'][i]},
                                         'type':'text',
-                                        'required':True
+                                        'required':true,
+                                        'value':filters_data['add_new_col'][in_kk]['col_input'][i]
                                     },
                                     'type':'Input',
                                     'namespace':'dash_core_components'
                                 }
                             ],
-                            'id':{"type":'add-col-grp-2','index':0}
+                            'id':{"type":'add-col-grp-2','index':filters_data['add_new_col'][in_kk]['index'][i]}
                         },
                         'type':'FormGroup',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                    add_col_hr3 = {
+                        'props':{
+                            'id':{"type":'add-col-hr-3','index':filters_data['add_new_col'][in_kk]['index'][i]}
+                        },
+                        'type':'Hr',
+                        'namespace':'dash_html_components'
+                    } 
+
+                    add_col_rows.push(add_col_grp1)
+                    add_col_rows.push(add_col_grp2)
+                    add_col_rows.push(add_col_hr3)
+                }
+
+                add_col_div =  [
+                    {
+                        'props':{
+                            'children':add_col_rows,
+                            'id':"add-col-form"
+                        },
+                        'type':'Form',
                         'namespace':'dash_bootstrap_components'
                     },
 
                     {
-                        'props':{'children':None},
+                        'props':{'children':null},
                         'type':'Hr',
                         'namespace':'dash_html_components'
-                    }
-                ],
-                'id':"add-col-form"
-            },
-            'type':'Form',
-            'namespace':'dash_bootstrap_components'
-        },
-
-        {
-            'props':{'children':None},
-            'type':'Hr',
-            'namespace':'dash_html_components'
-        },
-
-        {
-            'props':{
-                'children':{
-                    'props':{
-                        'children':{
-                            'props':{
-                                'children':"Add column",
-                                'id':"add-col-new-col-but"
-                            },
-                            'type':'Button',
-                            'namespace':'dash_html_components'
-                        }
                     },
-                    'type':'Col',
-                    'namespace':'dash_bootstrap_components'
-                }
-            },
-            'type':'Row',
-            'namespace':'dash_bootstrap_components'
-        }
-    ]
 
-    if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
-        return data['filter_rows'], data['add_new_col_rows']
-    elif triggred_compo == 'preview-table-button':
-        if n_clicks is not None:
-            return empty_div, empty_div_add
-        else:
-            raise PreventUpdate
-    
-    elif triggred_compo == "filters-data" and filters_data['filters']!={} and \
-        filters_data['status'] is True:
-        fil_div=[]
-        add_col_div=[]
-        # print(f"FILTERS_DIV {filters_data['filters']}")
-        if len(filters_data['filters']) != 0:
-            in_k=list(filters_data["filters"].keys())[0]
-            fil_condition_rows = []
-            for j,i in enumerate(filters_data['filters'][in_k]['index']): # inside index
-
-                form_grp = {
-                    'props':{
-                        'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":'trans-multi-text','index':0},
-                                    'style':{'display':'none'}
-                                },
-                                'type':'Dropdown',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":'trans-text','index':0},
-                                    'style':{'display':'none'},
-                                    'debounce':True
-                                },
-                                'type':'Input',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-input','index':0},
-                                    'style':{'display':'none'},
-                                    'debounce':True
-                                },
-                                'type':'Input',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-date-range','index':0},
-                                    'style':{'display':'none'},
-                                },
-                                'type':'DatePickerRange',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-date-single','index':0},
-                                    'style':{'display':'none'},
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-days-single','index':0},
-                                    'style':{'display':'none'},
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-use-current-date','index':0},
-                                    'style':{'display':'none'},
-                                },
-                                'type':'Checklist',
-                                'namespace': 'dash_core_components'
-                            },
-                        ]
-                    },
-                    'type':'FormGroup',
-                    'namespace': 'dash_bootstrap_components'
-                }
-                
-
-                if type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
-                    'trans-multi-text' in filters_data['filters'][in_k]['values_vals'][j].keys():
-                    
-                    form_grp = {
-                        'props':{'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":'trans-multi-text','index':i},
-                                    'value':filters_data['filters'][in_k]['values'][j],
-                                    'multi':True,
-                                    'options':filters_data['filters'][in_k]['values_vals'][j]['trans-multi-text']
-                                },
-                                'type':'Dropdown',
-                                'namespace': 'dash_core_components'
-                            },
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'
-                    }
-                    
-                    # form_grp=FormGroup([
-                    #         dhc.Label(Strong("value")),
-                    #         Dropdown(id={"type":'trans-multi-text','index':i},value=filters_data['filters'][in_k]['values'][i]),
-                    #         ])
-                            
-                elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
-                    filters_data['filters'][in_k]['values_vals'][j] in ['trans-text']:
-                    
-                    form_grp={
-                        'props':{"children":[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":'trans-text','index':i},
-                                    'debounce':True,
-                                    'value':filters_data['filters'][in_k]['values'][j]
-                                },
-                                'type':'Input',
-                                'namespace': 'dash_core_components'
-                            },
-
-
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'
-                    }
-                    
-                    # form_grp=FormGroup([
-                    #         dhc.Label(Strong("value")),
-                    #         TextInput(id={"type":'trans-text','index':i},\
-                    #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
-                    #         ])
-                
-                elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
-                    filters_data['filters'][in_k]['values_vals'][j] in ['trans-input']:
-                    
-                    form_grp={
-                        'props':{'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-input','index':i},
-                                    'debounce':True,
-                                    'value':filters_data['filters'][in_k]['values'][j]
-                                },
-                                'type':'Input',
-                                'namespace': 'dash_core_components'
-                            },
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'
-                    }
-                    
-                    # form_grp=FormGroup([
-                    #         dhc.Label(Strong("value")),
-                    #         TextInput(id={"type":'trans-input','index':i},\
-                    #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
-                    #         ])
-                
-                elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
-                    'trans-date-range' in filters_data['filters'][in_k]['values_vals'][j].keys():
-                    
-                    form_grp={
-                        'props':{'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-date-range','index':i},
-                                    'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['min'],
-                                    'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['max'],
-                                    'start_date':filters_data['filters'][in_k]['values'][j][0],
-                                    'end_date':filters_data['filters'][in_k]['values'][j][1],
-                                },
-                                'type':'DatePickerRange',
-                                'namespace': 'dash_core_components'
-                            },
-
-
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'                    
-                    }
-
-                    # form_grp=FormGroup([
-                    #         dhc.Label(Strong("value")),
-                    #         DatePickerRange(id={'type':'trans-date-range','index':i},
-                    #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['min'],
-                    #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['max'],
-                    #             start_date=filters_data['filters'][in_k]['values'][i][0],
-                    #             end_date=filters_data['filters'][in_k]['values'][i][1],
-                    #         )
-                    #     ])
-                
-                elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
-                    'trans-date-single' in filters_data['filters'][in_k]['values_vals'][j].keys():
-                    
-                    form_grp={
-                        'props':{'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-date-single','index':i},
-                                    'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['min'],
-                                    'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['max'],
-                                    'date':filters_data['filters'][in_k]['values'][j],
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            },
-
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'                                        
-                    }
-                    
-                    # form_grp=FormGroup([
-                    #         dhc.Label(Strong("value")),
-                    #         DatePickerRange(id={'type':'trans-date-single','index':i},
-                    #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['min'],
-                    #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['max'],
-                    #             date=filters_data['filters'][in_k]['values'][i],
-                    #         )
-                    #     ])
-
-                elif type(filters_data['filters'][in_k]['values_vals'][j]) is list and \
-                    filters_data['filters'][in_k]['values_vals'][j] != [] and \
-                    all(t in filters_data['filters'][in_k]['values_vals'][j] for t in ['trans-input', 'trans-use-current-date']):
-
-                    ck=False
-                    val = None
-                    min_dt=None
-                    max_dt=None
-
-                    sig_dt={
-                                'props':{
-                                    'id':{'type':'trans-days-single','index':i},
-                                    # 'style':{'display':'none'},
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            }
-                    
-
-                    # sig_dt=DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'})
-                    # ck_val=Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'})
-                    if type(filters_data['filters'][in_k]['values'][j][1]) is list:
-                        ck=True
-                        val=filters_data['filters'][in_k]['values'][j][1]
-                        min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
-                        max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
-                        # ck_val=Checklist(
-                        #     id={'type':'trans-use-current-date','index':i},
-                        #     options=[
-                        #         {'label': 'Use current sys date', 'value': 'Use'},
-                        #     ],
-                        #     value=val
-                        # )
-                        ck_val={
-                                'props':{
-                                    'id':{'type':'trans-use-current-date','index':i},
-                                    'options':[
-                                        {'label': 'Use current sys date', 'value': 'Use'},
-                                    ],
-                                    'value':val
-                                },
-                                'type':'Checklist',
-                                'namespace': 'dash_core_components'
-                            }
-                        sig_dt={
-                                'props':{
-                                    'id':{'type':'trans-days-single','index':i},
-                                    'placeholder':'mm/dd/YYYY',
-                                    'min_date_allowed':min_dt,
-                                    'max_date_allowed':max_dt,
-                                    'initial_visible_month':date.today(),
-                                    'disabled':True
-                                    # 'date':val
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            }
-                    else:
-                        val=filters_data['filters'][in_k]['values'][j][1]
-                        min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
-                        max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
-                        # sig_dt=DatePickerSingle(
-                        #     id={'type':'trans-days-single','index':i},
-                        #     placeholder='mm/dd/YYYY',
-                        #     min_date_allowed=min_dt,
-                        #     max_date_allowed=max_dt,
-                        #     # initial_visible_month=date.today(),
-                        #     date=val
-                        # )
-                        sig_dt={
-                                'props':{
-                                    'id':{'type':'trans-days-single','index':i},
-                                    'placeholder':'mm/dd/YYYY',
-                                    'min_date_allowed':min_dt,
-                                    'max_date_allowed':max_dt,
-                                    # initial_visible_month=date.today(),
-                                    'date':val
-                                },
-                                'type':'DatePickerSingle',
-                                'namespace': 'dash_core_components'
-                            }
-                            
-                        ck_val={
-                                'props':{
-                                    'id':{'type':'trans-use-current-date','index':i},
-                                    # 'style':{'display':'none'},
-                                },
-                                'type':'Checklist',
-                                'namespace': 'dash_core_components'
-                            }
-
-                    
-                    form_grp={
-                        'props':{'children':[
-                            {
-                                'props':{'children':{
-                                    'props':{'children':"value"},
-                                    'type':'Strong',
-                                    'namespace': 'dash_html_components'
-                                }},
-                                'type':'Label',
-                                'namespace': 'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{'type':'trans-input','index':i},
-                                    'debounce':True,
-                                    'value':filters_data['filters'][in_k]['values'][j][0],
-                                    'type':'number',
-                                    'required':True,
-                                    'inputMode':'numeric'
-                                },
-                                'type':'Input',
-                                'namespace': 'dash_core_components'
-                            },
-
-                            sig_dt,
-                            ck_val
-                        ]},
-                        'type':'FormGroup',
-                        'namespace': 'dash_bootstrap_components'                    
-                    }
-
-
-                    # form_grp=FormGroup([
-                    #     dhc.Label(Strong("value")),
-                    #     TextInput(id={'type':'trans-input','index':i},persistence=True,\
-                    #         value=filters_data['filters'][in_k]['values'][i][0],debounce=True),
-                    #     sig_dt,
-                    #     ck_val
-                    # ]) 
-
-                condi_row={
-                    'props':{'children':[
-
-
-                        {'props':{'children':{
-                            'props':{'children':[
-                                        {
-                                            'props':{
-                                                'children':{
-                                                        'props':{'children':"Select column name"},
-                                                        'type':'Strong',
-                                                        'namespace': 'dash_html_components'
-                                                    },
-                                                'html_for':{'type':'filters-column-names','index':i}
-                                            },
-                                            'type':'Label',
-                                            'namespace':'dash_bootstrap_components'
-                                        },
-                                        {
-                                            'props':{
-                                                'id':{'type':'filters-column-names','index':i},
-                                                'value':filters_data['filters'][in_k]['columns'][j],
-                                                'options':filters_data['filters'][in_k]['columns_drpdwn_vals'][j]
-                                            },
-                                            'type':'Dropdown',
-                                            'namespace':'dash_core_components'
-                                        }
-
-                                    ]},
-                                'type':'FormGroup',
-                                'namespace': 'dash_bootstrap_components'                    
-                                },'width':4},
-                            'type':'Col',
-                            'namespace': 'dash_bootstrap_components'
-                        },
-
-                        {
-                            'props':{'children':{
-                                    'props':{'children':[
-                                        {
-                                            'props':{
-                                                'children':{
-                                                        'props':{'children':"condition"},
-                                                        'type':'Strong',
-                                                        'namespace': 'dash_html_components'
-                                                    },
-                                                'html_for':{'type':'filters-conditions','index':i}
-                                            },
-                                            'type':'Label',
-                                            'namespace':'dash_bootstrap_components'
-                                        },
-
-                                        {
-                                            'props':{
-                                                'id':{'type':'filters-conditions','index':i},
-                                                'value':filters_data['filters'][in_k]['condition'][j],
-                                                'options':filters_data['filters'][in_k]['condition_drpdwn_vals'][j]
-                                            },
-                                            'type':'Dropdown',
-                                            'namespace':'dash_core_components'
-                                        }
-                                        
-                                    ]},
-                                    'type':'FormGroup',
-                                    'namespace': 'dash_bootstrap_components'    
-                            },'width':3},
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },
-
-                        {
-                            'props':{
-                                'children':form_grp,
-                                'id':{'type':'filters-text-drpdwn','index':i},
-                                'width':4
-                            },
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },
-
-                        {
-                            'props':{
-                                'children':{
-                                    'props':{
-                                        'children':{
-                                            'props':{'className':"fa fa-trash-o"},
-                                            'type':'I',
-                                            'namespace':'dash_html_components'
-                                        },
-                                        'id':{'type':'logic-close','index':i}
-                                    },
-                                    'type':'A',
-                                    'namespace':'dash_html_components'
-                                },
-                                
-                                'className':"text-right"
-                            },
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },
-
-                        # {
-
-                        #     'props':{
-                        #         'id':{'type':'filters-rows-trash','index':0},
-                        #         'data':None
-                        #     },
-                        #     'type':'Store',
-                        #     'namespace':'dash_core_components'
-                        # },
-
-
-                    ],'id':{'type':'condition-rows','index':i}},
-                    'type':'Row',
-                    'namespace': 'dash_bootstrap_components'
-                }
-                
-                if filters_data['filters'][in_k]['logic'][j] is not None:
-                    log_row={
-                        'props':{'children':{
-                            'props':{'children':{
-                                'props':{
-                                    'id':{'type':'logic-dropdown','index':i},
-                                    'options':[{'label':v,'value':v} for v in ["And","Or"]],
-                                    'value':filters_data['filters'][in_k]['logic'][j]
-                                },
-                                'type':'Dropdown',
-                                'namespace':'dash_core_components'
-
-                            },'width':3},
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },'id':{'type':'filters-logic','index':i}},
-                        'type':'Row',
-                        'namespace':'dash_bootstrap_components'
-                    }
-
-                else:
-                    log_row = {
-                        'props':{'children':{
-                            'props':{'children':"This is Temp column and row"},
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },'id':{"type":"filters-logic","index":0},'style':{'display':'none'}},
-                        'type':'Row',
-                        'namespace':'dash_bootstrap_components'
-                    }
-                    # log_row=Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
-
-                fil_condition_rows.append(log_row)
-                fil_condition_rows.append(condi_row)
-                
-
-            # print(f"DFD {fil_condition_rows}")
-            fil_div = [
-                {
-                    'props':{'children':[
-                        {
-                            'props':{'children':{
-                                'props':{
-                                    'children':{
-                                        'props':{'className':"fa fa-refresh"},
-                                        'type':'I',
-                                        'namespace':'dash_html_components'
-                                    },
-                                    'id':'filters-clear-all'
-                                },
-                                'type':'A',
-                                'namespace':'dash_html_components'
-                            },'className': 'text-right'},
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        },
-
-
-                        {
-                            'props':{'children':'Select or drop rows'},
-                            'type':'Label',
-                            'namespace':'dash_html_components'
-                        },
-
-                        {
-                            'props':{
-                                'id':'filters-select-drop',
-                                'options':[{'label':v,'value':v} for v in ['Select','Drop']],
-                                'value':filters_data['filters'][in_k]['select_drop'],
-                                'style':{"width":"50%"}
-                            },
-                            'type':'Dropdown',
-                            'namespace':'dash_core_components'
-                        }
-                    ]},
-                    'type': 'FormGroup',
-                    'namespace': 'dash_bootstrap_components'
-                },
-
-
-                {
-                    'props':{'children':
-                        {
-                            'props':{'children':"Where"},
-                            'type':'Label',
-                            'namespace':'dash_html_components'
-                        }
-                    },
-                    'type':'FormGroup',
-                    'namespace':'dash_bootstrap_components'
-                },
-
-                {
-                    'props':{'children':fil_condition_rows,'id':'filters-conditional-div'},
-                    'type':'Div',
-                    'namespace':'dash_html_components'
-                },
-
-                {
-                    'props':{'children':{
-                        'props':{"children":{
-                            'props':{
-                                'children':'add condition',
-                                'size':'sm',
-                                'id':'filters-add-condition',
-                                'n_clicks':0
-                            },
-                            'type':'Button',
-                            'namespace':'dash_bootstrap_components'
-                        }},
-                        'type':'Col',
-                        'namespace':'dash_bootstrap_components'
-                    }},
-                    'type':'Row',
-                    'namespace':'dash_bootstrap_components'
-                }
-            ]
-            
-        if len(filters_data['add_new_col']) != 0:
-            in_kk=list(filters_data["add_new_col"].keys())[0]
-            
-
-            
-            add_col_rows=[]
-            for j,i in enumerate(filters_data['add_new_col'][in_kk]['index']):
-                add_col_grp1 = {
-                    'props':{
-                        'children':[
-                            {
+                    {
+                        'props':{
+                            'children':{
                                 'props':{
                                     'children':{
                                         'props':{
-                                            'children':{
-                                                'props':{
-                                                    'className':"fa fa-trash"
-                                                },
-                                                'type':'I',
-                                                'namespace':'dash_html_components'
-                                            },
-                                            'id':{'type':'add-col-remove','index':i}
+                                            'children':"Add column",
+                                            'id':"add-col-new-col-but"
                                         },
-                                        'type':'A',
+                                        'type':'Button',
                                         'namespace':'dash_html_components'
-                                    },
-                                    'className':"text-right"
+                                    }
                                 },
                                 'type':'Col',
                                 'namespace':'dash_bootstrap_components'
-                            },
-
-                            {
-                                'props':{"children":"Enter column name"},
-                                'type':'Label',
-                                'namespace':'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":"add-new-col-name","index":i},
-                                    'type':"text",
-                                    'minLength':5,
-                                    'required':True,
-                                    'value':filters_data['add_new_col'][in_kk]['col_names'][j]
-                                },
-                                'type':'Input',
-                                'namespace':'dash_core_components'
-                            },
-
-                            {
-                                'props':{
-                                    "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
-                                    'color':"secondary"
-                                },
-                                'type':'FormText',
-                                'namespace':'dash_bootstrap_components'
-                            },
-                        ],
-                        'id':{"type":'add-col-grp-1','index':i}
-                    },
-                    'type':'FormGroup',
-                    'namespace':'dash_bootstrap_components'
-                }
-                add_col_grp2 = {
-                    'props':{
-                        'children':[
-                            {
-                                'props':{'children':"Assign value to new column"},
-                                'type':'Label',
-                                'namespace':'dash_html_components'
-                            },
-
-                            {
-                                'props':{
-                                    'id':{"type":'add-col-value-input',"index":i},
-                                    'type':'text',
-                                    'required':True,
-                                    'value':filters_data['add_new_col'][in_kk]['col_input'][j]
-                                },
-                                'type':'Input',
-                                'namespace':'dash_core_components'
                             }
-                        ],
-                        'id':{"type":'add-col-grp-2','index':i}
-                    },
-                    'type':'FormGroup',
-                    'namespace':'dash_bootstrap_components'
+                        },
+                        'type':'Row',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                ]
+
+            }
+
+            if (add_col_rows.length > 0 && fil_div.length > 0) {
+                return [fil_div, add_col_div]
+            } else if (add_col_rows.length == 0 && fil_div.length > 0) {
+                return [fil_div, empty_div_add]
+            } else if (add_col_rows.length > 0 && fil_div.length == 0) {
+                return [empty_div, add_col_div]
+            }
+        
+        } else if (triggered.includes('filters-data.data') && Object.entries(filters_data['filters']).length == 0
+            && filters_data['status'] == true) {
+
+            let add_col_rows = []
+            let add_col_div=[]
+
+            if (Object.entries(filters_data['add_new_col']).length > 0) {
+                let in_kk=Object.keys(filters_data["add_new_col"])[0]
+
+                for (i in filters_data['add_new_col'][in_kk]['index']) {
+                    add_col_grp1 = {
+                        'props':{
+                            'children':[
+                                {
+                                    'props':{
+                                        'children':{
+                                            'props':{
+                                                'children':{
+                                                    'props':{
+                                                        'className':"fa fa-trash"
+                                                    },
+                                                    'type':'I',
+                                                    'namespace':'dash_html_components'
+                                                },
+                                                'id':{'type':'add-col-remove','index':filters_data['add_new_col'][in_kk]['index'][i]}
+                                            },
+                                            'type':'A',
+                                            'namespace':'dash_html_components'
+                                        },
+                                        'className':"text-right"
+                                    },
+                                    'type':'Col',
+                                    'namespace':'dash_bootstrap_components'
+                                },
+
+                                {
+                                    'props':{"children":"Enter column name"},
+                                    'type':'Label',
+                                    'namespace':'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":"add-new-col-name","index":filters_data['add_new_col'][in_kk]['index'][i]},
+                                        'type':"text",
+                                        'minLength':5,
+                                        'required':true,
+                                        'value':filters_data['add_new_col'][in_kk]['col_names'][i]
+                                    },
+                                    'type':'Input',
+                                    'namespace':'dash_core_components'
+                                },
+
+                                {
+                                    'props':{
+                                        "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+                                        'color':"secondary"
+                                    },
+                                    'type':'FormText',
+                                    'namespace':'dash_bootstrap_components'
+                                },
+                            ],
+                            'id':{"type":'add-col-grp-1','index':filters_data['add_new_col'][in_kk]['index'][i]}
+                        },
+                        'type':'FormGroup',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                    add_col_grp2 = {
+                        'props':{
+                            'children':[
+                                {
+                                    'props':{'children':"Assign value to new column"},
+                                    'type':'Label',
+                                    'namespace':'dash_html_components'
+                                },
+
+                                {
+                                    'props':{
+                                        'id':{"type":'add-col-value-input',"index":filters_data['add_new_col'][in_kk]['index'][i]},
+                                        'type':'text',
+                                        'required':true,
+                                        'value':filters_data['add_new_col'][in_kk]['col_input'][i]
+                                    },
+                                    'type':'Input',
+                                    'namespace':'dash_core_components'
+                                }
+                            ],
+                            'id':{"type":'add-col-grp-2','index':filters_data['add_new_col'][in_kk]['index'][i]}
+                        },
+                        'type':'FormGroup',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                    add_col_hr3 = {
+                        'props':{
+                            'id':{"type":'add-col-hr-3','index':filters_data['add_new_col'][in_kk]['index'][i]}
+                        },
+                        'type':'Hr',
+                        'namespace':'dash_html_components'
+                    } 
+
+                    add_col_rows.push(add_col_grp1)
+                    add_col_rows.push(add_col_grp2)
+                    add_col_rows.push(add_col_hr3)
                 }
-                add_col_hr3 = {
-                    'props':{'children':None},
-                    'type':'Hr',
-                    'namespace':'dash_html_components'
-                }            
+                add_col_div =  [
+                    {
+                        'props':{
+                            'children':add_col_rows,
+                            'id':"add-col-form"
+                        },
+                        'type':'Form',
+                        'namespace':'dash_bootstrap_components'
+                    },
+
+                    {
+                        'props':{'children':null},
+                        'type':'Hr',
+                        'namespace':'dash_html_components'
+                    },
+
+                    {
+                        'props':{
+                            'children':{
+                                'props':{
+                                    'children':{
+                                        'props':{
+                                            'children':"Add column",
+                                            'id':"add-col-new-col-but"
+                                        },
+                                        'type':'Button',
+                                        'namespace':'dash_html_components'
+                                    }
+                                },
+                                'type':'Col',
+                                'namespace':'dash_bootstrap_components'
+                            }
+                        },
+                        'type':'Row',
+                        'namespace':'dash_bootstrap_components'
+                    }
+                ]
+            }
+
+            if (add_col_rows.length > 0) {
+                return [empty_div, add_col_div]
+            } else {
+                return [empty_div, empty_div_add]
+            }
+        } else {
+            window.dash_clientside.no_update
+        }
+    }
+    ''',
+    Output('filters-div','children'),
+    Output('add-new-col-modal-body','children'),
+    Input('retrived-data','data'),
+    Input('preview-table-button','n_clicks'),
+    Input('filters-data','data'),
+)
+
+# @app.callback(
+#     [
+#         Output('filters-div','children'),
+#         Output('add-new-col-modal-body','children'),
+#     ],
+#     [
+#         Input('retrived-data','data'),
+#         Input('preview-table-button','n_clicks'),
+#         # Input({'type':'applied-changes-menu','index':ALL},'n_clicks'),
+#         # Input("filters-clear-all","n_clicks"),
+#         # Input('add-new-col-modal-apply','n_clicks'),
+#         Input('filters-data','data'),
+#         # Input('transformations-dropdown','value'),
+#         # Input('filters-modal','is_open'),
+#     ],
+#     [
+#         State('filters-div','children'),
+#         State('add-new-col-modal-body','children'),
+#         State('filters-data','data'),
+#     ],
+# )
+# def update_filter_div(data,n_clicks,\
+#     filters_data,childs,add_childs,fil_data):#apply_menu_child,filters-clear-all
+#     ctx = callback_context
+#     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
+
+#     # print(f"FILTERS DIV {triggred_compo}",flush=True)
+#     # print(f"FILTERS DATA {filters_data}",flush=True)
+#     # print(f"FILTERS DIV {len(childs[2]['props']['children'])}",flush=True)
+#     # print(f"FILTERS_DIV {filters_data['filters']}")
+#     # print(f"FILTERS_DIVvvvv {fil_data['filters']}")
+
+#     empty_div = [
+#         FormGroup([
+#             Col(html.A(html.I(className="fa fa-refresh"),id='filters-clear-all'),className="text-right"),
+#             html.Label("Select or drop rows"),
+#             dcc.Dropdown(
+#                     id='filters-select-drop',
+#                     options=[{'label':i,'value':i} for i in ['Select','Drop']],
+#                     value=None,
+#                     style={"width":"50%"}
+#                 ),
+#             # FormText("Type column name without any spaces, special characters. Except 'underscore '_''",color="secondary"),
+#         ]),
+
+#         FormGroup([
+#             html.Label("Where,")
+#         ]),
+
+#         html.Div([
+#             Row([
+#                 Col(
+#                     FormGroup([
+#                         Label(html.Strong("Select column name"),html_for={'type':'filters-column-names','index':0}),
+#                         dcc.Dropdown(
+#                             id={'type':'filters-column-names','index':0},
+#                             value=None
+#                         )
+#                     ])
+#                 ,width=4),
+
+#                 Col(
+#                     FormGroup([
+#                         Label(html.Strong("condition"),html_for={'type':'filters-conditions','index':0}),
+#                         dcc.Dropdown(
+#                             id={'type':'filters-conditions','index':0}
+#                         )
+#                     ])
+#                 ,width=3),
+
+#                 Col([
+#                     FormGroup([
+#                         html.Label(html.Strong("value")),
+#                         dcc.Dropdown(id={"type":'trans-multi-text','index':0},style={'display':'none'}),
+#                         dcc.Input(id={"type":'trans-text','index':0},style={'display':'none'},debounce=True),
+#                         dcc.Input(id={'type':'trans-input','index':0},style={'display':'none'},debounce=True),
+#                         dcc.DatePickerRange(id={'type':'trans-date-range','index':0},style={'display':'none'}),
+#                         dcc.DatePickerSingle(id={'type':'trans-date-single','index':0},style={'display':'none'}),
+#                         dcc.DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'}),
+#                         dcc.Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'}),
+#                     ])
+                    
+#                 ],id={'type':'filters-text-drpdwn','index':0},width=4),
+
+#                 # Col(dhc.Button(id={'type':'logic-close','index':0},hidden=True))
+#                 Col(html.A(html.I(className="fa fa-trash-o"),id={'type':'logic-close','index':0}),className="text-right"),
+#                 # Store(id={'type':'filters-rows-trash','index':0},data=None)
+            
+#             ],id={'type':'condition-rows','index':0}),
+#             Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
+#         ],id='filters-conditional-div'),
+
+#         Row(
+#             Col(
+#                 Button('add condition', size='sm', id='filters-add-condition')
+#             )
+#         ),
+                
+#     ]
+
+#     empty_div_add =  [
+#         {
+#             'props':{
+#             'children':[
+#                     {
+#                         'props':{
+#                             'children':[
+#                                 {
+#                                     'props':{
+#                                         'children':{
+#                                             'props':{
+#                                                 'children':{
+#                                                     'props':{
+#                                                         'className':"fa fa-trash"
+#                                                     },
+#                                                     'type':'I',
+#                                                     'namespace':'dash_html_components'
+#                                                 },
+#                                                 'id':{'type':'add-col-remove','index':0}
+#                                             },
+#                                             'type':'A',
+#                                             'namespace':'dash_html_components'
+#                                         },
+#                                         'className':"text-right"
+#                                     },
+#                                     'type':'Col',
+#                                     'namespace':'dash_bootstrap_components'
+#                                 },
+
+#                                 {
+#                                     'props':{"children":"Enter column name"},
+#                                     'type':'Label',
+#                                     'namespace':'dash_html_components'
+#                                 },
+
+#                                 {
+#                                     'props':{
+#                                         'id':{"type":"add-new-col-name","index":0},
+#                                         'type':"text",
+#                                         'minLength':5,
+#                                         'required':True
+#                                     },
+#                                     'type':'Input',
+#                                     'namespace':'dash_core_components'
+#                                 },
+
+#                                 {
+#                                     'props':{
+#                                         "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+#                                         'color':"secondary"
+#                                     },
+#                                     'type':'FormText',
+#                                     'namespace':'dash_bootstrap_components'
+#                                 },
+#                             ],
+#                             'id':{"type":'add-col-grp-1','index':0}
+#                         },
+#                         'type':'FormGroup',
+#                         'namespace':'dash_bootstrap_components'
+#                     },
+
+#                     {
+#                         'props':{
+#                             'children':[
+#                                 {
+#                                     'props':{'children':"Assign value to new column"},
+#                                     'type':'Label',
+#                                     'namespace':'dash_html_components'
+#                                 },
+
+#                                 {
+#                                     'props':{
+#                                         'id':{"type":'add-col-value-input',"index":0},
+#                                         'type':'text',
+#                                         'required':True
+#                                     },
+#                                     'type':'Input',
+#                                     'namespace':'dash_core_components'
+#                                 }
+#                             ],
+#                             'id':{"type":'add-col-grp-2','index':0}
+#                         },
+#                         'type':'FormGroup',
+#                         'namespace':'dash_bootstrap_components'
+#                     },
+
+#                     {
+#                         'props':{'children':None},
+#                         'type':'Hr',
+#                         'namespace':'dash_html_components'
+#                     }
+#                 ],
+#                 'id':"add-col-form"
+#             },
+#             'type':'Form',
+#             'namespace':'dash_bootstrap_components'
+#         },
+
+#         {
+#             'props':{'children':None},
+#             'type':'Hr',
+#             'namespace':'dash_html_components'
+#         },
+
+#         {
+#             'props':{
+#                 'children':{
+#                     'props':{
+#                         'children':{
+#                             'props':{
+#                                 'children':"Add column",
+#                                 'id':"add-col-new-col-but"
+#                             },
+#                             'type':'Button',
+#                             'namespace':'dash_html_components'
+#                         }
+#                     },
+#                     'type':'Col',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#             },
+#             'type':'Row',
+#             'namespace':'dash_bootstrap_components'
+#         }
+#     ]
+
+#     if triggred_compo == 'retrived-data' and data is not None and data['filters_data']['filters'] != {}:
+#         return data['filter_rows'], data['add_new_col_rows']
+#     elif triggred_compo == 'preview-table-button':
+#         if n_clicks is not None:
+#             return empty_div, empty_div_add
+#         else:
+#             raise PreventUpdate
+    
+#     elif triggred_compo == "filters-data" and filters_data['filters']!={} and \
+#         filters_data['status'] is True:
+#         fil_div=[]
+#         add_col_div=[]
+        
+#         if len(filters_data['filters']) != 0:
+#             in_k=list(filters_data["filters"].keys())[0]
+#             fil_condition_rows = []
+#             for j,i in enumerate(filters_data['filters'][in_k]['index']): # inside index
+
+#                 form_grp = {
+#                     'props':{
+#                         'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'trans-multi-text','index':0},
+#                                     'style':{'display':'none'}
+#                                 },
+#                                 'type':'Dropdown',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'trans-text','index':0},
+#                                     'style':{'display':'none'},
+#                                     'debounce':True
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-input','index':0},
+#                                     'style':{'display':'none'},
+#                                     'debounce':True
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-date-range','index':0},
+#                                     'style':{'display':'none'},
+#                                 },
+#                                 'type':'DatePickerRange',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-date-single','index':0},
+#                                     'style':{'display':'none'},
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-days-single','index':0},
+#                                     'style':{'display':'none'},
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-use-current-date','index':0},
+#                                     'style':{'display':'none'},
+#                                 },
+#                                 'type':'Checklist',
+#                                 'namespace': 'dash_core_components'
+#                             },
+#                         ]
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace': 'dash_bootstrap_components'
+#                 }
+                
+
+#                 if type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+#                     'trans-multi-text' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                    
+#                     form_grp = {
+#                         'props':{'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'trans-multi-text','index':i},
+#                                     'value':filters_data['filters'][in_k]['values'][j],
+#                                     'multi':True,
+#                                     'options':filters_data['filters'][in_k]['values_vals'][j]['trans-multi-text']
+#                                 },
+#                                 'type':'Dropdown',
+#                                 'namespace': 'dash_core_components'
+#                             },
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'
+#                     }
+                    
+#                     # form_grp=FormGroup([
+#                     #         dhc.Label(Strong("value")),
+#                     #         Dropdown(id={"type":'trans-multi-text','index':i},value=filters_data['filters'][in_k]['values'][i]),
+#                     #         ])
+                            
+#                 elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+#                     filters_data['filters'][in_k]['values_vals'][j] in ['trans-text']:
+                    
+#                     form_grp={
+#                         'props':{"children":[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'trans-text','index':i},
+#                                     'debounce':True,
+#                                     'value':filters_data['filters'][in_k]['values'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'
+#                     }
+                    
+#                     # form_grp=FormGroup([
+#                     #         dhc.Label(Strong("value")),
+#                     #         TextInput(id={"type":'trans-text','index':i},\
+#                     #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+#                     #         ])
+                
+#                 elif type(filters_data['filters'][in_k]['values_vals'][j]) is str and \
+#                     filters_data['filters'][in_k]['values_vals'][j] in ['trans-input']:
+                    
+#                     form_grp={
+#                         'props':{'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-input','index':i},
+#                                     'debounce':True,
+#                                     'value':filters_data['filters'][in_k]['values'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace': 'dash_core_components'
+#                             },
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'
+#                     }
+                    
+#                     # form_grp=FormGroup([
+#                     #         dhc.Label(Strong("value")),
+#                     #         TextInput(id={"type":'trans-input','index':i},\
+#                     #             value=filters_data['filters'][in_k]['values'][i],debounce=True),
+#                     #         ])
+                
+#                 elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+#                     'trans-date-range' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                    
+#                     form_grp={
+#                         'props':{'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-date-range','index':i},
+#                                     'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['min'],
+#                                     'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-range']['max'],
+#                                     'start_date':filters_data['filters'][in_k]['values'][j][0],
+#                                     'end_date':filters_data['filters'][in_k]['values'][j][1],
+#                                 },
+#                                 'type':'DatePickerRange',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'                    
+#                     }
+
+#                     # form_grp=FormGroup([
+#                     #         dhc.Label(Strong("value")),
+#                     #         DatePickerRange(id={'type':'trans-date-range','index':i},
+#                     #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['min'],
+#                     #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-range']['max'],
+#                     #             start_date=filters_data['filters'][in_k]['values'][i][0],
+#                     #             end_date=filters_data['filters'][in_k]['values'][i][1],
+#                     #         )
+#                     #     ])
+                
+#                 elif type(filters_data['filters'][in_k]['values_vals'][j]) is dict and \
+#                     'trans-date-single' in filters_data['filters'][in_k]['values_vals'][j].keys():
+                    
+#                     form_grp={
+#                         'props':{'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-date-single','index':i},
+#                                     'min_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['min'],
+#                                     'max_date_allowed':filters_data['filters'][in_k]['values_vals'][j]['trans-date-single']['max'],
+#                                     'date':filters_data['filters'][in_k]['values'][j],
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'                                        
+#                     }
+                    
+#                     # form_grp=FormGroup([
+#                     #         dhc.Label(Strong("value")),
+#                     #         DatePickerRange(id={'type':'trans-date-single','index':i},
+#                     #             min_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['min'],
+#                     #             max_date_allowed=filters_data['filters'][in_k]['values_vals'][i]['trans-date-single']['max'],
+#                     #             date=filters_data['filters'][in_k]['values'][i],
+#                     #         )
+#                     #     ])
+
+#                 elif type(filters_data['filters'][in_k]['values_vals'][j]) is list and \
+#                     filters_data['filters'][in_k]['values_vals'][j] != [] and \
+#                     all(t in filters_data['filters'][in_k]['values_vals'][j] for t in ['trans-input', 'trans-use-current-date']):
+
+#                     ck=False
+#                     val = None
+#                     min_dt=None
+#                     max_dt=None
+
+#                     sig_dt={
+#                                 'props':{
+#                                     'id':{'type':'trans-days-single','index':i},
+#                                     # 'style':{'display':'none'},
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             }
+                    
+
+#                     # sig_dt=DatePickerSingle(id={'type':'trans-days-single','index':0},style={'display':'none'})
+#                     # ck_val=Checklist(id={'type':'trans-use-current-date','index':0},style={'display':'none'})
+#                     if type(filters_data['filters'][in_k]['values'][j][1]) is list:
+#                         ck=True
+#                         val=filters_data['filters'][in_k]['values'][j][1]
+#                         min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
+#                         max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
+#                         # ck_val=Checklist(
+#                         #     id={'type':'trans-use-current-date','index':i},
+#                         #     options=[
+#                         #         {'label': 'Use current sys date', 'value': 'Use'},
+#                         #     ],
+#                         #     value=val
+#                         # )
+#                         ck_val={
+#                                 'props':{
+#                                     'id':{'type':'trans-use-current-date','index':i},
+#                                     'options':[
+#                                         {'label': 'Use current sys date', 'value': 'Use'},
+#                                     ],
+#                                     'value':val
+#                                 },
+#                                 'type':'Checklist',
+#                                 'namespace': 'dash_core_components'
+#                             }
+#                         sig_dt={
+#                                 'props':{
+#                                     'id':{'type':'trans-days-single','index':i},
+#                                     'placeholder':'mm/dd/YYYY',
+#                                     'min_date_allowed':min_dt,
+#                                     'max_date_allowed':max_dt,
+#                                     'initial_visible_month':date.today(),
+#                                     'disabled':True
+#                                     # 'date':val
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             }
+#                     else:
+#                         val=filters_data['filters'][in_k]['values'][j][1]
+#                         min_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['min']
+#                         max_dt=filters_data['filters'][in_k]['values_vals'][j][2]['trans-days-single']['max']
+#                         # sig_dt=DatePickerSingle(
+#                         #     id={'type':'trans-days-single','index':i},
+#                         #     placeholder='mm/dd/YYYY',
+#                         #     min_date_allowed=min_dt,
+#                         #     max_date_allowed=max_dt,
+#                         #     # initial_visible_month=date.today(),
+#                         #     date=val
+#                         # )
+#                         sig_dt={
+#                                 'props':{
+#                                     'id':{'type':'trans-days-single','index':i},
+#                                     'placeholder':'mm/dd/YYYY',
+#                                     'min_date_allowed':min_dt,
+#                                     'max_date_allowed':max_dt,
+#                                     # initial_visible_month=date.today(),
+#                                     'date':val
+#                                 },
+#                                 'type':'DatePickerSingle',
+#                                 'namespace': 'dash_core_components'
+#                             }
+                            
+#                         ck_val={
+#                                 'props':{
+#                                     'id':{'type':'trans-use-current-date','index':i},
+#                                     # 'style':{'display':'none'},
+#                                 },
+#                                 'type':'Checklist',
+#                                 'namespace': 'dash_core_components'
+#                             }
+
+                    
+#                     form_grp={
+#                         'props':{'children':[
+#                             {
+#                                 'props':{'children':{
+#                                     'props':{'children':"value"},
+#                                     'type':'Strong',
+#                                     'namespace': 'dash_html_components'
+#                                 }},
+#                                 'type':'Label',
+#                                 'namespace': 'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{'type':'trans-input','index':i},
+#                                     'debounce':True,
+#                                     'value':filters_data['filters'][in_k]['values'][j][0],
+#                                     'type':'number',
+#                                     'required':True,
+#                                     'inputMode':'numeric'
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace': 'dash_core_components'
+#                             },
+
+#                             sig_dt,
+#                             ck_val
+#                         ]},
+#                         'type':'FormGroup',
+#                         'namespace': 'dash_bootstrap_components'                    
+#                     }
+
+
+#                     # form_grp=FormGroup([
+#                     #     dhc.Label(Strong("value")),
+#                     #     TextInput(id={'type':'trans-input','index':i},persistence=True,\
+#                     #         value=filters_data['filters'][in_k]['values'][i][0],debounce=True),
+#                     #     sig_dt,
+#                     #     ck_val
+#                     # ]) 
+
+#                 condi_row={
+#                     'props':{'children':[
+
+
+#                         {'props':{'children':{
+#                             'props':{'children':[
+#                                         {
+#                                             'props':{
+#                                                 'children':{
+#                                                         'props':{'children':"Select column name"},
+#                                                         'type':'Strong',
+#                                                         'namespace': 'dash_html_components'
+#                                                     },
+#                                                 'html_for':{'type':'filters-column-names','index':i}
+#                                             },
+#                                             'type':'Label',
+#                                             'namespace':'dash_bootstrap_components'
+#                                         },
+#                                         {
+#                                             'props':{
+#                                                 'id':{'type':'filters-column-names','index':i},
+#                                                 'value':filters_data['filters'][in_k]['columns'][j],
+#                                                 'options':filters_data['filters'][in_k]['columns_drpdwn_vals'][j]
+#                                             },
+#                                             'type':'Dropdown',
+#                                             'namespace':'dash_core_components'
+#                                         }
+
+#                                     ]},
+#                                 'type':'FormGroup',
+#                                 'namespace': 'dash_bootstrap_components'                    
+#                                 },'width':4},
+#                             'type':'Col',
+#                             'namespace': 'dash_bootstrap_components'
+#                         },
+
+#                         {
+#                             'props':{'children':{
+#                                     'props':{'children':[
+#                                         {
+#                                             'props':{
+#                                                 'children':{
+#                                                         'props':{'children':"condition"},
+#                                                         'type':'Strong',
+#                                                         'namespace': 'dash_html_components'
+#                                                     },
+#                                                 'html_for':{'type':'filters-conditions','index':i}
+#                                             },
+#                                             'type':'Label',
+#                                             'namespace':'dash_bootstrap_components'
+#                                         },
+
+#                                         {
+#                                             'props':{
+#                                                 'id':{'type':'filters-conditions','index':i},
+#                                                 'value':filters_data['filters'][in_k]['condition'][j],
+#                                                 'options':filters_data['filters'][in_k]['condition_drpdwn_vals'][j]
+#                                             },
+#                                             'type':'Dropdown',
+#                                             'namespace':'dash_core_components'
+#                                         }
+                                        
+#                                     ]},
+#                                     'type':'FormGroup',
+#                                     'namespace': 'dash_bootstrap_components'    
+#                             },'width':3},
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },
+
+#                         {
+#                             'props':{
+#                                 'children':form_grp,
+#                                 'id':{'type':'filters-text-drpdwn','index':i},
+#                                 'width':4
+#                             },
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },
+
+#                         {
+#                             'props':{
+#                                 'children':{
+#                                     'props':{
+#                                         'children':{
+#                                             'props':{'className':"fa fa-trash-o"},
+#                                             'type':'I',
+#                                             'namespace':'dash_html_components'
+#                                         },
+#                                         'id':{'type':'logic-close','index':i}
+#                                     },
+#                                     'type':'A',
+#                                     'namespace':'dash_html_components'
+#                                 },
+                                
+#                                 'className':"text-right"
+#                             },
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },
+
+#                         # {
+
+#                         #     'props':{
+#                         #         'id':{'type':'filters-rows-trash','index':0},
+#                         #         'data':None
+#                         #     },
+#                         #     'type':'Store',
+#                         #     'namespace':'dash_core_components'
+#                         # },
+
+
+#                     ],'id':{'type':'condition-rows','index':i}},
+#                     'type':'Row',
+#                     'namespace': 'dash_bootstrap_components'
+#                 }
+                
+#                 if filters_data['filters'][in_k]['logic'][j] is not None:
+#                     log_row={
+#                         'props':{'children':{
+#                             'props':{'children':{
+#                                 'props':{
+#                                     'id':{'type':'logic-dropdown','index':i},
+#                                     'options':[{'label':v,'value':v} for v in ["And","Or"]],
+#                                     'value':filters_data['filters'][in_k]['logic'][j]
+#                                 },
+#                                 'type':'Dropdown',
+#                                 'namespace':'dash_core_components'
+
+#                             },'width':3},
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },'id':{'type':'filters-logic','index':i}},
+#                         'type':'Row',
+#                         'namespace':'dash_bootstrap_components'
+#                     }
+
+#                 else:
+#                     log_row = {
+#                         'props':{'children':{
+#                             'props':{'children':"This is Temp column and row"},
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },'id':{"type":"filters-logic","index":0},'style':{'display':'none'}},
+#                         'type':'Row',
+#                         'namespace':'dash_bootstrap_components'
+#                     }
+#                     # log_row=Row(Col("This is Temp column and row"),id={"type":"filters-logic","index":0},style={'display':'none'}),
+
+#                 fil_condition_rows.append(log_row)
+#                 fil_condition_rows.append(condi_row)
+                
+
+#             # print(f"DFD {fil_condition_rows}")
+#             fil_div = [
+#                 {
+#                     'props':{'children':[
+#                         {
+#                             'props':{'children':{
+#                                 'props':{
+#                                     'children':{
+#                                         'props':{'className':"fa fa-refresh"},
+#                                         'type':'I',
+#                                         'namespace':'dash_html_components'
+#                                     },
+#                                     'id':'filters-clear-all'
+#                                 },
+#                                 'type':'A',
+#                                 'namespace':'dash_html_components'
+#                             },'className': 'text-right'},
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         },
+
+
+#                         {
+#                             'props':{'children':'Select or drop rows'},
+#                             'type':'Label',
+#                             'namespace':'dash_html_components'
+#                         },
+
+#                         {
+#                             'props':{
+#                                 'id':'filters-select-drop',
+#                                 'options':[{'label':v,'value':v} for v in ['Select','Drop']],
+#                                 'value':filters_data['filters'][in_k]['select_drop'],
+#                                 'style':{"width":"50%"}
+#                             },
+#                             'type':'Dropdown',
+#                             'namespace':'dash_core_components'
+#                         }
+#                     ]},
+#                     'type': 'FormGroup',
+#                     'namespace': 'dash_bootstrap_components'
+#                 },
+
+
+#                 {
+#                     'props':{'children':
+#                         {
+#                             'props':{'children':"Where"},
+#                             'type':'Label',
+#                             'namespace':'dash_html_components'
+#                         }
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace':'dash_bootstrap_components'
+#                 },
+
+#                 {
+#                     'props':{'children':fil_condition_rows,'id':'filters-conditional-div'},
+#                     'type':'Div',
+#                     'namespace':'dash_html_components'
+#                 },
+
+#                 {
+#                     'props':{'children':{
+#                         'props':{"children":{
+#                             'props':{
+#                                 'children':'add condition',
+#                                 'size':'sm',
+#                                 'id':'filters-add-condition',
+#                                 'n_clicks':0
+#                             },
+#                             'type':'Button',
+#                             'namespace':'dash_bootstrap_components'
+#                         }},
+#                         'type':'Col',
+#                         'namespace':'dash_bootstrap_components'
+#                     }},
+#                     'type':'Row',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#             ]
+            
+#         add_col_rows=[]
+#         if len(filters_data['add_new_col']) != 0:
+#             in_kk=list(filters_data["add_new_col"].keys())[0]
+            
+
+            
+#             # add_col_rows=[]
+#             for j,i in enumerate(filters_data['add_new_col'][in_kk]['index']):
+#                 add_col_grp1 = {
+#                     'props':{
+#                         'children':[
+#                             {
+#                                 'props':{
+#                                     'children':{
+#                                         'props':{
+#                                             'children':{
+#                                                 'props':{
+#                                                     'className':"fa fa-trash"
+#                                                 },
+#                                                 'type':'I',
+#                                                 'namespace':'dash_html_components'
+#                                             },
+#                                             'id':{'type':'add-col-remove','index':i}
+#                                         },
+#                                         'type':'A',
+#                                         'namespace':'dash_html_components'
+#                                     },
+#                                     'className':"text-right"
+#                                 },
+#                                 'type':'Col',
+#                                 'namespace':'dash_bootstrap_components'
+#                             },
+
+#                             {
+#                                 'props':{"children":"Enter column name"},
+#                                 'type':'Label',
+#                                 'namespace':'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":"add-new-col-name","index":i},
+#                                     'type':"text",
+#                                     'minLength':5,
+#                                     'required':True,
+#                                     'value':filters_data['add_new_col'][in_kk]['col_names'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace':'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+#                                     'color':"secondary"
+#                                 },
+#                                 'type':'FormText',
+#                                 'namespace':'dash_bootstrap_components'
+#                             },
+#                         ],
+#                         'id':{"type":'add-col-grp-1','index':i}
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#                 add_col_grp2 = {
+#                     'props':{
+#                         'children':[
+#                             {
+#                                 'props':{'children':"Assign value to new column"},
+#                                 'type':'Label',
+#                                 'namespace':'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'add-col-value-input',"index":i},
+#                                     'type':'text',
+#                                     'required':True,
+#                                     'value':filters_data['add_new_col'][in_kk]['col_input'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace':'dash_core_components'
+#                             }
+#                         ],
+#                         'id':{"type":'add-col-grp-2','index':i}
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#                 add_col_hr3 = {
+#                     'props':{'children':None},
+#                     'type':'Hr',
+#                     'namespace':'dash_html_components'
+#                 }            
 
         
 
-                add_col_rows.append(add_col_grp1)
-                add_col_rows.append(add_col_grp2)
-                add_col_rows.append(add_col_hr3)
+#                 add_col_rows.append(add_col_grp1)
+#                 add_col_rows.append(add_col_grp2)
+#                 add_col_rows.append(add_col_hr3)
             
-            # print(f"sdfsdf {fil_div}")
-            # print(f"dssdf {childs}")
-            add_col_div =  [
-                {
-                    'props':{
-                        'children':add_col_rows,
-                        'id':"add-col-form"
-                    },
-                    'type':'Form',
-                    'namespace':'dash_bootstrap_components'
-                },
+#             # print(f"sdfsdf {fil_div}")
+#             # print(f"dssdf {childs}")
+#             add_col_div =  [
+#                 {
+#                     'props':{
+#                         'children':add_col_rows,
+#                         'id':"add-col-form"
+#                     },
+#                     'type':'Form',
+#                     'namespace':'dash_bootstrap_components'
+#                 },
 
-                {
-                    'props':{'children':None},
-                    'type':'Hr',
-                    'namespace':'dash_html_components'
-                },
+#                 {
+#                     'props':{'children':None},
+#                     'type':'Hr',
+#                     'namespace':'dash_html_components'
+#                 },
 
-                {
-                    'props':{
-                        'children':{
-                            'props':{
-                                'children':{
-                                    'props':{
-                                        'children':"Add column",
-                                        'id':"add-col-new-col-but"
-                                    },
-                                    'type':'Button',
-                                    'namespace':'dash_html_components'
-                                }
-                            },
-                            'type':'Col',
-                            'namespace':'dash_bootstrap_components'
-                        }
-                    },
-                    'type':'Row',
-                    'namespace':'dash_bootstrap_components'
-                }
-            ]
-        if add_col_rows != [] and fil_div != []:
-            return fil_div, add_col_div
-        elif fil_div != [] and add_col_rows == []:
-            return fil_div, empty_div_add
-        elif fil_div == [] and add_col_rows != []:
-            return empty_div, add_col_div
+#                 {
+#                     'props':{
+#                         'children':{
+#                             'props':{
+#                                 'children':{
+#                                     'props':{
+#                                         'children':"Add column",
+#                                         'id':"add-col-new-col-but"
+#                                     },
+#                                     'type':'Button',
+#                                     'namespace':'dash_html_components'
+#                                 }
+#                             },
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         }
+#                     },
+#                     'type':'Row',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#             ]
+#         if add_col_rows != [] and fil_div != []:
+#             return fil_div, add_col_div
+#         elif fil_div != [] and add_col_rows == []:
+#             return fil_div, empty_div_add
+#         elif fil_div == [] and add_col_rows != []:
+#             return empty_div, add_col_div
 
-    elif triggred_compo == "filters-data" and filters_data['filters']=={} and \
-        filters_data['status'] is True:
-        return empty_div, empty_div_add
-    else:
-        # return childs
-        raise PreventUpdate
+#     elif triggred_compo == "filters-data" and filters_data['filters']=={} and \
+#         filters_data['status'] is True:
+#         add_col_rows=[]
+#         add_col_div=[]
+#         if len(filters_data['add_new_col']) != 0:
+#             in_kk=list(filters_data["add_new_col"].keys())[0]
+            
+#             # add_col_rows=[]
+#             for j,i in enumerate(filters_data['add_new_col'][in_kk]['index']):
+#                 add_col_grp1 = {
+#                     'props':{
+#                         'children':[
+#                             {
+#                                 'props':{
+#                                     'children':{
+#                                         'props':{
+#                                             'children':{
+#                                                 'props':{
+#                                                     'className':"fa fa-trash"
+#                                                 },
+#                                                 'type':'I',
+#                                                 'namespace':'dash_html_components'
+#                                             },
+#                                             'id':{'type':'add-col-remove','index':i}
+#                                         },
+#                                         'type':'A',
+#                                         'namespace':'dash_html_components'
+#                                     },
+#                                     'className':"text-right"
+#                                 },
+#                                 'type':'Col',
+#                                 'namespace':'dash_bootstrap_components'
+#                             },
+
+#                             {
+#                                 'props':{"children":"Enter column name"},
+#                                 'type':'Label',
+#                                 'namespace':'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":"add-new-col-name","index":i},
+#                                     'type':"text",
+#                                     'minLength':5,
+#                                     'required':True,
+#                                     'value':filters_data['add_new_col'][in_kk]['col_names'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace':'dash_core_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     "children":"Type column name without any spaces, special characters. Except 'underscore '_''",
+#                                     'color':"secondary"
+#                                 },
+#                                 'type':'FormText',
+#                                 'namespace':'dash_bootstrap_components'
+#                             },
+#                         ],
+#                         'id':{"type":'add-col-grp-1','index':i}
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#                 add_col_grp2 = {
+#                     'props':{
+#                         'children':[
+#                             {
+#                                 'props':{'children':"Assign value to new column"},
+#                                 'type':'Label',
+#                                 'namespace':'dash_html_components'
+#                             },
+
+#                             {
+#                                 'props':{
+#                                     'id':{"type":'add-col-value-input',"index":i},
+#                                     'type':'text',
+#                                     'required':True,
+#                                     'value':filters_data['add_new_col'][in_kk]['col_input'][j]
+#                                 },
+#                                 'type':'Input',
+#                                 'namespace':'dash_core_components'
+#                             }
+#                         ],
+#                         'id':{"type":'add-col-grp-2','index':i}
+#                     },
+#                     'type':'FormGroup',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#                 add_col_hr3 = {
+#                     'props':{'children':None},
+#                     'type':'Hr',
+#                     'namespace':'dash_html_components'
+#                 }            
+
+        
+
+#                 add_col_rows.append(add_col_grp1)
+#                 add_col_rows.append(add_col_grp2)
+#                 add_col_rows.append(add_col_hr3)
+            
+#             # print(f"sdfsdf {fil_div}")
+#             # print(f"dssdf {childs}")
+#             add_col_div =  [
+#                 {
+#                     'props':{
+#                         'children':add_col_rows,
+#                         'id':"add-col-form"
+#                     },
+#                     'type':'Form',
+#                     'namespace':'dash_bootstrap_components'
+#                 },
+
+#                 {
+#                     'props':{'children':None},
+#                     'type':'Hr',
+#                     'namespace':'dash_html_components'
+#                 },
+
+#                 {
+#                     'props':{
+#                         'children':{
+#                             'props':{
+#                                 'children':{
+#                                     'props':{
+#                                         'children':"Add column",
+#                                         'id':"add-col-new-col-but"
+#                                     },
+#                                     'type':'Button',
+#                                     'namespace':'dash_html_components'
+#                                 }
+#                             },
+#                             'type':'Col',
+#                             'namespace':'dash_bootstrap_components'
+#                         }
+#                     },
+#                     'type':'Row',
+#                     'namespace':'dash_bootstrap_components'
+#                 }
+#             ]
+#         if add_col_rows != []:
+#             return empty_div, add_col_div
+#         else:
+#             return empty_div, empty_div_add
+#     else:
+#         # return childs
+#         raise PreventUpdate
 
 # retrived status
 @app.callback(
@@ -1860,19 +3529,22 @@ app.clientside_callback(
 # clear added filter component
 app.clientside_callback(
     '''
-    function close_condition(n_clicks,id,childs,fil_childs,data) {
-        if (n_clicks != null){
-            return null, null
+    function close_condition(n_clicks,condi_rows,fil_logic) {
+        //console.log('logic-close',n_clicks)
+        if (n_clicks != null && n_clicks != undefined && n_clicks > 0){
+            return [null, null]
+        } else {
+            return [condi_rows,fil_logic]
         }
     }
     ''',
     Output({'type':'condition-rows','index':MATCH},'children'),
     Output({'type':'filters-logic','index':MATCH},'children'),
     Input({'type':'logic-close','index':MATCH},'n_clicks'),#filters trash icon click
-    State({'type':'logic-close','index':MATCH},'id'),
+    # State({'type':'logic-close','index':MATCH},'id'),
     State({'type':'condition-rows','index':MATCH},'children'),
     State({'type':'filters-logic','index':MATCH},'children'),
-    State('filters-data','data'),
+    # State('filters-data','data'),
     prevent_initial_call=True
 )
 
@@ -3030,7 +4702,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
     
 
     triggred_compo = ctx.triggered[0]['prop_id'].split('.')[0]
-    print(f"##### {triggred_compo}",flush=True)
+    # print(f"##### {triggred_compo}",flush=True)
     # print(f"##### {add_col_data}",flush=True)
 
 
@@ -3663,7 +5335,7 @@ def update_table_all(rel_n_clicks,ret_data,menu_n_clicks,fil_clear_all_n_clicks,
                 rows,trans_column_data, trans_fil_condi,csv_string,filters_data,table_row,None,None
     
     elif triggred_compo.rfind('applied-changes-menu') > -1:
-        print(f"{apply_menu_child}",flush=True)
+        # print(f"{apply_menu_child}",flush=True)
         if any(menu_n_clicks):
             for idx,i in enumerate(menu_n_clicks):
 

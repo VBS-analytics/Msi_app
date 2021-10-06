@@ -103,11 +103,11 @@ def get_download_data(ret_data,loc,file_name):
         
         # print(csv_string)
         if csv_string is not None:
-            get_downloaded_data_to_folder(csv_string,loc,file_name)
+            get_downloaded_data_to_folder(csv_string,loc,file_name,ret_data["sch_email"])
 
 
 if __name__ == '__main__':
-    # print(sys.argv[1])
+    print(sys.argv[1])
     # dir_path = os.path.dirname(os.path.realpath(__file__))
     # loc = os.path.join(os.path.join(dir_path,'media'),'django_app')
     loc = "/app/django_app/media/django_app"

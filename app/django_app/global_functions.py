@@ -32,7 +32,7 @@ def get_table_names():
     db_connection = create_engine(db_connection_str)
     DB_TABLE_NAMES = db_connection.table_names()
     db_connection=db_connection.dispose()
-    print(DB_TABLE_NAMES)
+    # print(DB_TABLE_NAMES)
     return DB_TABLE_NAMES
 
 # creates a sql query of the relationship. 
@@ -858,7 +858,7 @@ def get_transformations(relationship_data,filters_data,col):
         filter_query = table_name.replace(';',condi+';')
     else:
         filter_query = table_name
-    print(f"MAIN ma {filter_query}",flush=True)
+    # print(f"MAIN ma {filter_query}",flush=True)
     
     # creating conditional columns.
     # if columns_select != []:
@@ -1322,7 +1322,7 @@ def get_downloaded_data(download_data):
 
 
 # function to export the table as excel file.
-def get_downloaded_data_to_folder(download_data,loc,file_name):
+def get_downloaded_data_to_folder(download_data,loc,file_name,sch_email):
     '''
     This function returns the table which appears on format mapping tab as excel.
     this function accepts **download_data** a dict variable which as all the data about
@@ -1351,7 +1351,8 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
     else:
         main_query = table_name
         # columns_select=[]
-    
+    print(f"Main Query used to download data.\n{main_query}",flush=True)
+    # print(,flush=True)
     try:
         df1 = read_sql(main_query, con=db_connection)
         # rows = read_sql(main_query.replace(re.findall('SELECT.*FROM',main_query)[0],"SELECT COUNT(*) FROM"),con=db_connection)['COUNT(*)'][0]
@@ -1376,6 +1377,7 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
         # writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
         
         df1.rename(columns=download_data['col_replace']).to_excel(os.path.join(loc,file_name),index=False)
+        send_email_with_attach(os.path.join(loc,file_name),sch_email)
         # writer.save()
         # xlsx_io.seek(0)
         # https://en.wikipedia.org/wiki/Data_URI_scheme
@@ -1388,6 +1390,7 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
         # writer = ExcelWriter(xlsx_io, engine='xlsxwriter')
         
         df1.to_excel(os.path.join(loc,file_name),index=False)
+        send_email_with_attach(os.path.join(loc,file_name),sch_email)
         # writer.save()
         # xlsx_io.seek(0)
         # # https://en.wikipedia.org/wiki/Data_URI_scheme
@@ -1396,6 +1399,73 @@ def get_downloaded_data_to_folder(download_data,loc,file_name):
         # csv_string = f'data:{media_type};base64,{data}'
         
         # return csv_string
+
+
+# send mail
+def send_email_with_attach(filename,sch_email):
+    import smtplib, ssl
+    from email.mime.multipart import MIMEMultipart # for attachment
+    from email.mime.text import MIMEText # html format
+    from email.mime.application import MIMEApplication # for attachment
+
+    
+    
+    smtp_server = 'smtp.gmail.com'
+    smtp_port = 587 
+    #Replace with your own gmail account
+    print(sch_email,flush=True)
+    gmail = sch_email['from']
+    password = sch_email['pass']
+
+    message = MIMEMultipart('mixed')
+    message['From'] = 'Contact <{sender}>'.format(sender = gmail)
+    message['To'] = sch_email['to']
+    message['CC'] = sch_email['cc']
+    message['Subject'] = sch_email['sub']
+    to=sch_email['to']
+    cc=sch_email['cc']
+
+    msg_content = sch_email['msg']
+    msg_html_body = f'<!doctype html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head> <title></title> <meta http-equiv="X-UA-Compatible" content="IE=edge"> \
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1"> \
+        <style type="text/css"> #outlook a{{padding: 0;}}.ReadMsgBody{{width: 100%;}}.ExternalClass{{width: 100%;}}.ExternalClass *{{line-height: 100%;}}body{{margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;}}table, td{{border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;}}img{{border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;}} \
+        p{{display: block; margin: 13px 0;}}</style> <style type="text/css"> @media only screen and (max-width:480px){{@-ms-viewport{{width: 320px;}}@viewport{{width: 320px;}}}}</style> \
+        <style type="text/css"> @media only screen and (min-width:480px){{.mj-column-per-100{{width: 100% !important;}}}}</style> <style type="text/css"> </style></head> \
+        <body style="background-color:#f9f9f9;"> <div style="background-color:#f9f9f9;"> <div style="background:#f9f9f9;background-color:#f9f9f9;Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#f9f9f9;background-color:#f9f9f9;width:100%;"> \
+        <tbody> <tr> <td style="border-bottom:#d81b1b solid 10px;direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> </td></tr></tbody> </table> </div><div style="background:#fff;background-color:#fff;Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#fff;background-color:#fff;width:100%;"> <tbody> <tr> <td style="border:#dddddd solid 1px;border-top:0px;direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> <div class="mj-column-per-100 outlook-group-fix" style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:bottom;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:bottom;" width="100%"> <tr> <td align="center" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border-spacing:0px;"> <tbody> <tr> <td style="width:64px;"> <img height="auto" \
+        src="data:image/png;base64,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" style="border:0;display:block;outline:none;text-decoration:none;width:100%;" width="64"/> </td></tr></tbody> </table> </td></tr><tr> <td align="center" style="font-size:0px;padding:10px 25px;padding-bottom:40px;word-break:break-word;"> \
+        <div style="font-family:\'Helvetica Neue\',Arial,sans-serif;font-size:28px;font-weight:bold;line-height:1;text-align:center;color:#555;"> MIS report generator <sup><i>beta*</i></sup> </div> \
+        </td></tr><hr><tr> <td align="left" style="font-size:0px;padding:10px 25px;word-break:break-word;"> <div style="font-family:\'Helvetica Neue\',Arial,sans-serif;font-size:16px;line-height:22px; \
+        text-align:left;color:#555;"> {msg_content} </div></td></tr></table> </div><div style="Margin:0px auto;max-width:600px;"> <table align="center" border="0" cellpadding="0" cellspacing="0" \
+        role="presentation" style="width:100%;"> <tbody> <tr> <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;vertical-align:top;"> <div class="mj-column-per-100 outlook-group-fix" \
+        style="font-size:13px;text-align:left;direction:ltr;display:inline-block;vertical-align:bottom;width:100%;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"> <tbody> <tr> \
+        <td style="vertical-align:bottom;padding:0;"> <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%"><hr><tr><td align="center" style="font-size:0px;padding:0;word-break:break-word;"> \
+        <div style="font-family:\'Helvetica Neue\',Arial,sans-serif;font-size:12px;font-weight:300;line-height:1;text-align:center;color:#575757;"> Valuestream Business Solutions Pvt Ltd, Zenith house. 1st floor b wing, \
+        </div><div style="font-family:\'Helvetica Neue\',Arial,sans-serif;font-size:12px;font-weight:300;line-height:1;text-align:center;color:#575757;"> # 4 Industrial Layout, Koramangala, 7th block Bangalore - 560095 \
+        </div></td></tr></table> </td></tr></tbody> </table> </div></td></tr></tbody> </table> </div></div></body></html>'
+    body = MIMEText(msg_html_body, 'html')
+    message.attach(body)
+
+    attachmentPath = filename
+    try:
+        with open(attachmentPath, "rb") as attachment:
+            p = MIMEApplication(attachment.read(),_subtype="pdf")	
+            p.add_header('Content-Disposition', "attachment; filename= %s" % attachmentPath.split("/")[-1]) 
+            message.attach(p)
+    except Exception as e:
+        print(str(e),flush=True)
+    msg_full = message.as_string()
+    context = ssl.create_default_context()
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.ehlo()  
+        server.starttls(context=context)
+        server.ehlo()
+        server.login(gmail, password)
+        server.sendmail(gmail,to.split(";") + (cc.split(";") if cc else []),msg_full)
+        server.quit()
+
+    print(f"email sent out successfully to {to} and cc {cc} from {gmail}",flush=True)
+
 
 
 # return table for the frontend.
